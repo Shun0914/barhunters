@@ -1,0 +1,14 @@
+# ドキュメント（ヒアリング・議事録は追跡対象外）
+docs/hearing/
+docs/minutes/
+
+# OS
+.DS_Store
+**/.DS_Store
+
+# Claude
+.claude/
+**/.claude/
+
+# 不明ファイル
+docs/research/.pdf
