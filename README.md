@@ -1,0 +1,71 @@
+# barhunters
+
+西部ガスグループ向け **人的資本・挑戦活動の可視化** と、クエスト（Tech0 Step4）に沿ったプロダクト開発のリポジトリです。経営・部門長・現場が同じストーリーで状況を把握できることを目指します。
+
+---
+
+## ディレクトリ構成（現状と予定）
+
+```
+bar_hunters/
+├── README.md                 # 本ファイル（リポジトリ全体の案内）
+├── docs/                     # ドキュメント一式（編集・正の議論は主にここ）
+│   ├── design/               # コンセプト、企画資料、Figma 連携メモ
+│   ├── planning/             # スプリント、宿題、スケジュール、ロードマップ
+│   ├── research/             # クエスト原文、事例調査、UI 調査
+│   └── requirements/         # 要件ドラフト（基本要件・機能一覧・非機能・データ）
+├── dashboard/                # モック・静的プロトタイプ専用（下記参照）
+├── frontend/                 # （予定）本番向けフロントエンド（例: Next.js）
+└── backend/                  # （予定）本番向け API・バッチ（例: FastAPI）
+```
+
+### `dashboard/` について
+
+- **用途**: Figma に近い画面イメージの**モック**、因果チェーンなどの**静的ビュー**の置き場です。
+- **本番実装の編集先ではありません。** 新規開発は **`frontend/` / `backend/`** を追加したうえでそちらを主戦場にしてください。
+- 主要ファイル例: `index.html` と JSX 分割、`remixed-9d8265c3.html`（因果チェーン v9.2）、`style.css`、`data.js`。
+
+### `docs/` について
+
+| サブディレクトリ | 内容 |
+|------------------|------|
+| `design/` | サービス企画整理版、部門長 MVP コンセプト、提案叩き台、仮説ワークなど |
+| `planning/` | スプリント整合、全体スケジュール、FigJam 連携、宿題・スプリントメモ |
+| `research/` | 企業クエスト本文、参考サービス、カラー・フォント調査 |
+| `requirements/` | 要件のたたき台（索引は [docs/requirements/README.md](docs/requirements/README.md)） |
+
+※ `docs/hearing/`・`docs/minutes/` は `.gitignore` で除外している場合があります（ローカル限定の議事・ヒアリング用）。
+
+---
+
+## 技術方針（参照）
+
+クエスト推奨スタックは **フロント: Next.js / サーバー: FastAPI / インフラ: Azure** です（詳細は `docs/research/Tech0_Step4_西部ガス企業クエスト.md`）。  
+`frontend/`・`backend/` を新設するときは、この方針と `docs/requirements/` の非機能要件を前提にしてください。
+
+---
+
+## モックの閲覧（参考）
+
+`dashboard/` 内の HTML は、ローカルでファイルを開くか、簡易 HTTP サーバから配信して確認できます。
+
+```bash
+# 例: リポジトリルートで
+python3 -m http.server 8080
+# ブラウザで http://localhost:8080/dashboard/ を開く
+```
+
+JSX をそのままブラウザが解釈しない構成のファイルがある場合は、ビルド手順を別途 `frontend/` 側に定義する想定です。
+
+---
+
+## 関連リンク（外部）
+
+- リモート: `https://github.com/Shun0914/barhunters.git`
+- デザイン・ボード類は FigJam / Figma を正とし、要件との対応は `docs/requirements/01_基本要件定義書.md` を参照。
+
+---
+
+## ライセンス
+
+未設定の場合はリポジトリオーナーに従ってください。
