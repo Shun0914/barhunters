@@ -11,3 +11,5 @@
 | [05_アーキテクチャ.md](./05_アーキテクチャ.md) | 論理構成（FE / API / DB）、環境の区分、インフラ詳細は TBD で記載 |
 
 **UI の正**: Figma ファイル `nEqeLUmA2uW8vWINJNO01U`（例: 因果ストーリー `node-id=1-24`、ポイント申請 `node-id=1-133`）。URL は環境に応じて差し替え可。部門長向けモバイル案は別 Figma 等で管理する場合があり、スコープは [01](./01_基本要件定義書.md) の未割当を参照。
+
+因果チェーン v9.2 の **ノード・エッジの機械可読データ**（モック HTML と同等）は [docs/data/causal_chain_v9_2.json](../data/causal_chain_v9_2.json)（生成手順は [docs/data/README.md](../data/README.md)）。

@@ -13,7 +13,8 @@ bar_hunters/
 │   ├── design/               # サービス企画資料（整理版）
 │   ├── planning/             # 開発プランニング（3 スプリント等）
 │   ├── research/             # クエスト原文、事例調査、UI 調査
-│   └── requirements/         # 要件ドラフト（基本要件・機能一覧・非機能・データ）
+│   ├── requirements/         # 要件ドラフト（基本要件・機能一覧・非機能・データ）
+│   └── data/                 # 因果チェーン等の機械可読データ（JSON）
 ├── dashboard/                # モック・静的プロトタイプ専用（下記参照）
 ├── frontend/                 # （予定）本番向けフロントエンド（例: Next.js）
 └── backend/                  # （予定）本番向け API・バッチ（例: FastAPI）
@@ -34,6 +35,7 @@ bar_hunters/
 | `research/` | 企業クエスト本文、参考サービス、カラー・フォント調査 |
 | `requirements/` | 要件のたたき台（索引は [docs/requirements/README.md](docs/requirements/README.md)） |
 | `setup/` | **開発環境・GitHub 運用・テスト運用**の索引（[docs/setup/README.md](docs/setup/README.md)） |
+| `data/` | 因果チェーン等の **JSON データ**（[docs/data/README.md](docs/data/README.md)） |
 
 ※ `docs/hearing/`・`docs/minutes/` は `.gitignore` で除外している場合があります（ローカル限定の議事・ヒアリング用）。
 
