@@ -33,6 +33,7 @@ bar_hunters/
 | `planning/` | 開発スプリントの計画・チケット分解（現状は `開発プランニング_3スプリント.md` を中心） |
 | `research/` | 企業クエスト本文、参考サービス、カラー・フォント調査 |
 | `requirements/` | 要件のたたき台（索引は [docs/requirements/README.md](docs/requirements/README.md)） |
+| `setup/` | **開発環境・GitHub 運用・テスト運用**の索引（[docs/setup/README.md](docs/setup/README.md)） |
 
 ※ `docs/hearing/`・`docs/minutes/` は `.gitignore` で除外している場合があります（ローカル限定の議事・ヒアリング用）。
 
