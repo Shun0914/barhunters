@@ -74,9 +74,13 @@ python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -U pip setuptools wheel
 pip install -e .
-cp .env.example .env               # 初回のみ
+pip install -e ".[dev]"           # Alembic 用
+cp .env.example .env             # 初回のみ
+alembic upgrade head             # DB スキーマ適用（初回・マイグレーション更新後）
 uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
+
+**スキーマをクリーンに作り直す場合（開発）**: `backend/local.db` を削除してから `alembic upgrade head` を再実行してください。
 
 **Windows（PowerShell の例）**
 
@@ -86,7 +90,9 @@ py -3.12 -m venv .venv             # または: python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -U pip setuptools wheel
 pip install -e .
+pip install -e ".[dev]"
 Copy-Item .env.example .env        # 初回のみ
+alembic upgrade head
 uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
@@ -94,6 +100,7 @@ uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 
 - `curl -s http://127.0.0.1:8000/health`
 - `curl -s http://127.0.0.1:8000/api/hello`（DB に `SELECT 1` を実行したうえで JSON を返す）
+- `curl -s http://127.0.0.1:8000/api/db/meta`（マイグレーション後: Alembic バージョンとテーブル件数）
 - ブラウザで `http://127.0.0.1:8000/docs`（OpenAPI）
 
 Lint（任意）: `pip install -e ".[dev]"` のあと `ruff check .`。

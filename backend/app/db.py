@@ -1,6 +1,6 @@
 """ローカル開発用の最小 DB 接続（SQLite 既定）。"""
 
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.engine import Engine
 
 _engine: Engine | None = None
@@ -17,7 +17,17 @@ def get_engine(database_url: str) -> Engine:
     connect_args: dict = {}
     if database_url.startswith("sqlite"):
         connect_args["check_same_thread"] = False
+
     _engine = create_engine(database_url, pool_pre_ping=True, connect_args=connect_args)
+
+    if database_url.startswith("sqlite"):
+
+        @event.listens_for(_engine, "connect")
+        def _set_sqlite_pragma(dbapi_connection, _connection_record):  # type: ignore[no-untyped-def]
+            cursor = dbapi_connection.cursor()
+            cursor.execute("PRAGMA foreign_keys=ON")
+            cursor.close()
+
     _bound_url = database_url
     return _engine
 

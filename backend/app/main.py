@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.db import dispose_engine, get_engine
 from app.settings import get_settings
@@ -39,6 +40,27 @@ def create_app() -> FastAPI:
         with eng.connect() as conn:
             conn.execute(text("SELECT 1"))
         return {"message": "ok", "database": "ok"}
+
+    @app.get("/api/db/meta")
+    def db_meta() -> dict[str, object]:
+        """Alembic 適用状況と主要テーブル件数（開発用）。"""
+        s = get_settings()
+        eng = get_engine(s.DATABASE_URL)
+        try:
+            with eng.connect() as conn:
+                version = conn.execute(
+                    text("SELECT version_num FROM alembic_version LIMIT 1")
+                ).scalar_one_or_none()
+                counts: dict[str, int] = {}
+                for table in ("users", "activity_genres", "indicators", "point_applications"):
+                    q = text(f'SELECT COUNT(*) FROM "{table}"')
+                    counts[table] = int(conn.execute(q).scalar() or 0)
+                return {"alembic_version": version, "tables": counts}
+        except SQLAlchemyError as e:
+            return {
+                "error": str(e),
+                "hint": "cd backend && pip install -e '.[dev]' && alembic upgrade head",
+            }
 
     return app
 

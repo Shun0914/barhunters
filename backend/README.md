@@ -24,6 +24,23 @@ pip install -e .
 
 `.env.example` を `.env` にコピーし、必要に応じて値を変更します。
 
+マイグレーション（**Alembic**）と開発ツールを使う場合は **`pip install -e ".[dev]"`** を実行してください。
+
+## マイグレーション（Alembic）
+
+**初回**またはリビジョンを取り込んだあと、`backend/` で次を実行します。
+
+```bash
+pip install -e ".[dev]"
+alembic upgrade head
+```
+
+- **スキーマを作り直す（開発のみ）**: `local.db` を削除してから再度 `alembic upgrade head`（既存データは失われます）。
+- **1 つ前に戻す**: `alembic downgrade -1`
+- **テーブルと要件・Issue の対応**: [docs/schema_notes.md](docs/schema_notes.md)
+
+PostgreSQL 等へ移行する際は、`UUID` 型への変更などを別リビジョンで扱う想定です（現状は SQLite 向けの型定義）。
+
 ## 起動
 
 ```bash
@@ -32,6 +49,18 @@ uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 
 - API ドキュメント: <http://127.0.0.1:8000/docs>
 - ヘルス: `GET /health`
+- DB メタ（マイグレーション適用後）: `GET /api/db/meta` — Alembic リビジョンと主要テーブルの件数
+
+## 開発用シード（任意）
+
+```bash
+cd backend
+pip install -e ".[dev]"
+alembic upgrade head
+PYTHONPATH=. python scripts/seed_minimal.py
+```
+
+詳細は [scripts/seed_minimal.py](scripts/seed_minimal.py) を参照。
 
 ## Lint（任意）
 
