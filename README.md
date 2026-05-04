@@ -16,8 +16,8 @@ bar_hunters/
 │   ├── requirements/         # 要件ドラフト（基本要件・機能一覧・非機能・データ）
 │   └── data/                 # 因果チェーン等の機械可読データ（JSON）
 ├── dashboard/                # モック・静的プロトタイプ専用（下記参照）
-├── frontend/                 # （予定）本番向けフロントエンド（例: Next.js）
-└── backend/                  # （予定）本番向け API・バッチ（例: FastAPI）
+├── frontend/                 # 本番向けフロントエンド（Next.js）
+└── backend/                  # 本番向け API（FastAPI）
 ```
 
 ### `dashboard/` について
@@ -44,7 +44,18 @@ bar_hunters/
 ## 技術方針（参照）
 
 クエスト推奨スタックは **フロント: Next.js / サーバー: FastAPI / インフラ: Azure** です（詳細は `docs/research/Tech0_Step4_西部ガス企業クエスト.md`）。  
-`frontend/`・`backend/` を新設するときは、この方針と `docs/requirements/` の非機能要件を前提にしてください。
+`frontend/`・`backend/` の実装は、この方針と `docs/requirements/` の非機能要件を前提にしてください。
+
+---
+
+## 本番向けアプリのローカル起動（スプリント1）
+
+API とフロントを別ターミナルで起動し、トップページに API 応答が表示されれば疎通成功です。手順の詳細は **[docs/setup/setup.md](docs/setup/setup.md) の §3** を参照してください。
+
+| 役割 | ディレクトリ | 例（開発） |
+|------|----------------|------------|
+| API | `backend/` | `http://127.0.0.1:8000`（`/health`, `/api/hello`, `/docs`） |
+| UI | `frontend/` | `http://localhost:3000` |
 
 ---
 
@@ -58,7 +69,7 @@ python3 -m http.server 8080
 # ブラウザで http://localhost:8080/dashboard/ を開く
 ```
 
-JSX をそのままブラウザが解釈しない構成のファイルがある場合は、ビルド手順を別途 `frontend/` 側に定義する想定です。
+JSX をそのままブラウザが解釈しない構成のファイルがある場合は、`frontend/` のビルド手順に従ってください。
 
 ---
 
