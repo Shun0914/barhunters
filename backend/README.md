@@ -5,6 +5,7 @@ FastAPI で実装する API サーバーです。
 ## 前提
 
 - Python **3.10 以上**（[docs/setup/setup.md](../docs/setup/setup.md) と整合）
+- **Windows** の場合は venv の有効化・ファイルコピー等が異なります。**[docs/setup/setup.md](../docs/setup/setup.md) の「Windows を使う場合」および §3.1 の Windows 例**を参照してください。
 
 ## DB 方針（ローカル・スプリント1）
 

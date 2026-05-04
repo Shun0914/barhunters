@@ -15,6 +15,8 @@ npm install
 npm run dev
 ```
 
+Windows（PowerShell）では `Copy-Item .env.example .env.local` を使ってください。詳細は [docs/setup/setup.md](../docs/setup/setup.md) の §3.2 を参照してください。
+
 [http://localhost:3000](http://localhost:3000) を開いてください。
 
 ## 環境変数
