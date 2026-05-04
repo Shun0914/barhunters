@@ -49,7 +49,7 @@ uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 
 - API ドキュメント: <http://127.0.0.1:8000/docs>
 - ヘルス: `GET /health`
-- DB メタ（マイグレーション適用後）: `GET /api/db/meta` — Alembic リビジョンと主要テーブルの件数
+- DB メタ（マイグレーション適用後）: `GET /api/db/meta` — Alembic リビジョンと主要テーブル（`notifications` を含む）の件数
 
 ## 開発用シード（任意）
 

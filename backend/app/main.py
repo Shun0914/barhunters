@@ -52,7 +52,13 @@ def create_app() -> FastAPI:
                     text("SELECT version_num FROM alembic_version LIMIT 1")
                 ).scalar_one_or_none()
                 counts: dict[str, int] = {}
-                for table in ("users", "activity_genres", "indicators", "point_applications"):
+                for table in (
+                    "users",
+                    "activity_genres",
+                    "indicators",
+                    "point_applications",
+                    "notifications",
+                ):
                     q = text(f'SELECT COUNT(*) FROM "{table}"')
                     counts[table] = int(conn.execute(q).scalar() or 0)
                 return {"alembic_version": version, "tables": counts}

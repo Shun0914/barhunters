@@ -100,7 +100,7 @@ uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 
 - `curl -s http://127.0.0.1:8000/health`
 - `curl -s http://127.0.0.1:8000/api/hello`（DB に `SELECT 1` を実行したうえで JSON を返す）
-- `curl -s http://127.0.0.1:8000/api/db/meta`（マイグレーション後: Alembic バージョンとテーブル件数）
+- `curl -s http://127.0.0.1:8000/api/db/meta`（マイグレーション後: Alembic バージョンとテーブル件数。`notifications` を含む）
 - ブラウザで `http://127.0.0.1:8000/docs`（OpenAPI）
 
 Lint（任意）: `pip install -e ".[dev]"` のあと `ruff check .`。

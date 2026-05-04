@@ -1,7 +1,7 @@
 """initial_schema — #10 TKT-S02-01 最小スキーマ（指標・申請・マスタ・ユーザー）。
 
 docs/requirements/04_データ要件.md §2.2 / §2.3 / §2.4 に対応。
-Notification（§2.5）は別マイグレーション予定。
+Notification（§2.5）はリビジョン `d4e8f0a2b6c1` で追加（本リビジョンには含まない）。
 
 Revision ID: bbef3e2293c9
 Revises:

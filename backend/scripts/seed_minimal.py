@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""開発用の最小シード（ユーザー・ジャンル・指標・下書き申請1件）。
+"""開発用の最小シード（ユーザー・ジャンル・指標・下書き申請1件・通知1件）。
 
 `backend/` をカレントにして実行::
 
@@ -22,7 +22,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.db import get_engine
-from app.models import ActivityGenre, Indicator, PointApplication, User
+from app.models import ActivityGenre, Indicator, Notification, PointApplication, User
 from app.settings import get_settings
 
 
@@ -62,9 +62,10 @@ def main() -> None:
         )
     )
 
+    app_id = str(uuid4())
     session.add(
         PointApplication(
-            id=str(uuid4()),
+            id=app_id,
             applicant_user_id=uid_demo,
             title="下書きサンプル",
             activity_genre_id=g1.id,
@@ -74,9 +75,25 @@ def main() -> None:
             status="draft",
         )
     )
+    session.flush()  # notifications.related_application_id の FK 用
+
+    session.add(
+        Notification(
+            id=str(uuid4()),
+            recipient_user_id=uid_approver,
+            notification_type="application_submitted",
+            title="申請が提出されました（シード）",
+            body_summary="下書きサンプル — 承認者向けのダミー通知です。",
+            read_at=None,
+            related_application_id=app_id,
+        )
+    )
     session.commit()
     session.close()
-    print("Seed OK: users x2, activity_genres x2, indicators x1, point_applications x1 (draft).")
+    print(
+        "Seed OK: users x2, activity_genres x2, indicators x1, "
+        "point_applications x1 (draft), notifications x1."
+    )
 
 
 if __name__ == "__main__":
