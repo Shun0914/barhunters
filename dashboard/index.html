@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>人的資本ダッシュボード | ばーはんたーず × 西部ガスHD</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=5">
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script src="data.js"></script>
+<script type="text/babel" src="ui.jsx"></script>
+<script type="text/babel" src="screen1.jsx"></script>
+<script type="text/babel" src="screen2.jsx"></script>
+<script type="text/babel" src="screen3.jsx"></script>
+<script type="text/babel" src="panels.jsx"></script>
+
+<script type="text/babel">
+const { useState, useEffect, useMemo } = React;
+
+// Tweak defaults (persistable)
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "dataset": "mixed",
+  "showYen": false,
+  "deptId": "sales"
+}/*EDITMODE-END*/;
+
+function App() {
+  const [screen, setScreen] = useState(() => localStorage.getItem('bh_screen') || 'dash');
+  const [deptId, setDeptId] = useState(() => localStorage.getItem('bh_dept') || TWEAK_DEFAULTS.deptId);
+  const [period, setPeriod] = useState('w');
+  const [dataset, setDataset] = useState(() => localStorage.getItem('bh_dataset') || TWEAK_DEFAULTS.dataset);
+  const [openMember, setOpenMember] = useState(null);
+  const [openPanel, setOpenPanel] = useState(null); // 'members' | '48h' | 'pending' | 'add' | null
+  const [tweaksOpen, setTweaksOpen] = useState(false);
+  const [showYen, setShowYen] = useState(TWEAK_DEFAULTS.showYen);
+  const [ononeState, setOnoneState] = useState({ count: 4, memo: '', saved: false });
+
+  const onApproveFeed = (id) => {
+    setFeed(prev => prev.map(f => f.id === id ? { ...f, approved: true } : f));
+  };
+
+  useEffect(() => { localStorage.setItem('bh_screen', screen); }, [screen]);
+  useEffect(() => { localStorage.setItem('bh_dept', deptId); }, [deptId]);
+  useEffect(() => { localStorage.setItem('bh_dataset', dataset); }, [dataset]);
+
+  // Live feed simulation — inject a new item every 8s
+  const [feed, setFeed] = useState([]);
+  useEffect(() => {
+    const initial = window.__DASH.generateFeed(dataset, 40);
+    setFeed(initial);
+    // Track which templates/people were recently used so consecutive injections feel fresh
+    let tick = 0;
+    const iv = setInterval(() => {
+      tick++;
+      setFeed(prev => {
+        const tpls = [
+          { cat: 'challenge', tag: 'future', text: '新規料金プランのA/Bテスト設計を48時間挑戦として宣言', pts: 5 },
+          { cat: 'challenge', tag: 'safety', text: '古い保安点検チェックリストをデジタル化するPoCを開始', pts: 8 },
+          { cat: 'help',      tag: 'social', text: '他部門の地域イベント運営を週末ヘルプ。メンバー3名で支援', pts: 4 },
+          { cat: 'learn',     tag: 'future', text: '顧客アンケート分析の初期モデル、精度が出ず。仮説再構築で再挑戦', pts: 3 },
+          { cat: 'onone',     tag: 'safety', text: '新任メンバーとの初回1on1実施。オンボ課題を3点整理', pts: 2 },
+          { cat: 'challenge', tag: 'social', text: '水素ステーション視察の社内勉強会を企画・実施', pts: 6 },
+          { cat: 'help',      tag: 'safety', text: '導管部の緊急対応マニュアル改訂に営業部視点でレビュー参加', pts: 3 },
+          { cat: 'challenge', tag: 'future', text: 'お客さまセンターの問合せログをLLMで自動分類する試作', pts: 7 },
+          { cat: 'learn',     tag: 'social', text: '地域共生イベントの集客が想定の6割。告知チャネル再設計', pts: 2 },
+          { cat: 'onone',     tag: 'future', text: 'キャリア面談で部下のストレッチゴールを一緒に言語化', pts: 3 },
+          { cat: 'help',      tag: 'future', text: 'DX推進部の要件整理ヒアリングに2h参加。現場用語を解説', pts: 3 },
+          { cat: 'challenge', tag: 'safety', text: '夜間対応の属人化解消、当番制＋チェックリスト運用を起案', pts: 6 },
+          { cat: 'help',      tag: 'social', text: '高齢者向けガス機器説明会の資料を部門横断で共作', pts: 4 },
+          { cat: 'learn',     tag: 'safety', text: '訓練シナリオの想定外ケース。次回は判断基準を事前共有', pts: 3 },
+          { cat: 'challenge', tag: 'future', text: '社内ナレッジ検索をベクトル検索に差し替えるPoC', pts: 7 },
+        ];
+        const DEPTS = window.__DASH.DEPARTMENTS;
+        const NAMES = window.__DASH.MEMBER_NAMES;
+        // avoid repeating previous "たった今" entry's text
+        const recentTexts = prev.slice(0, 3).map(p => p.text);
+        let tpl, tries = 0;
+        do {
+          tpl = tpls[Math.floor(Math.random() * tpls.length)];
+          tries++;
+        } while (recentTexts.includes(tpl.text) && tries < 6);
+        const dept = DEPTS[Math.floor(Math.random() * DEPTS.length)];
+        const person = NAMES[Math.floor(Math.random() * NAMES.length)];
+        const newOne = {
+          id: `live-${Date.now()}-${tick}`,
+          ...tpl,
+          deptId: dept.id,
+          deptName: dept.name,
+          person,
+          timeAgo: 'たった今',
+          minsAgo: 0,
+          approved: false,
+        };
+        return [newOne, ...prev].slice(0, 50);
+      });
+    }, 9000);
+    return () => clearInterval(iv);
+  }, [dataset]);
+
+  const allData = useMemo(() => window.__DASH.generateDeptData(dataset), [dataset]);
+  const allMembers = useMemo(() => window.__DASH.generateMembers(dataset), [dataset]);
+  const companySummary = useMemo(() => window.__DASH.generateCompanySummary(dataset), [dataset]);
+
+  const DEPTS = window.__DASH.DEPARTMENTS;
+  const currentDept = DEPTS.find(d => d.id === deptId);
+  const data = allData[deptId];
+  const members = allMembers[deptId];
+
+  // Listen for tweaks messages from host
+  useEffect(() => {
+    const h = (e) => {
+      if (e.data?.type === '__activate_edit_mode') setTweaksOpen(true);
+      if (e.data?.type === '__deactivate_edit_mode') setTweaksOpen(false);
+    };
+    window.addEventListener('message', h);
+    window.parent.postMessage({type: '__edit_mode_available'}, '*');
+    return () => window.removeEventListener('message', h);
+  }, []);
+
+  const updateTweak = (patch) => {
+    if (patch.dataset !== undefined) setDataset(patch.dataset);
+    if (patch.deptId !== undefined) setDeptId(patch.deptId);
+    if (patch.showYen !== undefined) setShowYen(patch.showYen);
+    window.parent.postMessage({type: '__edit_mode_set_keys', edits: patch}, '*');
+  };
+
+  const screenTitles = {
+    dash: { crumb: '部門ビュー', title: currentDept.name + ' ダッシュボード' },
+    compare: { crumb: '全社', title: '全社比較ビュー' },
+    causal: { crumb: '経営向け', title: '因果ストーリービュー' },
+  };
+
+  return (
+    <div className="app-shell" data-screen-label={screen}>
+      {/* Sidebar */}
+      <aside className="sidebar">
+        <div className="brand">
+          <div className="brand-mark">は</div>
+          <div>
+            <div className="brand-name">ばーはんたーず</div>
+            <div className="brand-sub">人的資本ダッシュボード</div>
+          </div>
+        </div>
+
+        <div>
+          <div className="sidebar-section-label">ダッシュボード</div>
+          <div className="nav">
+            <button className={`nav-item ${screen === 'dash' ? 'active' : ''}`} onClick={() => setScreen('dash')}>
+              <Icon.Home/> 部門長ダッシュボード <span className="nav-kbd">1</span>
+            </button>
+            <button className={`nav-item ${screen === 'compare' ? 'active' : ''}`} onClick={() => setScreen('compare')}>
+              <Icon.Compare/> 全社比較ビュー <span className="nav-kbd">2</span>
+            </button>
+            <button className={`nav-item ${screen === 'causal' ? 'active' : ''}`} onClick={() => setScreen('causal')}>
+              <Icon.Story/> 因果ストーリー <span className="nav-kbd">3</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="dept-switch">
+          <div className="dept-switch-label">閲覧中の部門</div>
+          <div className="dept-switch-current">
+            <span className="dept-dot" style={{background: currentDept.color}}/>
+            {currentDept.name}
+          </div>
+          <select className="dept-dropdown" value={deptId} onChange={(e) => setDeptId(e.target.value)}>
+            {DEPTS.map(d => <option key={d.id} value={d.id}>{d.name}（{d.lead}）</option>)}
+          </select>
+        </div>
+
+        <div>
+          <div className="sidebar-section-label">クイックリンク</div>
+          <div className="nav">
+            <button className={`nav-item`} onClick={() => setOpenPanel('members')}><Icon.Users/> メンバー一覧</button>
+            <button className={`nav-item`} onClick={() => setOpenPanel('48h')}><Icon.Sparkle/> 48時間挑戦</button>
+            <button className={`nav-item`} onClick={() => setOpenPanel('pending')}><Icon.Clock/> 承認待ち <span className="nav-kbd">{data.pending}</span></button>
+          </div>
+        </div>
+
+        <div className="sidebar-footer">
+          <Avatar name={currentDept.lead} size={30}/>
+          <div style={{flex: 1, minWidth: 0}}>
+            <div style={{fontSize: 12.5, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>{currentDept.lead}</div>
+            <div className="dim" style={{fontSize: 11}}>{currentDept.name}長</div>
+          </div>
+          <button className="btn-ghost notif-dot"><Icon.Bell/></button>
+        </div>
+      </aside>
+
+      {/* Main */}
+      <main className="main">
+        <header className="topbar">
+          <div>
+            <div className="topbar-crumb">{screenTitles[screen].crumb}</div>
+            <div className="topbar-title">{screenTitles[screen].title}</div>
+          </div>
+          <div className="topbar-spacer"/>
+          <div style={{position: 'relative'}}>
+            <span style={{position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-3)'}}><Icon.Search/></span>
+            <input placeholder="検索（メンバー・記録・タグ）" style={{
+              background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 7,
+              padding: '6px 10px 6px 30px', fontSize: 12.5, width: 240, color: 'var(--text-1)',
+            }}/>
+          </div>
+          <button className="topbar-action" onClick={() => setOpenPanel('add')}><Icon.Plus/>記録を追加</button>
+        </header>
+
+        {screen === 'dash' && (
+          <DeptDashboard
+            deptId={deptId}
+            data={data}
+            members={members}
+            feed={feed}
+            dept={currentDept}
+            period={period}
+            onPeriodChange={setPeriod}
+            onOpenMember={setOpenMember}
+            showYen={showYen}
+            ononeState={ononeState}
+            setOnoneState={setOnoneState}
+            onApproveFeed={onApproveFeed}
+          />
+        )}
+        {screen === 'compare' && (
+          <CompareView
+            allData={allData}
+            members={allMembers}
+            feed={feed}
+            onOpenMember={setOpenMember}
+            period={period}
+            onPeriodChange={setPeriod}
+          />
+        )}
+        {screen === 'causal' && (
+          <CausalView allData={allData} companySummary={companySummary}/>
+        )}
+      </main>
+
+      {/* Member Modal */}
+      {openMember && (
+        <div className="modal-backdrop" onClick={() => setOpenMember(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-head">
+              <Avatar name={openMember.name} size={42}/>
+              <div>
+                <div style={{fontSize: 17, fontWeight: 600}}>{openMember.name}</div>
+                <div className="dim" style={{fontSize: 12.5}}>{DEPTS.find(d=>d.id===openMember.deptId).name} · {openMember.role}</div>
+              </div>
+              <button className="modal-close" onClick={() => setOpenMember(null)}><Icon.Close/></button>
+            </div>
+            <div className="modal-body">
+              <div className="grid-3" style={{marginBottom: 16}}>
+                <div style={{padding: 12, background: 'var(--surface-2)', borderRadius: 8}}>
+                  <div className="label-sm">今月のポイント</div>
+                  <div style={{fontSize: 22, fontWeight: 700, marginTop: 3}}><PointValue value={openMember.points} showYen={showYen}/></div>
+                </div>
+                <div style={{padding: 12, background: 'var(--surface-2)', borderRadius: 8}}>
+                  <div className="label-sm">記録件数</div>
+                  <div style={{fontSize: 22, fontWeight: 700, marginTop: 3}}>{openMember.activities}<span className="dim" style={{fontSize: 13, fontWeight: 500, marginLeft: 4}}>件</span></div>
+                </div>
+                <div style={{padding: 12, background: 'var(--surface-2)', borderRadius: 8}}>
+                  <div className="label-sm">エンゲージ</div>
+                  <div style={{fontSize: 22, fontWeight: 700, marginTop: 3}}>{openMember.engagement}<span className="dim" style={{fontSize: 13, fontWeight: 500, marginLeft: 4}}>/ 100</span></div>
+                </div>
+              </div>
+              <div className="label-sm" style={{marginBottom: 6}}>内訳</div>
+              <div className="vstack">
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, padding: '8px 0', borderBottom: '1px solid var(--border)'}}>
+                  <span><Tag color="#6366F1">挑戦</Tag> 挑戦記録</span>
+                  <span className="tnum"><b>{openMember.challenges}</b> 件</span>
+                </div>
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, padding: '8px 0', borderBottom: '1px solid var(--border)'}}>
+                  <span><Tag color="#10B981">助け合い</Tag> 他部門支援</span>
+                  <span className="tnum"><b>{openMember.helps}</b> 件</span>
+                </div>
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, padding: '8px 0', borderBottom: '1px solid var(--border)'}}>
+                  <span><Tag color="#F59E0B">学び</Tag> 失敗・学び</span>
+                  <span className="tnum"><b>{openMember.learns}</b> 件</span>
+                </div>
+              </div>
+              <div style={{marginTop: 16, padding: 12, background: 'var(--brand-soft)', borderRadius: 8, fontSize: 12.5, color: 'var(--text-2)'}}>
+                <Icon.Sparkle style={{color: 'var(--brand)', marginRight: 4, verticalAlign: 'middle'}}/>
+                最終活動：{openMember.lastActive}。次回1on1でストレッチゴールの進捗を一緒に振り返りましょう。
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Quick panels */}
+      <PanelMembers open={openPanel === 'members'} onClose={() => setOpenPanel(null)} members={members} dept={currentDept} onOpenMember={setOpenMember}/>
+      <Panel48h open={openPanel === '48h'} onClose={() => setOpenPanel(null)} dept={currentDept}/>
+      <PanelPending open={openPanel === 'pending'} onClose={() => setOpenPanel(null)} feed={feed} onApprove={onApproveFeed} dept={currentDept}/>
+      <PanelAddRecord open={openPanel === 'add'} onClose={() => setOpenPanel(null)} dept={currentDept}/>
+
+      {/* Tweaks */}
+      <div className={`tweaks-panel ${tweaksOpen ? 'open' : ''}`}>
+        <div className="tweaks-head">
+          <Icon.Sparkle style={{color: 'var(--brand)'}}/>
+          Tweaks
+          <button className="modal-close" style={{marginLeft: 'auto'}} onClick={() => setTweaksOpen(false)}><Icon.Close/></button>
+        </div>
+        <div className="tweaks-body">
+          <div className="tweak-row">
+            <div className="tweak-label">データセット（ストーリー切替）</div>
+            <Segmented value={dataset} onChange={(v) => updateTweak({dataset: v})} options={[
+              {value: 'struggle', label: '苦戦'}, {value: 'mixed', label: 'ミックス'}, {value: 'boom', label: '好調'}
+            ]}/>
+            <div className="dim" style={{fontSize: 11}}>
+              {dataset === 'boom' && '全部門が活性化している"理想状態"。経営会議で見せる明るい未来像。'}
+              {dataset === 'mixed' && 'リアルなバラつき。好調部門と苦戦部門が混在する実態。'}
+              {dataset === 'struggle' && '立ち上げ直後の現実。ポイントが伸び悩む初期フェーズ。'}
+            </div>
+          </div>
+          <div className="tweak-row">
+            <div className="tweak-label">現在の部門</div>
+            <select className="dept-dropdown" value={deptId} onChange={(e) => updateTweak({deptId: e.target.value})}>
+              {DEPTS.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+            </select>
+          </div>
+          <div className="tweak-row">
+            <div className="tweak-label">ポイント⇔円換算の常時表示</div>
+            <div style={{display: 'flex', gap: 6}}>
+              <button className={`seg-btn ${!showYen ? 'active' : ''}`} style={{border: '1px solid var(--border)', flex: 1, padding: '6px 10px'}} onClick={() => updateTweak({showYen: false})}>ポイントのみ</button>
+              <button className={`seg-btn ${showYen ? 'active' : ''}`} style={{border: '1px solid var(--border)', flex: 1, padding: '6px 10px'}} onClick={() => updateTweak({showYen: true})}>P ＋ 円</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Keyboard shortcuts */}
+      <KeyboardNav setScreen={setScreen}/>
+    </div>
+  );
+}
+
+function KeyboardNav({ setScreen }) {
+  useEffect(() => {
+    const h = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      if (e.key === '1') setScreen('dash');
+      if (e.key === '2') setScreen('compare');
+      if (e.key === '3') setScreen('causal');
+    };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [setScreen]);
+  return null;
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

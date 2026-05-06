@@ -1,0 +1,1 @@
+"""barhunters FastAPI アプリケーション。"""

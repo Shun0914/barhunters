@@ -1,0 +1,872 @@
+{
+  "meta": {
+    "version": "9.2",
+    "title": "人的資本 因果チェーン v9.2",
+    "subtitle": "DE&I→ESG接続／保安ブランド→資本コスト低下／クロスレイヤー横ずらし＋ラベル／定量層ボックス拡大",
+    "sourceMock": "dashboard/remixed-9d8265c3.html",
+    "notes": [
+      "ノード id は layer-index または固定 id（ROIC 下部）。API v1 の契約・シードのたたき台として利用する。",
+      "座標・SVG は含まない。描画はクライアントがレイアウトエンジンで再現する。"
+    ]
+  },
+  "boxTypes": {
+    "quantitative": "定量指標（白枠）",
+    "measurement_design": "測定設計中（文献根拠あり・青）",
+    "qualitative_provisional": "定性指標（仮案・灰点線）",
+    "action": "アクション（3ステップ・ポイント付き）"
+  },
+  "nodes": [
+    {
+      "id": "ac-0",
+      "layer": "action",
+      "index": 0,
+      "boxType": "action",
+      "title": "①日常の一歩",
+      "pointsLabel": "1点",
+      "description": "日常業務の中での小さな行動\n助け合い・報告・改善提案\n毎日の積み重ねが文化をつくる",
+      "pillarTags": [
+        {
+          "label": "社会貢献",
+          "bg": "#fef3c7",
+          "fg": "#92400e"
+        },
+        {
+          "label": "安心安全",
+          "bg": "#dbeafe",
+          "fg": "#1e3a8a"
+        },
+        {
+          "label": "未来共創",
+          "bg": "#d1fae5",
+          "fg": "#065f46"
+        }
+      ]
+    },
+    {
+      "id": "ac-1",
+      "layer": "action",
+      "index": 1,
+      "boxType": "action",
+      "title": "②越境の一歩",
+      "pointsLabel": "3点",
+      "description": "部門・会社をまたいだ行動\nグループ横断・社外連携\n多様な視点が変革を生む",
+      "pillarTags": [
+        {
+          "label": "社会貢献",
+          "bg": "#fef3c7",
+          "fg": "#92400e"
+        },
+        {
+          "label": "安心安全",
+          "bg": "#dbeafe",
+          "fg": "#1e3a8a"
+        },
+        {
+          "label": "未来共創",
+          "bg": "#d1fae5",
+          "fg": "#065f46"
+        }
+      ]
+    },
+    {
+      "id": "ac-2",
+      "layer": "action",
+      "index": 2,
+      "boxType": "action",
+      "title": "③創造の一歩",
+      "pointsLabel": "5点",
+      "description": "新しい価値を生み出す行動\n新規提案・PoC・新事業創出\nイノベーションの起点となる",
+      "pillarTags": [
+        {
+          "label": "社会貢献",
+          "bg": "#fef3c7",
+          "fg": "#92400e"
+        },
+        {
+          "label": "安心安全",
+          "bg": "#dbeafe",
+          "fg": "#1e3a8a"
+        },
+        {
+          "label": "未来共創",
+          "bg": "#d1fae5",
+          "fg": "#065f46"
+        }
+      ]
+    },
+    {
+      "id": "ql-0",
+      "layer": "qualitative",
+      "index": 0,
+      "boxType": "measurement_design",
+      "title": "心理的安全性の醸成",
+      "kpi": "失敗を認め・挑戦を称える組織文化",
+      "evidence": "Edmondson 1999 / Googleプロジェクト・アリストテレス\n→挑戦指数・ENGの文化的基盤"
+    },
+    {
+      "id": "ql-1",
+      "layer": "qualitative",
+      "index": 1,
+      "boxType": "measurement_design",
+      "title": "挑戦できる風土",
+      "kpi": "未来をつなぐエネルギーとしての挑戦文化",
+      "evidence": "Edmondson 1999：心理的安全性→挑戦行動\n西部ガス ACT2027の精神的基盤"
+    },
+    {
+      "id": "ql-2",
+      "layer": "qualitative",
+      "index": 2,
+      "boxType": "measurement_design",
+      "title": "自律と対話の文化",
+      "kpi": "1on1・ストレッチゴール・コーチング文化",
+      "evidence": "Locke & Latham：目標設定→動機づけ\nSOMPOパーパス事例：自律文化→ENG向上"
+    },
+    {
+      "id": "ql-3",
+      "layer": "qualitative",
+      "index": 3,
+      "boxType": "measurement_design",
+      "title": "学習・成長の文化",
+      "kpi": "自発的な学びを称える組織風土",
+      "evidence": "Garavan et al.2021：学習文化→組織業績\n→変革人財・リスキルの文化的土台"
+    },
+    {
+      "id": "ql-4",
+      "layer": "qualitative",
+      "index": 4,
+      "boxType": "measurement_design",
+      "title": "デジタル技術活用の文化",
+      "kpi": "ツール・AI・データ活用に関する文化",
+      "evidence": "DX推進施策の文化的アウトカム\n→DXコア人財・業務効率化の土台"
+    },
+    {
+      "id": "ql-5",
+      "layer": "qualitative",
+      "index": 5,
+      "boxType": "measurement_design",
+      "title": "職務への誇り・貢献実感",
+      "kpi": "日々の業務が組織・社会に貢献しているという実感",
+      "evidence": "守りの部署・現場職種向けの指標\n→ENG・定着率の文化的基盤"
+    },
+    {
+      "id": "ql-6",
+      "layer": "qualitative",
+      "index": 6,
+      "boxType": "qualitative_provisional",
+      "title": "多様性を活かす文化",
+      "kpi": "多様な視点・アイデアが歓迎される雰囲気",
+      "evidence": "Post & Byron 2015：多様性→意思決定の質\n→女性管理職・育休取得の文化的基盤"
+    },
+    {
+      "id": "ql-7",
+      "layer": "qualitative",
+      "index": 7,
+      "boxType": "qualitative_provisional",
+      "title": "健康で安心な職場環境",
+      "kpi": "心身の健康が挑戦の基盤となる文化",
+      "evidence": "健康経営施策の文化的アウトカム\n→プレゼン・アブセン改善の土台"
+    },
+    {
+      "id": "ql-8",
+      "layer": "qualitative",
+      "index": 8,
+      "boxType": "qualitative_provisional",
+      "title": "脱炭素への挑戦文化",
+      "kpi": "CN2050に向けた全社的な行動変容",
+      "evidence": "環境意識・行動変容が事業競争力へ\n→CO2削減・再エネの文化的基盤"
+    },
+    {
+      "id": "c1-0",
+      "layer": "quantitative_primary",
+      "index": 0,
+      "boxType": "quantitative",
+      "title": "従業員エンゲージメント",
+      "kpi": "目標：65%以上（2027）",
+      "evidence": "Gallup：ウェルビーイングとENGの相関r=0.71\n上位企業は収益性23%高・生産性18%向上"
+    },
+    {
+      "id": "c1-1",
+      "layer": "quantitative_primary",
+      "index": 1,
+      "boxType": "quantitative",
+      "title": "ワーク・エンゲージメント",
+      "kpi": "目標：2.8点以上",
+      "evidence": "仕事への活力・没頭感\nストレスチェック時に測定（ENGの補完指標）"
+    },
+    {
+      "id": "c1-2",
+      "layer": "quantitative_primary",
+      "index": 2,
+      "boxType": "quantitative",
+      "title": "挑戦指数",
+      "kpi": "3.46→3.75（2027）",
+      "evidence": "高業績志向文化とレコグニション研究\n挑戦・学習意欲・成長実感の向上"
+    },
+    {
+      "id": "c1-3",
+      "layer": "quantitative_primary",
+      "index": 3,
+      "boxType": "quantitative",
+      "title": "変革人財の割合",
+      "kpi": "15%→20%（2027）",
+      "evidence": "Garavan：研修→スキル向上→変革人財強化"
+    },
+    {
+      "id": "c1-4",
+      "layer": "quantitative_primary",
+      "index": 4,
+      "boxType": "quantitative",
+      "title": "リスキル実践者数",
+      "kpi": "2,000名（3年累計）",
+      "evidence": "自律的キャリア形成・スキル専門性向上"
+    },
+    {
+      "id": "c1-5",
+      "layer": "quantitative_primary",
+      "index": 5,
+      "boxType": "quantitative",
+      "title": "DXコア人財育成",
+      "kpi": "650名（延べ）",
+      "evidence": "デジタル変革推進の担い手育成\nACT2027 DX戦略の中核"
+    },
+    {
+      "id": "c1-6",
+      "layer": "quantitative_primary",
+      "index": 6,
+      "boxType": "quantitative",
+      "title": "グループ横断配置",
+      "kpi": "20件（累計）",
+      "evidence": "多様な経験・視点の付与\n変革人財・イノベーション文化の基盤"
+    },
+    {
+      "id": "c1-7",
+      "layer": "quantitative_primary",
+      "index": 7,
+      "boxType": "quantitative",
+      "title": "プレゼンティーイズム",
+      "kpi": "80%→85%（2027）",
+      "evidence": "SAP事例：健康文化指数1%改善→営業利益増\n人件費×(1-発揮度%)=損失額（貨幣換算可）"
+    },
+    {
+      "id": "c1-8",
+      "layer": "quantitative_primary",
+      "index": 8,
+      "boxType": "quantitative",
+      "title": "アブセンティーイズム",
+      "kpi": "1.70→1.50日（2027）",
+      "evidence": "非自発的な欠勤（病気・メンタル不調）による損失\n定着率・組織活力への影響指標　ISO30414準拠"
+    },
+    {
+      "id": "c1-9",
+      "layer": "quantitative_primary",
+      "index": 9,
+      "boxType": "quantitative",
+      "title": "従業員定着率",
+      "kpi": "98.1%維持",
+      "evidence": "Gallup：高ENG組織は離職率18〜43%低\n定着→熟練技術継承→保安品質向上"
+    },
+    {
+      "id": "c1-10",
+      "layer": "quantitative_primary",
+      "index": 10,
+      "boxType": "quantitative",
+      "title": "女性管理職比率",
+      "kpi": "3.2%→6%(2027)/15%(2030)",
+      "evidence": "柳モデル実証：7年後PBR+2.4%\n施策から直接制御できる指標（点線接続）"
+    },
+    {
+      "id": "c1-11",
+      "layer": "quantitative_primary",
+      "index": 11,
+      "boxType": "quantitative",
+      "title": "男性育休取得率",
+      "kpi": "90.6%→100%（14日以上）",
+      "evidence": "Gallup：インクルーシブ文化→多様な働き方促進\n施策から直接制御できる指標（点線接続）"
+    },
+    {
+      "id": "c1-12",
+      "layer": "quantitative_primary",
+      "index": 12,
+      "boxType": "quantitative",
+      "title": "障がい者雇用率",
+      "kpi": "2.5%→2.7%",
+      "evidence": "ESG（S）評価指標・DE&I成熟度の証左\n施策から直接制御できる指標（点線接続）"
+    },
+    {
+      "id": "c3-0",
+      "layer": "competitiveness",
+      "index": 0,
+      "boxType": "quantitative",
+      "title": "CO2削減貢献量",
+      "kpi": "87万t(2027)/150万t(2030)",
+      "evidence": "東京ガス（同業）：Scope1&2削減1%→PBR+1.48%"
+    },
+    {
+      "id": "c3-1",
+      "layer": "competitiveness",
+      "index": 1,
+      "boxType": "quantitative",
+      "title": "保安事故ゼロ件堅持",
+      "kpi": "重大トラブル・重大事故ゼロ",
+      "evidence": "Gallup：高ENG組織は安全事故64%少ない\nエーザイ：品質・安全→市場評価維持"
+    },
+    {
+      "id": "c3-2",
+      "layer": "competitiveness",
+      "index": 2,
+      "boxType": "quantitative",
+      "title": "共創型PoC進展",
+      "kpi": "採択率・成功件数で評価",
+      "evidence": "柳モデル：知的資本投資→PBR+8.2%（10年超）\nACT2027 TOMOSHIBI連動"
+    },
+    {
+      "id": "c3-3",
+      "layer": "competitiveness",
+      "index": 3,
+      "boxType": "quantitative",
+      "title": "顧客接点の深さ",
+      "kpi": "SAIBULAND 20万件・マイページ 80万件",
+      "evidence": "エーザイhhc Hotline：顧客接点→5年後PBR相関\nデジタルLTV向上基盤"
+    },
+    {
+      "id": "c3-4",
+      "layer": "competitiveness",
+      "index": 4,
+      "boxType": "quantitative",
+      "title": "再エネ取扱量",
+      "kpi": "13万→20万kW（2030）",
+      "evidence": "柳モデル：脱炭素投資→PBR向上\n資本コスト低下→PER向上"
+    },
+    {
+      "id": "c4-0",
+      "layer": "external_value",
+      "index": 0,
+      "boxType": "quantitative",
+      "title": "JCSI継続No.1",
+      "kpi": "4年連続No.1 継続・深化目標",
+      "evidence": "Fornell et al.2006/2016：顧客満足1%→市場価値4.6%↑"
+    },
+    {
+      "id": "c4-1",
+      "layer": "external_value",
+      "index": 1,
+      "boxType": "quantitative",
+      "title": "顧客1人あたり売上",
+      "kpi": "天然ガス・電力販売量を原単位変換",
+      "evidence": "エーザイhhc Hotline実証・柳モデル推奨手法\n絶対値→原単位化で擬似相関排除"
+    },
+    {
+      "id": "c4-2",
+      "layer": "external_value",
+      "index": 2,
+      "boxType": "quantitative",
+      "title": "地域共創力",
+      "kpi": "地域LTV・社会的インパクト",
+      "evidence": "Fornell et al.：顧客満足→将来収益成長\nIWAIで社会的価値の貨幣換算が可能"
+    },
+    {
+      "id": "c4-3",
+      "layer": "external_value",
+      "index": 3,
+      "boxType": "quantitative",
+      "title": "ESG評価スコア",
+      "kpi": "E・S・G総合評価（CO2削減・CN化率含む）",
+      "evidence": "Takahashi et al.2025：E評価1点→PER+4.23pt\n日本635社・統計的有意（p<0.01）"
+    },
+    {
+      "id": "c4-4",
+      "layer": "external_value",
+      "index": 4,
+      "boxType": "quantitative",
+      "title": "採用力",
+      "kpi": "採用競争力の回復・定着モニタリング",
+      "evidence": "Li et al.2021：離職率1%↑→売上成長率-0.28%\n人材版伊藤レポート2.0"
+    },
+    {
+      "id": "c4-5",
+      "layer": "external_value",
+      "index": 5,
+      "boxType": "quantitative",
+      "title": "保安ブランド評価",
+      "kpi": "安心・安全・信頼の数値化",
+      "evidence": "エーザイ：品質・安全→市場評価維持\nインフラ企業の資本コスト低減要因"
+    },
+    {
+      "id": "c5c-0",
+      "layer": "roic_driver",
+      "index": 0,
+      "boxType": "quantitative",
+      "title": "売上高（売上ドライバー）",
+      "kpi": "2,500億円（2030目標）",
+      "evidence": "JCSI・顧客1人あたり・地域共創力の結実"
+    },
+    {
+      "id": "c5c-1",
+      "layer": "roic_driver",
+      "index": 1,
+      "boxType": "quantitative",
+      "title": "コスト削減・利益改善",
+      "kpi": "経常利益380億円（3年合計）",
+      "evidence": "採用力・定着率・プレゼン改善の積み上げ"
+    },
+    {
+      "id": "c5c-2",
+      "layer": "roic_driver",
+      "index": 2,
+      "boxType": "quantitative",
+      "title": "資本効率化・資本コスト低下",
+      "kpi": "ESG評価向上・投下資本効率化",
+      "evidence": "ESG評価↑→資本コスト低下"
+    },
+    {
+      "id": "c5b-0",
+      "layer": "roic_intermediate",
+      "index": 0,
+      "boxType": "quantitative",
+      "title": "売上高利益率の向上",
+      "kpi": "売上↑ かつ コスト削減↓",
+      "evidence": null
+    },
+    {
+      "id": "c5b-1",
+      "layer": "roic_intermediate",
+      "index": 1,
+      "boxType": "quantitative",
+      "title": "投下資本回転率の向上",
+      "kpi": "資本効率化・生産性向上",
+      "evidence": null
+    },
+    {
+      "id": "c5a-0",
+      "layer": "roic_outcome",
+      "index": 0,
+      "boxType": "quantitative",
+      "title": "ROIC【主目標】",
+      "kpi": "実績2.1%→目標2.3%(2027)→3.0%(2030年代)",
+      "evidence": "JCSI・ESG・定着率が\n売上高利益率と投下資本回転率を押し上げる\n遅延浸透効果5〜10年（柳モデル）"
+    },
+    {
+      "id": "c5a-1",
+      "layer": "roic_outcome",
+      "index": 1,
+      "boxType": "quantitative",
+      "title": "ROE",
+      "kpi": "実績6.3%→目標8.0%（2027）",
+      "evidence": "ESG評価↑→PBR・PER向上経路\n※ROEをコントロール変数として使用"
+    },
+    {
+      "id": "c5a-2",
+      "layer": "roic_outcome",
+      "index": 2,
+      "boxType": "quantitative",
+      "title": "企業価値（PBR）の向上",
+      "kpi": "現状0.61倍→1倍超を目指す",
+      "evidence": "人件費1割増→7年後PBR+2.6%（TOPIX100・柳モデル）"
+    }
+  ],
+  "edges": [
+    {
+      "from": "ac-0",
+      "to": "ql-0",
+      "kind": "bezier_across",
+      "stroke": "solid"
+    },
+    {
+      "from": "ac-0",
+      "to": "ql-1",
+      "kind": "bezier_across",
+      "stroke": "solid"
+    },
+    {
+      "from": "ac-0",
+      "to": "ql-5",
+      "kind": "bezier_across",
+      "stroke": "solid"
+    },
+    {
+      "from": "ac-1",
+      "to": "ql-1",
+      "kind": "bezier_across",
+      "stroke": "solid"
+    },
+    {
+      "from": "ac-1",
+      "to": "ql-2",
+      "kind": "bezier_across",
+      "stroke": "solid"
+    },
+    {
+      "from": "ac-1",
+      "to": "ql-6",
+      "kind": "bezier_across",
+      "stroke": "solid"
+    },
+    {
+      "from": "ac-2",
+      "to": "ql-3",
+      "kind": "bezier_across",
+      "stroke": "solid"
+    },
+    {
+      "from": "ac-2",
+      "to": "ql-4",
+      "kind": "bezier_across",
+      "stroke": "solid"
+    },
+    {
+      "from": "ac-2",
+      "to": "ql-8",
+      "kind": "bezier_across",
+      "stroke": "dashed"
+    },
+    {
+      "from": "ac-0",
+      "to": "ql-7",
+      "kind": "bezier_across",
+      "stroke": "solid"
+    },
+    {
+      "from": "ql-0",
+      "to": "c1-2",
+      "kind": "bezier_across",
+      "stroke": "solid"
+    },
+    {
+      "from": "ql-0",
+      "to": "c1-0",
+      "kind": "bezier_across",
+      "stroke": "solid"
+    },
+    {
+      "from": "ql-1",
+      "to": "c1-2",
+      "kind": "bezier_across",
+      "stroke": "solid"
+    },
+    {
+      "from": "ql-1",
+      "to": "c1-3",
+      "kind": "bezier_across",
+      "stroke": "solid"
+    },
+    {
+      "from": "ql-2",
+      "to": "c1-0",
+      "kind": "bezier_across",
+      "stroke": "solid"
+    },
+    {
+      "from": "ql-2",
+      "to": "c1-1",
+      "kind": "bezier_across",
+      "stroke": "solid"
+    },
+    {
+      "from": "ql-3",
+      "to": "c1-4",
+      "kind": "bezier_across",
+      "stroke": "solid"
+    },
+    {
+      "from": "ql-3",
+      "to": "c1-3",
+      "kind": "bezier_across",
+      "stroke": "solid"
+    },
+    {
+      "from": "ql-4",
+      "to": "c1-5",
+      "kind": "bezier_across",
+      "stroke": "solid"
+    },
+    {
+      "from": "ql-4",
+      "to": "c1-6",
+      "kind": "bezier_across",
+      "stroke": "solid"
+    },
+    {
+      "from": "ql-5",
+      "to": "c1-0",
+      "kind": "bezier_across",
+      "stroke": "solid"
+    },
+    {
+      "from": "ql-5",
+      "to": "c1-9",
+      "kind": "bezier_across",
+      "stroke": "solid"
+    },
+    {
+      "from": "ql-7",
+      "to": "c1-7",
+      "kind": "bezier_across",
+      "stroke": "solid"
+    },
+    {
+      "from": "ql-7",
+      "to": "c1-8",
+      "kind": "bezier_across",
+      "stroke": "solid"
+    },
+    {
+      "from": "ql-8",
+      "to": "c1-0",
+      "kind": "bezier_across",
+      "stroke": "dashed"
+    },
+    {
+      "from": "c1-1",
+      "to": "c1-0",
+      "kind": "vertical_same_column",
+      "stroke": "solid",
+      "color": "#555"
+    },
+    {
+      "from": "c1-2",
+      "to": "c1-3",
+      "kind": "vertical_same_column",
+      "stroke": "solid",
+      "color": "#555"
+    },
+    {
+      "from": "c1-0",
+      "to": "c1-9",
+      "kind": "vertical_same_column",
+      "stroke": "dashed",
+      "color": "#aaa"
+    },
+    {
+      "from": "c1-0",
+      "to": "c3-1",
+      "kind": "bezier_across",
+      "stroke": "solid"
+    },
+    {
+      "from": "c1-0",
+      "to": "c3-3",
+      "kind": "bezier_across",
+      "stroke": "solid"
+    },
+    {
+      "from": "c1-2",
+      "to": "c3-2",
+      "kind": "bezier_across",
+      "stroke": "solid"
+    },
+    {
+      "from": "c1-3",
+      "to": "c3-2",
+      "kind": "bezier_across",
+      "stroke": "solid"
+    },
+    {
+      "from": "c1-3",
+      "to": "c3-4",
+      "kind": "bezier_across",
+      "stroke": "solid"
+    },
+    {
+      "from": "c1-5",
+      "to": "c3-2",
+      "kind": "bezier_across",
+      "stroke": "solid"
+    },
+    {
+      "from": "c1-9",
+      "to": "c3-1",
+      "kind": "bezier_across",
+      "stroke": "solid"
+    },
+    {
+      "from": "c1-9",
+      "to": "c3-3",
+      "kind": "bezier_across",
+      "stroke": "solid"
+    },
+    {
+      "from": "c1-10",
+      "to": "c4-3",
+      "kind": "bezier_across",
+      "stroke": "dashed",
+      "color": "#a855f7",
+      "marker": "dei_to_esg"
+    },
+    {
+      "from": "c1-11",
+      "to": "c4-3",
+      "kind": "bezier_across",
+      "stroke": "dashed",
+      "color": "#a855f7",
+      "marker": "dei_to_esg"
+    },
+    {
+      "from": "c1-12",
+      "to": "c4-3",
+      "kind": "bezier_across",
+      "stroke": "dashed",
+      "color": "#a855f7",
+      "marker": "dei_to_esg"
+    },
+    {
+      "from": "c3-1",
+      "to": "c4-0",
+      "kind": "bezier_across",
+      "stroke": "solid"
+    },
+    {
+      "from": "c3-1",
+      "to": "c4-3",
+      "kind": "bezier_across",
+      "stroke": "solid"
+    },
+    {
+      "from": "c3-1",
+      "to": "c4-5",
+      "kind": "bezier_across",
+      "stroke": "solid"
+    },
+    {
+      "from": "c3-2",
+      "to": "c4-2",
+      "kind": "bezier_across",
+      "stroke": "solid"
+    },
+    {
+      "from": "c3-2",
+      "to": "c4-3",
+      "kind": "bezier_across",
+      "stroke": "dashed"
+    },
+    {
+      "from": "c3-3",
+      "to": "c4-0",
+      "kind": "bezier_across",
+      "stroke": "solid"
+    },
+    {
+      "from": "c3-3",
+      "to": "c4-1",
+      "kind": "bezier_across",
+      "stroke": "solid"
+    },
+    {
+      "from": "c3-0",
+      "to": "c4-3",
+      "kind": "bezier_across",
+      "stroke": "solid"
+    },
+    {
+      "from": "c3-4",
+      "to": "c4-3",
+      "kind": "bezier_across",
+      "stroke": "solid"
+    },
+    {
+      "from": "c4-0",
+      "to": "c5c-0",
+      "kind": "bezier_across",
+      "stroke": "solid"
+    },
+    {
+      "from": "c4-1",
+      "to": "c5c-0",
+      "kind": "bezier_across",
+      "stroke": "solid"
+    },
+    {
+      "from": "c4-2",
+      "to": "c5c-0",
+      "kind": "bezier_across",
+      "stroke": "solid"
+    },
+    {
+      "from": "c4-4",
+      "to": "c5c-1",
+      "kind": "bezier_across",
+      "stroke": "solid"
+    },
+    {
+      "from": "c4-3",
+      "to": "c5c-2",
+      "kind": "bezier_across",
+      "stroke": "solid"
+    },
+    {
+      "from": "c4-5",
+      "to": "c5c-2",
+      "kind": "bezier_across",
+      "stroke": "solid"
+    },
+    {
+      "from": "c5c-0",
+      "to": "c5b-0",
+      "kind": "tree_merge",
+      "stroke": "solid"
+    },
+    {
+      "from": "c5c-1",
+      "to": "c5b-0",
+      "kind": "tree_merge",
+      "stroke": "solid"
+    },
+    {
+      "from": "c5c-2",
+      "to": "c5b-1",
+      "kind": "tree_conn",
+      "stroke": "solid"
+    },
+    {
+      "from": "c5b-0",
+      "to": "c5a-0",
+      "kind": "tree_merge",
+      "stroke": "solid"
+    },
+    {
+      "from": "c5b-1",
+      "to": "c5a-0",
+      "kind": "tree_merge",
+      "stroke": "solid"
+    },
+    {
+      "from": "c5a-0",
+      "to": "c5a-1",
+      "kind": "vertical_same_column",
+      "stroke": "solid"
+    },
+    {
+      "from": "c5a-1",
+      "to": "c5a-2",
+      "kind": "vertical_same_column",
+      "stroke": "solid"
+    },
+    {
+      "from": "c1-0",
+      "to": "c4-0",
+      "kind": "delayed_cross_layer",
+      "stroke": "dash_dot_dark_red",
+      "label": "Gallup実証 ENG→顧客満足"
+    },
+    {
+      "from": "c1-9",
+      "to": "c5c-1",
+      "kind": "delayed_cross_layer",
+      "stroke": "dash_dot_dark_red",
+      "label": "採用コスト減・熟練継承"
+    },
+    {
+      "from": "c1-7",
+      "to": "c5c-1",
+      "kind": "delayed_cross_layer",
+      "stroke": "dash_dot_dark_red",
+      "label": "発揮度×人件費＝損失額"
+    },
+    {
+      "from": "c1-8",
+      "to": "c5c-1",
+      "kind": "delayed_cross_layer",
+      "stroke": "dash_dot_dark_red",
+      "label": "欠勤・代替要員費削減"
+    }
+  ]
+}
