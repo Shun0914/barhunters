@@ -1,5 +1,6 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import {
@@ -38,7 +39,11 @@ export function ApprovalView() {
   const [items, setItems] = useState<PointApplication[]>([]);
   const [applicants, setApplicants] = useState<UserBrief[]>([]);
   const [meId, setMeId] = useState<string | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  // 初期選択は URL `?selected=` を優先（通知/ベル経由の遷移時のフォーカス）
+  const [selectedId, setSelectedId] = useState<string | null>(
+    () => searchParams.get("selected"),
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
@@ -347,14 +352,14 @@ function SearchBox({
         placeholder="Search"
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={onKeyDown}
-        className="w-[220px] rounded border border-slate-300 bg-white py-1.5 pl-8 pr-7 text-xs text-[#334155] placeholder:text-slate-400 focus:border-[#0178C8] focus:outline-none"
+        className="w-[220px] rounded border border-slate-300 bg-white py-1.5 pl-8 pr-7 text-xs text-[#334155] placeholder:text-slate-400 focus:border-[#0178C8] focus:outline-none [&::-webkit-search-cancel-button]:appearance-none"
       />
       {value && (
         <button
           type="button"
           onClick={onClear}
           aria-label="検索クリア"
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-[#64748b] hover:text-[#334155]"
+          className="absolute right-2 top-1/2 -translate-y-1/2 text-base leading-none text-[#64748b] hover:text-[#334155]"
         >
           ×
         </button>
@@ -506,6 +511,7 @@ function ApprovalDetail({
               approvers={approvers}
               currentStep={app.current_approval_step}
               status={app.status}
+              returnedByUserId={app.returned_by}
             />
           ) : (
             <div className="text-xs text-[#64748b]">承認ルートは未確定です</div>

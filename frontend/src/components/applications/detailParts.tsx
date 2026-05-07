@@ -76,24 +76,38 @@ export function ApprovalRouteView({
   approvers,
   currentStep,
   status,
+  returnedByUserId,
 }: {
-  approvers: readonly { step: number; name: string | null }[];
+  approvers: readonly {
+    step: number;
+    name: string | null;
+    userId: string | null;
+  }[];
   currentStep: number | null;
   status: PointApplication["status"];
+  returnedByUserId?: string | null;
 }) {
+  // 差戻し時は returned_by の段を特定して、それより前を「承認済(青)」、当該段を「差戻し人(赤)」、以降を「未着手(グレー)」
+  const returnedStep =
+    status === "returned" && returnedByUserId
+      ? approvers.find((a) => a.userId === returnedByUserId)?.step ?? null
+      : null;
+
   return (
     <div className="flex items-end gap-3">
       {approvers.map((a, idx) => {
-        const isCurrent =
-          status === "submitted" && a.step === currentStep;
-        const isCompleted =
-          status === "approved" ||
-          (currentStep !== null && a.step < currentStep);
-        const colorClass = isCurrent
-          ? "text-red-500"
-          : isCompleted
-            ? "text-[#0178C8]"
-            : "text-[#94a3b8]";
+        let colorClass = "text-[#94a3b8]";
+        if (status === "returned" && returnedStep !== null) {
+          if (a.step === returnedStep) colorClass = "text-red-500";
+          else if (a.step < returnedStep) colorClass = "text-[#0178C8]";
+        } else {
+          const isCurrent = status === "submitted" && a.step === currentStep;
+          const isCompleted =
+            status === "approved" ||
+            (currentStep !== null && a.step < currentStep);
+          if (isCurrent) colorClass = "text-red-500";
+          else if (isCompleted) colorClass = "text-[#0178C8]";
+        }
         return (
           <Fragment key={a.step}>
             <div className="flex w-20 flex-col items-center gap-1">
@@ -116,13 +130,13 @@ export function ApprovalRouteView({
 /** 申請オブジェクトから ApprovalRouteView 用の `approvers` 配列を作る。 */
 export function buildApprovers(
   app: PointApplication,
-): readonly { step: number; name: string | null }[] {
+): readonly { step: number; name: string | null; userId: string | null }[] {
   const total = app.approval_total_steps ?? 0;
   return (
     [
-      { step: 1, name: app.approver_1_name },
-      { step: 2, name: app.approver_2_name },
-      { step: 3, name: app.approver_3_name },
+      { step: 1, name: app.approver_1_name, userId: app.approver_1_user_id },
+      { step: 2, name: app.approver_2_name, userId: app.approver_2_user_id },
+      { step: 3, name: app.approver_3_name, userId: app.approver_3_user_id },
     ] as const
   ).filter((a) => a.step <= total);
 }

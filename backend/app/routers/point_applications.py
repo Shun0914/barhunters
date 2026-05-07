@@ -358,6 +358,17 @@ def withdraw_application(
             detail="取り消しできません",
         )
 
+    # 取戻し時、第1承認者にも通知して「もう承認不要」を伝える
+    # （spec の元仕様では発火しないが、運用上「同じ申請が2件届く」混乱を避けるため発火する）
+    if application.approver_1_user_id:
+        create_notification(
+            db,
+            recipient_user_id=application.approver_1_user_id,
+            sender_user_id=current_user.id,
+            notification_type="withdrawn",
+            application=application,
+        )
+
     application.status = "draft"
     application.current_approval_step = None
     application.submitted_at = None

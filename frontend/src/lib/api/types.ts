@@ -56,7 +56,11 @@ export type PointApplication = {
 
 export type ApplicationStatusTab = "incomplete" | "completed" | "all";
 
-export type NotificationType = "approval_request" | "approved" | "returned";
+export type NotificationType =
+  | "approval_request"
+  | "approved"
+  | "returned"
+  | "withdrawn";
 
 export type Notification = {
   id: string;

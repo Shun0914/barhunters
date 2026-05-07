@@ -91,21 +91,25 @@ export function NotificationView() {
     [items, selectedId],
   );
 
-  // spec.md §3.8 — 詳細パネルに表示された瞬間に既読化（冪等）
+  // 既読化のタイミング: 詳細を開いた瞬間ではなく、別の通知に切り替える / 画面を離れる
+  // タイミングで既読化する。useEffect の cleanup を利用。
   useEffect(() => {
     if (!selected || selected.read_at !== null) return;
     const targetId = selected.id;
-    markNotificationRead(targetId)
-      .then((updated) => {
-        setItems((prev) =>
-          prev.map((n) => (n.id === targetId ? updated : n)),
-        );
-        // 左下バッジを即時更新するためイベント発火
-        emitNotificationsChanged();
-      })
-      .catch(() => {
-        // 既読化失敗時は無視（ユーザー体験を妨げない）
-      });
+    return () => {
+      markNotificationRead(targetId)
+        .then((updated) => {
+          // 同一画面内で次の通知を開いた場合は items の青ドットも更新
+          setItems((prev) =>
+            prev.map((n) => (n.id === targetId ? updated : n)),
+          );
+          // 左下バッジを即時更新
+          emitNotificationsChanged();
+        })
+        .catch(() => {
+          // 既読化失敗時は無視
+        });
+    };
   }, [selected]);
 
   function handleSearchKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -229,14 +233,14 @@ function SearchBox({
         placeholder="Search"
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={onKeyDown}
-        className="w-[220px] rounded border border-slate-300 bg-white py-1.5 pl-8 pr-7 text-xs text-[#334155] placeholder:text-slate-400 focus:border-[#0178C8] focus:outline-none"
+        className="w-[220px] rounded border border-slate-300 bg-white py-1.5 pl-8 pr-7 text-xs text-[#334155] placeholder:text-slate-400 focus:border-[#0178C8] focus:outline-none [&::-webkit-search-cancel-button]:appearance-none"
       />
       {value && (
         <button
           type="button"
           onClick={onClear}
           aria-label="検索クリア"
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-[#64748b] hover:text-[#334155]"
+          className="absolute right-2 top-1/2 -translate-y-1/2 text-base leading-none text-[#64748b] hover:text-[#334155]"
         >
           ×
         </button>

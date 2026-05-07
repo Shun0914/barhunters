@@ -8,7 +8,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict
 
 
-NotificationType = Literal["approval_request", "approved", "returned"]
+NotificationType = Literal["approval_request", "approved", "returned", "withdrawn"]
 
 
 class NotificationOut(BaseModel):

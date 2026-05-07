@@ -15,7 +15,9 @@ from sqlalchemy.orm import Session
 from app.models import Notification, PointApplication, User
 from app.schemas.notification import NotificationOut
 
-NotificationType = Literal["approval_request", "approved", "returned"]
+NotificationType = Literal[
+    "approval_request", "approved", "returned", "withdrawn"
+]
 
 
 def _ensure_user_name(db: Session, user_id: str | None) -> str:
@@ -38,6 +40,11 @@ def _make_body(
         )
     if notification_type == "approved":
         return f"{application_title}が承認されました。"
+    if notification_type == "withdrawn":
+        return (
+            f"{sender_name}さんが申請「{application_title}」を取り戻しました。"
+            "承認は不要になりました。"
+        )
     # returned
     return f"{application_title}が差戻されました。再編集して再申請してください。"
 
@@ -48,6 +55,8 @@ def _make_title(notification_type: NotificationType, application_title: str) -> 
         return f"承認依頼: {application_title}"
     if notification_type == "approved":
         return "申請承認のお知らせ"
+    if notification_type == "withdrawn":
+        return f"申請が取り戻されました: {application_title}"
     return "申請が差戻されました"
 
 
