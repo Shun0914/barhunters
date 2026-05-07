@@ -1,7 +1,9 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+
+import { ICONS } from "@/components/icons";
 
 import { formatDateTime } from "@/components/applications/detailParts";
 import { PageHeader } from "@/components/PageHeader";
@@ -30,18 +32,20 @@ function initialsOf(name: string | null): string {
 }
 
 // spec.md §3.8 詳細パネル — type 別 CTA
-function ctaFor(n: Notification): { label: string; href: string } | null {
+function ctaFor(n: Notification): { label: string; href: string; icon: React.ReactNode } | null {
   if (!n.related_application_id) return null;
   if (n.type === "approval_request") {
     return {
-      label: "↩ ポイント承認画面へ",
+      label: "ポイント承認画面へ",
       href: `/approvals?selected=${n.related_application_id}`,
+      icon: ICONS.approve,
     };
   }
   // approved / returned
   return {
-    label: "↩ 申請状況へ",
+    label: "申請状況へ",
     href: `/applications?selected=${n.related_application_id}`,
+    icon: ICONS.applicationStatus,
   };
 }
 
@@ -216,21 +220,9 @@ function SearchBox({
 }) {
   return (
     <div className="relative">
-      <svg
-        className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[#64748b]"
-        width="14"
-        height="14"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden="true"
-      >
-        <circle cx="11" cy="11" r="7" />
-        <path d="M21 21l-4.3-4.3" />
-      </svg>
+      <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[#64748b]">
+        {ICONS.glass}
+      </span>
       <input
         type="search"
         value={value}
@@ -335,6 +327,7 @@ function NotificationDetail({
   notification: Notification;
   onClose: () => void;
 }) {
+  const router = useRouter();
   const cta = ctaFor(notification);
   return (
     /* 横幅は親（右カラム）のフル幅を取る。縦幅は中身（タイトル/本文/ボタン）に応じて自然に決まる。
@@ -348,20 +341,7 @@ function NotificationDetail({
         aria-label="閉じる"
         className="absolute right-4 top-4 text-[#94a3b8] transition hover:text-[#334155]"
       >
-        {/* icon3.png 準拠 — × 閉じる */}
-        <svg
-          viewBox="0 0 24 24"
-          width="16"
-          height="16"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.6"
-          strokeLinecap="round"
-          aria-hidden="true"
-        >
-          <path d="M6 6 L18 18" />
-          <path d="M18 6 L6 18" />
-        </svg>
+        {ICONS.close}
       </button>
 
       <div className="text-sm font-bold text-[#334155]">
@@ -375,12 +355,14 @@ function NotificationDetail({
       {cta && (
         /* spec.md §3.8 — 本文の 2 行下に右寄せで CTA。leading-relaxed (≈1.625) × text-sm (14px) ≒ 1 行 23px → 約 2 行 = 46px */
         <div className="mt-[46px] flex justify-end">
-          <Link
-            href={cta.href}
-            className="rounded border border-[#334155] bg-[#faf8f5] px-4 py-2 text-xs font-semibold text-[#334155] transition hover:bg-[#f5f1ea]"
+          <button
+            type="button"
+            onClick={() => router.push(cta.href)}
+            className="flex items-center gap-2 rounded border border-[#334155] bg-[#faf8f5] px-4 py-2 text-xs font-semibold text-[#334155] transition hover:bg-[#f5f1ea]"
           >
+            {cta.icon}
             {cta.label}
-          </Link>
+          </button>
         </div>
       )}
     </div>

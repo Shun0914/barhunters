@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
+import { ICONS } from "@/components/icons";
 import {
   NOTIFICATIONS_CHANGED_EVENT,
-  fetchRecentNotifications,
+  fetchNotifications,
   fetchUnreadCount,
 } from "@/lib/api/notifications";
 import type { Notification } from "@/lib/api/types";
@@ -39,21 +40,6 @@ function destinationFor(n: Notification): string {
     : "/notifications";
 }
 
-const BELL_ICON = (
-  <svg
-    viewBox="0 0 24 24"
-    width="20"
-    height="20"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.6"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-    <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
-  </svg>
-);
 
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
@@ -84,10 +70,10 @@ export function NotificationBell() {
     };
   }, []);
 
-  // ポップオーバーを開いた瞬間に最新 4 件取得
+  // ポップオーバーを開いた瞬間に未読 4 件取得
   useEffect(() => {
     if (!open) return;
-    fetchRecentNotifications(4)
+    fetchNotifications({ tab: "unread", limit: 4 })
       .then(setItems)
       .catch(() => setItems([]));
   }, [open]);
@@ -112,7 +98,7 @@ export function NotificationBell() {
         onClick={() => setOpen((v) => !v)}
         className="relative rounded p-1 text-[#64748b] transition hover:bg-[#ecf5fa] hover:text-[#0178C8]"
       >
-        {BELL_ICON}
+        {ICONS.bellLarge}
         {unreadCount > 0 && (
           <span
             aria-label={`未読 ${unreadCount} 件`}

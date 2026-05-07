@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import { ICONS } from "@/components/icons";
 import { PageHeader } from "@/components/PageHeader";
 import { ApiError } from "@/lib/api";
 import {
@@ -263,21 +264,9 @@ function SearchBox({
 }) {
   return (
     <div className="relative">
-      <svg
-        className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[#64748b]"
-        width="14"
-        height="14"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden="true"
-      >
-        <circle cx="11" cy="11" r="7" />
-        <path d="M21 21l-4.3-4.3" />
-      </svg>
+      <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[#64748b]">
+        {ICONS.glass}
+      </span>
       <input
         type="search"
         value={value}
@@ -427,20 +416,7 @@ function ApplicationDetail({
         aria-label="閉じる"
         className="absolute right-4 top-4 text-[#94a3b8] transition hover:text-[#334155]"
       >
-        {/* icon3.png 準拠 — × 閉じる */}
-        <svg
-          viewBox="0 0 24 24"
-          width="16"
-          height="16"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.6"
-          strokeLinecap="round"
-          aria-hidden="true"
-        >
-          <path d="M6 6 L18 18" />
-          <path d="M18 6 L6 18" />
-        </svg>
+        {ICONS.close}
       </button>
 
       {/* 申請番号（左）。差戻し以外は右に取戻しボタン（再申請は下のフッターに配置） */}
@@ -456,21 +432,7 @@ function ApplicationDetail({
             title={canWithdraw ? "" : "取り戻しできません"}
             className="flex items-center gap-2 rounded border border-[#334155] bg-[#faf8f5] px-3 py-1.5 text-xs font-semibold text-[#334155] transition hover:bg-[#f5f1ea] disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {/* icon2.png 準拠 — 取戻し（undo）アイコン */}
-            <svg
-              viewBox="0 0 24 24"
-              width="16"
-              height="16"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M9 14 4 9l5-5" />
-              <path d="M4 9h11a4 4 0 0 1 0 8H7" />
-            </svg>
+            {ICONS.return}
             取戻し
           </button>
         )}
@@ -599,21 +561,7 @@ function ApplicationDetail({
             onClick={handleResubmitClick}
             className="flex items-center gap-2.5 rounded border border-[#334155] bg-[#faf8f5] px-8 py-2.5 text-xs font-semibold text-[#334155] transition hover:bg-[#f5f1ea]"
           >
-            {/* 紙飛行機/送信アイコン（申請ボタンと同じ） */}
-            <svg
-              viewBox="0 0 24 24"
-              width="14"
-              height="14"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M3 11 L21 3 L13 21 L11 13 Z" />
-              <path d="M11 13 L21 3" />
-            </svg>
+            {ICONS.send}
             再申請
           </button>
         </div>

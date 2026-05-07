@@ -12,6 +12,7 @@ import {
   updateDraft,
 } from "@/lib/api/applications";
 import { ApiError } from "@/lib/api";
+import { ICONS } from "@/components/icons";
 import { PageHeader } from "@/components/PageHeader";
 import type {
   ActivityGenre,
@@ -499,21 +500,7 @@ export function PointApplicationForm() {
               "送信中…"
             ) : (
               <>
-                {/* icon.png 準拠 — 紙飛行機/送信アイコン。外形 + 中央の折り目線。右上向き */}
-                <svg
-                  viewBox="0 0 24 24"
-                  width="14"
-                  height="14"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="M3 11 L21 3 L13 21 L11 13 Z" />
-                  <path d="M11 13 L21 3" />
-                </svg>
+                {ICONS.send}
                 申請
               </>
             )}

@@ -6,47 +6,13 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { DevUserSwitcher } from "@/components/DevUserSwitcher";
+import { ICONS } from "@/components/icons";
 import { NotificationBell } from "@/components/NotificationBell";
 import { apiFetch } from "@/lib/api";
 import type { UserBrief } from "@/lib/api/types";
 
 // spec.md §1.1 のサイドナビ構成（MVP は PC 固定幅・常時展開・お気に入り非表示）
 type NavItem = { label: string; href: string; icon: React.ReactNode };
-
-const ICONS = {
-  dashboard: (
-    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="3" width="7" height="9" rx="1" />
-      <rect x="14" y="3" width="7" height="5" rx="1" />
-      <rect x="14" y="12" width="7" height="9" rx="1" />
-      <rect x="3" y="16" width="7" height="5" rx="1" />
-    </svg>
-  ),
-  story: (
-    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 17l6-6 4 4 6-6" />
-      <path d="M14 7h6v6" />
-    </svg>
-  ),
-  apply: (
-    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="6" y="3" width="12" height="18" rx="2" />
-      <path d="M9 8h6M9 12h6M9 16h4" />
-    </svg>
-  ),
-  approve: (
-    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 12a9 9 0 1 1-3-6.7" />
-      <path d="M21 4v5h-5" />
-    </svg>
-  ),
-  bell: (
-    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-      <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
-    </svg>
-  ),
-};
 
 const NAV_GROUPS: { group: string; items: NavItem[] }[] = [
   {
@@ -60,7 +26,7 @@ const NAV_GROUPS: { group: string; items: NavItem[] }[] = [
     group: "ポイント申請",
     items: [
       { label: "申請フォーム", href: "/applications/new", icon: ICONS.apply },
-      { label: "申請状況", href: "/applications", icon: ICONS.apply },
+      { label: "申請状況", href: "/applications", icon: ICONS.applicationStatus },
     ],
   },
 ];

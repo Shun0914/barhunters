@@ -9,6 +9,7 @@ import {
   buildApprovers,
   formatDateTime,
 } from "@/components/applications/detailParts";
+import { ICONS } from "@/components/icons";
 import { PageHeader } from "@/components/PageHeader";
 import { ApiError, apiFetch } from "@/lib/api";
 import {
@@ -337,21 +338,9 @@ function SearchBox({
 }) {
   return (
     <div className="relative">
-      <svg
-        className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[#64748b]"
-        width="14"
-        height="14"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden="true"
-      >
-        <circle cx="11" cy="11" r="7" />
-        <path d="M21 21l-4.3-4.3" />
-      </svg>
+      <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[#64748b]">
+        {ICONS.glass}
+      </span>
       <input
         type="search"
         value={value}
@@ -476,20 +465,7 @@ function ApprovalDetail({
         aria-label="閉じる"
         className="absolute right-4 top-4 text-[#94a3b8] transition hover:text-[#334155]"
       >
-        {/* icon3.png 準拠 — × 閉じる */}
-        <svg
-          viewBox="0 0 24 24"
-          width="16"
-          height="16"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.6"
-          strokeLinecap="round"
-          aria-hidden="true"
-        >
-          <path d="M6 6 L18 18" />
-          <path d="M18 6 L6 18" />
-        </svg>
+        {ICONS.close}
       </button>
 
       {/* 申請番号（左）と 差戻しボタン（右）を同じ行に。× の下に余白を取って配置 */}
@@ -503,21 +479,7 @@ function ApprovalDetail({
           disabled={!canAct}
           className="flex items-center gap-2 rounded border border-[#334155] bg-[#faf8f5] px-3 py-1.5 text-xs font-semibold text-[#334155] transition hover:bg-[#f5f1ea] disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {/* icon2.png 準拠 — 差戻し（undo）アイコン。取戻しと同じ */}
-          <svg
-            viewBox="0 0 24 24"
-            width="16"
-            height="16"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M9 14 4 9l5-5" />
-            <path d="M4 9h11a4 4 0 0 1 0 8H7" />
-          </svg>
+          {ICONS.return}
           差戻し
         </button>
       </div>
@@ -559,23 +521,7 @@ function ApprovalDetail({
           disabled={!canAct}
           className="flex items-center gap-2.5 rounded border border-[#334155] bg-[#faf8f5] px-8 py-2.5 text-xs font-semibold text-[#334155] transition hover:bg-[#f5f1ea] disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {/* image.png 準拠 — チェック ✓ + 山形矢印 > の承認アイコン */}
-          <svg
-            viewBox="0 0 24 24"
-            width="16"
-            height="16"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            {/* 左: チェックマーク */}
-            <path d="M3 13 L6 16 L10 11" />
-            {/* 右: 山形矢印（>） */}
-            <path d="M13 7 L20 12 L13 17" />
-          </svg>
+          {ICONS.approve}
           承認
         </button>
       </div>
