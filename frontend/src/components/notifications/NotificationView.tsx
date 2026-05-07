@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { formatDateTime } from "@/components/applications/detailParts";
 import { PageHeader } from "@/components/PageHeader";
 import {
+  emitNotificationsChanged,
   fetchNotifications,
   markNotificationRead,
 } from "@/lib/api/notifications";
@@ -95,6 +96,8 @@ export function NotificationView() {
         setItems((prev) =>
           prev.map((n) => (n.id === targetId ? updated : n)),
         );
+        // 左下バッジを即時更新するためイベント発火
+        emitNotificationsChanged();
       })
       .catch(() => {
         // 既読化失敗時は無視（ユーザー体験を妨げない）
@@ -135,8 +138,8 @@ export function NotificationView() {
         <div className="grid flex-1 grid-cols-[minmax(360px,460px)_1px_1fr] gap-x-6 overflow-hidden">
           {/* 左カラム */}
           <div className="flex min-w-0 flex-col overflow-hidden">
-            {/* タブ — 下線は左カラム幅まで */}
-            <div className="flex shrink-0 items-center gap-8 border-b border-slate-200">
+            {/* タブ — 等間隔（flex-1）で配置、アクティブ下線はタブ1つぶんの幅、全体下線は左カラム幅まで */}
+            <div className="flex shrink-0 items-end border-b border-slate-200">
               {TABS.map((t) => {
                 const active = t.id === tab;
                 return (
@@ -147,13 +150,19 @@ export function NotificationView() {
                       setTab(t.id);
                       setError(null);
                     }}
-                    className={`pb-2 text-sm transition ${
+                    className={`flex-1 text-center text-sm transition ${
                       active
-                        ? "border-b-2 border-[#0178C8] font-bold text-[#0178C8]"
+                        ? "font-bold text-[#0178C8]"
                         : "text-[#64748b] hover:text-[#334155]"
                     }`}
                   >
-                    {t.label}
+                    <span
+                      className={`block pb-2 ${
+                        active ? "-mb-px border-b-2 border-[#0178C8]" : ""
+                      }`}
+                    >
+                      {t.label}
+                    </span>
                   </button>
                 );
               })}
@@ -329,20 +338,34 @@ function NotificationDetail({
   const cta = ctaFor(notification);
   return (
     /* 横幅は親（右カラム）のフル幅を取る。縦幅は中身（タイトル/本文/ボタン）に応じて自然に決まる。
-       親が flex-col なので cross-axis は横方向 → デフォルトの stretch で横フル幅。 */
-    <div className="rounded-[5px] border border-slate-200 bg-white px-6 pt-5 pb-5">
-      <div className="flex items-start justify-between">
-        <div className="text-sm font-bold text-[#334155]">
-          {notification.title}
-        </div>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="閉じる"
-          className="text-base leading-none text-[#64748b] hover:text-[#334155]"
+       親が flex-col なので cross-axis は横方向 → デフォルトの stretch で横フル幅。
+       × は右上端に絶対配置、本文等は右に余白 (pr-14) を取って × より内側に。 */
+    <div className="relative rounded-[5px] border border-slate-200 bg-white pl-6 pr-14 pt-10 pb-5">
+      {/* × 閉じる: 右上端に絶対配置 */}
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="閉じる"
+        className="absolute right-4 top-4 text-[#94a3b8] transition hover:text-[#334155]"
+      >
+        {/* icon3.png 準拠 — × 閉じる */}
+        <svg
+          viewBox="0 0 24 24"
+          width="16"
+          height="16"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          aria-hidden="true"
         >
-          ×
-        </button>
+          <path d="M6 6 L18 18" />
+          <path d="M18 6 L6 18" />
+        </svg>
+      </button>
+
+      <div className="text-sm font-bold text-[#334155]">
+        {notification.title}
       </div>
 
       <div className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-[#334155]">

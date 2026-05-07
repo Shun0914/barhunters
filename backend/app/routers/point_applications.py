@@ -34,10 +34,12 @@ router = APIRouter(prefix="/api/point-applications", tags=["point-applications"]
 TITLE_MAX = 50
 DESCRIPTION_MAX = 500
 
-# spec.md §3.6 のタブ→ステータス対応。`all` は draft も含む全件。
+# spec.md §3.6 のタブ→ステータス対応。
+# `returned`（差戻し）は申請者の対応待ちなので「未完了」に含める（プロジェクト独自仕様）。
+# `all` は draft も含む全件。
 TAB_TO_STATUSES: dict[str, list[str] | None] = {
-    "incomplete": ["submitted"],
-    "completed": ["approved", "returned"],
+    "incomplete": ["submitted", "returned"],
+    "completed": ["approved"],
     "all": None,
 }
 
@@ -255,6 +257,79 @@ def submit_application(
         create_notification(
             db,
             recipient_user_id=application.approver_1_user_id,
+            sender_user_id=current_user.id,
+            notification_type="approval_request",
+            application=application,
+        )
+
+    db.commit()
+    db.refresh(application)
+    return enrich_application(application, db)
+
+
+def _step_of_user(application: PointApplication, user_id: str | None) -> int | None:
+    """user_id がこの申請で第何段の承認者か（1/2/3）。承認者でなければ None。"""
+    if user_id is None:
+        return None
+    if application.approver_1_user_id == user_id:
+        return 1
+    if application.approver_2_user_id == user_id:
+        return 2
+    if application.approver_3_user_id == user_id:
+        return 3
+    return None
+
+
+@router.post("/{application_id}/resubmit", response_model=PointApplicationOut)
+def resubmit_application(
+    application_id: str,
+    payload: PointApplicationDraftIn | None = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> PointApplicationOut:
+    """差戻し申請の再申請（spec の合意 — 差戻し段から再開）。
+
+    - 承認ルートは元のまま（spec.md §2.5 — 再計算しない、payload の承認者は無視）
+    - 差戻し段（returned_by の段）から再開。特定できなければ第1からやり直し
+    - payload があればタイトル/ジャンル/活動内容を更新してから再申請
+    - 差戻し段の承認者に approval_request 通知を送る
+    """
+    application = db.get(PointApplication, application_id)
+    if application is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="申請が見つかりません")
+    if application.applicant_user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="権限がありません")
+    if application.status != "returned":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="差戻し中の申請のみ再申請できます",
+        )
+
+    # 編集内容があれば反映（承認者は変更しない — spec §2.5）
+    if payload is not None:
+        application.title = payload.title
+        application.activity_genre_id = payload.activity_genre_id
+        application.description = payload.description
+        application.points = _resolve_points(db, payload.activity_genre_id)
+
+    # 必須項目バリデーション（再申請時も submit と同じ条件）
+    errors = _validate_submit(application)
+    if errors:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail={"detail": errors})
+
+    resume_step = _step_of_user(application, application.returned_by) or 1
+    now = datetime.now(timezone.utc)
+    application.status = "submitted"
+    application.current_approval_step = resume_step
+    application.submitted_at = now
+    application.returned_at = None
+    application.returned_by = None
+
+    next_approver_id = getattr(application, f"approver_{resume_step}_user_id")
+    if next_approver_id:
+        create_notification(
+            db,
+            recipient_user_id=next_approver_id,
             sender_user_id=current_user.id,
             notification_type="approval_request",
             application=application,

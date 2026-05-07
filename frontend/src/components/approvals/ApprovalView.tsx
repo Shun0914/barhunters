@@ -10,7 +10,7 @@ import {
   formatDateTime,
 } from "@/components/applications/detailParts";
 import { PageHeader } from "@/components/PageHeader";
-import { ApiError } from "@/lib/api";
+import { ApiError, apiFetch } from "@/lib/api";
 import {
   approveApplication,
   fetchApprovalApplicants,
@@ -36,16 +36,20 @@ export function ApprovalView() {
   const [searchQuery, setSearchQuery] = useState("");
   const [items, setItems] = useState<PointApplication[]>([]);
   const [applicants, setApplicants] = useState<UserBrief[]>([]);
+  const [meId, setMeId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
 
-  // 申請者フィルタ候補は初回のみ
+  // 申請者フィルタ候補とログインユーザー id は初回のみ取得
   useEffect(() => {
     fetchApprovalApplicants()
       .then(setApplicants)
       .catch(() => setApplicants([]));
+    apiFetch<UserBrief>("/api/users/me")
+      .then((u: UserBrief) => setMeId(u.id))
+      .catch(() => setMeId(null));
   }, []);
 
   // 一覧取得
@@ -84,8 +88,17 @@ export function ApprovalView() {
     [items, selectedId],
   );
 
-  // spec.md §3.4 — 操作可能なのは status=submitted の自分の段だけ
-  const canAct = selected?.status === "submitted";
+  // spec.md §3.4 — 操作可能なのは status=submitted かつ current_approval_step が自分の段のときのみ。
+  // 完了タブで自分が承認済の申請を選択しても再操作できないようにする。
+  const canAct = useMemo(() => {
+    if (!selected || !meId) return false;
+    if (selected.status !== "submitted") return false;
+    const step = selected.current_approval_step;
+    if (step === 1) return selected.approver_1_user_id === meId;
+    if (step === 2) return selected.approver_2_user_id === meId;
+    if (step === 3) return selected.approver_3_user_id === meId;
+    return false;
+  }, [selected, meId]);
 
   // spec.md §3.7 — 操作後は次の申請を自動選択（直下、なければ直上）
   function pickNextSelection(currentList: PointApplication[], removedId: string): string | null {
@@ -188,7 +201,7 @@ export function ApprovalView() {
               </div>
             )}
             {info && (
-              <div className="rounded border border-[#0178C8]/20 bg-[#ecf5fa] px-3 py-2 text-sm text-[#0178C8]">
+              <div className="rounded border border-[#3a9e55]/30 bg-[#dff5e3] px-3 py-2 text-sm text-[#3a9e55]">
                 {info}
               </div>
             )}
@@ -199,8 +212,8 @@ export function ApprovalView() {
         <div className="grid flex-1 grid-cols-[minmax(320px,420px)_1px_1fr] gap-x-6 overflow-hidden">
           {/* 左カラム */}
           <div className="flex min-w-0 flex-col overflow-hidden">
-            {/* タブ — 下線は左カラム幅まで */}
-            <div className="flex shrink-0 items-center gap-8 border-b border-slate-200">
+            {/* タブ — 等間隔（flex-1）で配置、アクティブ下線はタブ1つぶんの幅、全体下線は左カラム幅まで */}
+            <div className="flex shrink-0 items-end border-b border-slate-200">
               {TABS.map((t) => {
                 const active = t.id === tab;
                 return (
@@ -212,13 +225,19 @@ export function ApprovalView() {
                       setInfo(null);
                       setError(null);
                     }}
-                    className={`pb-2 text-sm transition ${
+                    className={`flex-1 text-center text-sm transition ${
                       active
-                        ? "border-b-2 border-[#0178C8] font-bold text-[#0178C8]"
+                        ? "font-bold text-[#0178C8]"
                         : "text-[#64748b] hover:text-[#334155]"
                     }`}
                   >
-                    {t.label}
+                    <span
+                      className={`block pb-2 ${
+                        active ? "-mb-px border-b-2 border-[#0178C8]" : ""
+                      }`}
+                    >
+                      {t.label}
+                    </span>
                   </button>
                 );
               })}
@@ -449,34 +468,62 @@ function ApprovalDetail({
   const approvers = buildApprovers(app);
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-[5px] border border-slate-200 bg-[#ecf5fa]">
-      {/* ヘッダー */}
-      <div className="flex items-center justify-between px-6 pt-5 pb-3">
-        <div className="text-sm font-bold text-[#334155]">
+    <div className="relative flex h-full flex-col overflow-hidden rounded-[5px] border border-slate-200 bg-[#ecf5fa]">
+      {/* × 閉じる: 右上端に絶対配置（差戻し / 各フィールド / 承認ボタン より外側） */}
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="閉じる"
+        className="absolute right-4 top-4 text-[#94a3b8] transition hover:text-[#334155]"
+      >
+        {/* icon3.png 準拠 — × 閉じる */}
+        <svg
+          viewBox="0 0 24 24"
+          width="16"
+          height="16"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          aria-hidden="true"
+        >
+          <path d="M6 6 L18 18" />
+          <path d="M18 6 L6 18" />
+        </svg>
+      </button>
+
+      {/* 申請番号（左）と 差戻しボタン（右）を同じ行に。× の下に余白を取って配置 */}
+      <div className="flex items-center justify-between pl-6 pr-14 pt-10 pb-3">
+        <div className="text-lg font-bold text-[#334155]">
           申請番号: {app.application_number ?? "—"}
         </div>
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={onReturn}
-            disabled={!canAct}
-            className="rounded border border-[#334155] bg-[#faf8f5] px-3 py-1.5 text-xs font-semibold text-[#334155] transition hover:bg-[#f5f1ea] disabled:cursor-not-allowed disabled:opacity-50"
+        <button
+          type="button"
+          onClick={onReturn}
+          disabled={!canAct}
+          className="flex items-center gap-2 rounded border border-[#334155] bg-[#faf8f5] px-3 py-1.5 text-xs font-semibold text-[#334155] transition hover:bg-[#f5f1ea] disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {/* icon2.png 準拠 — 差戻し（undo）アイコン。取戻しと同じ */}
+          <svg
+            viewBox="0 0 24 24"
+            width="16"
+            height="16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
           >
-            ↶ 差戻し
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="閉じる"
-            className="text-base leading-none text-[#64748b] hover:text-[#334155]"
-          >
-            ×
-          </button>
-        </div>
+            <path d="M9 14 4 9l5-5" />
+            <path d="M4 9h11a4 4 0 0 1 0 8H7" />
+          </svg>
+          差戻し
+        </button>
       </div>
 
-      {/* 本文 */}
-      <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-6 pb-3 pt-2">
+      {/* 本文（右余白 pr-14 で × より内側に揃える） */}
+      <div className="flex flex-1 flex-col gap-4 overflow-y-auto pl-6 pr-14 pb-3 pt-2">
         <DetailField label="タイトル" value={app.title || "—"} />
         <DetailField label="申請者" value={app.applicant_name || "—"} />
         <DetailField
@@ -504,15 +551,32 @@ function ApprovalDetail({
         </div>
       </div>
 
-      {/* フッター: 承認ボタン */}
-      <div className="flex shrink-0 items-center px-6 pb-5 pt-2">
+      {/* フッター: 承認ボタン（右余白 pr-14 で × より内側に揃える） */}
+      <div className="flex shrink-0 items-center pl-6 pr-14 pb-5 pt-2">
         <button
           type="button"
           onClick={onApprove}
           disabled={!canAct}
-          className="rounded border border-[#334155] bg-[#faf8f5] px-8 py-2.5 text-xs font-semibold text-[#334155] transition hover:bg-[#f5f1ea] disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex items-center gap-2.5 rounded border border-[#334155] bg-[#faf8f5] px-8 py-2.5 text-xs font-semibold text-[#334155] transition hover:bg-[#f5f1ea] disabled:cursor-not-allowed disabled:opacity-50"
         >
-          ↩ 承認
+          {/* image.png 準拠 — チェック ✓ + 山形矢印 > の承認アイコン */}
+          <svg
+            viewBox="0 0 24 24"
+            width="16"
+            height="16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            {/* 左: チェックマーク */}
+            <path d="M3 13 L6 16 L10 11" />
+            {/* 右: 山形矢印（>） */}
+            <path d="M13 7 L20 12 L13 17" />
+          </svg>
+          承認
         </button>
       </div>
     </div>

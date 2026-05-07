@@ -74,3 +74,16 @@ export function withdrawApplication(id: string): Promise<PointApplication> {
     { method: "POST" },
   );
 }
+
+export function resubmitApplication(
+  id: string,
+  payload?: PointApplicationDraftIn,
+): Promise<PointApplication> {
+  return apiFetch<PointApplication>(
+    `/api/point-applications/${id}/resubmit`,
+    {
+      method: "POST",
+      body: payload ? JSON.stringify(payload) : undefined,
+    },
+  );
+}

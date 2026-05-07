@@ -309,8 +309,8 @@
 #### タブ
 | タブ | 対象ステータス |
 |------|----------------|
-| 未完了 | `submitted`（自分の申請。**`draft` は含めない**） |
-| 完了 | `approved` / `returned` |
+| 未完了 | `submitted` / `returned`（差戻しは申請者の対応待ちのため未完了に含める。**`draft` は含めない**） |
+| 完了 | `approved` |
 | すべて | `draft` を含む全件 |
 
 #### 申請カード（一覧側）
@@ -343,6 +343,20 @@
 | 実行時の挙動 | `status = draft` に戻し、`current_approval_step = null`、`submitted_at = null` を null 化。**`application_number` は引き継ぐ**（再申請時に同一番号を再利用） |
 | 履歴扱い | `ApprovalHistory` には **残さない** |
 | 通知 | **発火しない**（第1承認者はまだ着手前のため） |
+
+#### 再申請（resubmit）の挙動
+
+差戻し（`returned`）された申請を申請者が再度送信する操作。
+
+| 項目 | 仕様 |
+|------|------|
+| 操作可能条件 | `status = returned`（差戻された申請のみ） |
+| ボタン配置 | 詳細パネル右上、取戻しボタンと差し替え |
+| 再開段の決定 | **差戻し段から再開**（`returned_by` が居た段に `current_approval_step` をセット）。第1承認者・第2承認者の承認は引き継がれ、再判断は不要。`returned_by` が承認者として特定できない場合は第1からやり直し |
+| 状態更新 | `status = submitted`、`submitted_at` を現時刻で更新、`returned_at = null` / `returned_by = null` をクリア。`application_number` は引き継ぐ |
+| 通知 | 差戻し段の承認者に `approval_request` を発火 |
+| 承認ルート | **再計算しない**（§2.5 — 元の第1〜第3承認者をそのまま使用） |
+| API | `POST /api/point-applications/{id}/resubmit` |
 
 #### 検索バー
 

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import {
+  NOTIFICATIONS_CHANGED_EVENT,
   fetchRecentNotifications,
   fetchUnreadCount,
 } from "@/lib/api/notifications";
@@ -60,7 +61,7 @@ export function NotificationBell() {
   const [items, setItems] = useState<Notification[]>([]);
   const wrapRef = useRef<HTMLDivElement | null>(null);
 
-  // 未読数: マウント時 + 軽くポーリング
+  // 未読数: マウント時 + ポーリング + 既読化イベントで即時更新
   useEffect(() => {
     let cancelled = false;
     function refresh() {
@@ -74,9 +75,12 @@ export function NotificationBell() {
     }
     refresh();
     const tid = setInterval(refresh, POLL_INTERVAL_MS);
+    // 通知一覧画面で既読化された瞬間にも refresh するためイベントを listen
+    window.addEventListener(NOTIFICATIONS_CHANGED_EVENT, refresh);
     return () => {
       cancelled = true;
       clearInterval(tid);
+      window.removeEventListener(NOTIFICATIONS_CHANGED_EVENT, refresh);
     };
   }, []);
 
@@ -123,7 +127,7 @@ export function NotificationBell() {
         <div
           role="dialog"
           aria-label="通知一覧"
-          className="absolute bottom-full left-1/2 mb-2 w-[260px] -translate-x-1/2 rounded-lg border border-slate-200 bg-white shadow-lg"
+          className="absolute bottom-full left-1/2 z-50 mb-2 w-[260px] -translate-x-1/2 rounded-lg border border-slate-200 bg-white shadow-lg"
         >
           <div className="border-b border-slate-200 px-3 py-2 text-xs text-[#334155]">
             通知

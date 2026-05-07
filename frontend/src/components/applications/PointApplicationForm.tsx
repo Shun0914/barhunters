@@ -265,7 +265,7 @@ export function PointApplicationForm() {
               </div>
             )}
             {info && (
-              <div className="rounded border border-[#0178C8]/20 bg-[#ecf5fa] px-3 py-2 text-sm text-[#0178C8]">
+              <div className="rounded border border-[#3a9e55]/30 bg-[#dff5e3] px-3 py-2 text-sm text-[#3a9e55]">
                 {info}
               </div>
             )}

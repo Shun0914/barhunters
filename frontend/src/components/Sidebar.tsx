@@ -3,9 +3,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 import { DevUserSwitcher } from "@/components/DevUserSwitcher";
 import { NotificationBell } from "@/components/NotificationBell";
+import { apiFetch } from "@/lib/api";
+import type { UserBrief } from "@/lib/api/types";
 
 // spec.md §1.1 のサイドナビ構成（MVP は PC 固定幅・常時展開・お気に入り非表示）
 type NavItem = { label: string; href: string; icon: React.ReactNode };
@@ -107,9 +110,20 @@ export function Sidebar() {
   const activeHref = resolveActiveHref(pathname);
   const isActive = (href: string) => href === activeHref;
 
+  // ログインユーザーの役職に応じてメニューを出し分ける。
+  // 一般職員は決裁することがないため「ポイント承認」を非表示にする。
+  const [me, setMe] = useState<UserBrief | null>(null);
+  useEffect(() => {
+    apiFetch<UserBrief>("/api/users/me")
+      .then(setMe)
+      .catch(() => setMe(null));
+  }, []);
+  const standaloneItems =
+    me?.role === "一般職員" ? [] : STANDALONE_ITEMS;
+
   return (
     /* Figma: サイドバー背景は #faf8f5、幅 250px */
-    <aside className="flex h-screen w-[250px] shrink-0 flex-col border-r border-slate-200 bg-[#faf8f5]">
+    <aside className="relative z-20 flex h-screen w-[250px] shrink-0 flex-col border-r border-slate-200 bg-[#faf8f5]">
       {/* ロゴ部 — Figma の image 14（西部ガスHD ロゴプレースホルダ）+「システム名」
           高さは右側の PageHeader (h-20) と揃える */}
       <div className="flex h-20 shrink-0 items-center gap-2 px-3">
@@ -151,23 +165,25 @@ export function Sidebar() {
           </div>
         ))}
 
-        <div className="mb-2">
-          <ul>
-            {STANDALONE_ITEMS.map((item) => {
-              const active = isActive(item.href);
-              return (
-                <li key={item.href}>
-                  <Link href={item.href} className={navLinkClass(active)}>
-                    <span className={active ? "text-[#0178C8]" : "text-[#64748b]"}>
-                      {item.icon}
-                    </span>
-                    <span>{item.label}</span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
+        {standaloneItems.length > 0 && (
+          <div className="mb-2">
+            <ul>
+              {standaloneItems.map((item) => {
+                const active = isActive(item.href);
+                return (
+                  <li key={item.href}>
+                    <Link href={item.href} className={navLinkClass(active)}>
+                      <span className={active ? "text-[#0178C8]" : "text-[#64748b]"}>
+                        {item.icon}
+                      </span>
+                      <span>{item.label}</span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
 
         <div className="mb-2">
           <div className="px-4 py-1.5 text-[10px] font-medium tracking-wide text-[#334155]">

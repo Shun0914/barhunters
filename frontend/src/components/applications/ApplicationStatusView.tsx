@@ -5,12 +5,16 @@ import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { ApiError } from "@/lib/api";
 import {
+  fetchActivityGenres,
   fetchApplications,
+  resubmitApplication,
   withdrawApplication,
 } from "@/lib/api/applications";
 import type {
+  ActivityGenre,
   ApplicationStatusTab,
   PointApplication,
+  PointApplicationDraftIn,
 } from "@/lib/api/types";
 
 import {
@@ -39,6 +43,13 @@ export function ApplicationStatusView() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const [genres, setGenres] = useState<ActivityGenre[]>([]);
+
+  useEffect(() => {
+    fetchActivityGenres()
+      .then(setGenres)
+      .catch(() => setGenres([]));
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -83,14 +94,46 @@ export function ApplicationStatusView() {
     try {
       const updated = await withdrawApplication(selected.id);
       setItems((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
-      setInfo("申請を取り消しました（下書きに戻りました）");
+      setInfo("申請を取り戻しました（下書きに戻りました）");
     } catch (e) {
       const msg =
         e instanceof ApiError
-          ? e.message || "取消しに失敗しました"
+          ? e.message || "取戻しに失敗しました"
           : e instanceof Error
             ? e.message
-            : "取消しに失敗しました";
+            : "取戻しに失敗しました";
+      setError(msg);
+    }
+  }
+
+  async function handleResubmit(payload?: PointApplicationDraftIn) {
+    if (!selected) return;
+    setError(null);
+    setInfo(null);
+    try {
+      const updated = await resubmitApplication(selected.id, payload);
+      setItems((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+      setInfo("再申請しました（差戻し段から審査が再開されます）");
+    } catch (e) {
+      // バリデーションエラー (400) はサーバから { detail: { field: msg, ... } } で返る
+      if (
+        e instanceof ApiError &&
+        typeof e.detail === "object" &&
+        e.detail !== null
+      ) {
+        const d = e.detail as { detail?: Record<string, string> };
+        if (d.detail) {
+          const first = Object.values(d.detail)[0];
+          setError(first ?? "再申請に失敗しました");
+          return;
+        }
+      }
+      const msg =
+        e instanceof ApiError
+          ? e.message || "再申請に失敗しました"
+          : e instanceof Error
+            ? e.message
+            : "再申請に失敗しました";
       setError(msg);
     }
   }
@@ -127,7 +170,7 @@ export function ApplicationStatusView() {
               </div>
             )}
             {info && (
-              <div className="rounded border border-[#0178C8]/20 bg-[#ecf5fa] px-3 py-2 text-sm text-[#0178C8]">
+              <div className="rounded border border-[#3a9e55]/30 bg-[#dff5e3] px-3 py-2 text-sm text-[#3a9e55]">
                 {info}
               </div>
             )}
@@ -138,8 +181,8 @@ export function ApplicationStatusView() {
         <div className="grid flex-1 grid-cols-[minmax(320px,420px)_1px_1fr] gap-x-6 overflow-hidden">
           {/* 左カラム */}
           <div className="flex min-w-0 flex-col overflow-hidden">
-            {/* タブ — 下線は左カラム幅まで */}
-            <div className="flex shrink-0 items-center gap-8 border-b border-slate-200">
+            {/* タブ — 等間隔（flex-1）で配置、アクティブ下線は文字幅、全体下線は左カラム幅まで */}
+            <div className="flex shrink-0 items-end border-b border-slate-200">
               {TABS.map((t) => {
                 const active = t.id === tab;
                 return (
@@ -151,13 +194,19 @@ export function ApplicationStatusView() {
                       setInfo(null);
                       setError(null);
                     }}
-                    className={`pb-2 text-sm transition ${
+                    className={`flex-1 text-center text-sm transition ${
                       active
-                        ? "border-b-2 border-[#0178C8] font-bold text-[#0178C8]"
+                        ? "font-bold text-[#0178C8]"
                         : "text-[#64748b] hover:text-[#334155]"
                     }`}
                   >
-                    {t.label}
+                    <span
+                      className={`block pb-2 ${
+                        active ? "-mb-px border-b-2 border-[#0178C8]" : ""
+                      }`}
+                    >
+                      {t.label}
+                    </span>
                   </button>
                 );
               })}
@@ -181,8 +230,10 @@ export function ApplicationStatusView() {
             {selected ? (
               <ApplicationDetail
                 app={selected}
+                genres={genres}
                 canWithdraw={canWithdraw}
                 onWithdraw={handleWithdraw}
+                onResubmit={handleResubmit}
                 onClose={() => setSelectedId(null)}
               />
             ) : (
@@ -280,16 +331,21 @@ function ApplicationList({
         const active = a.id === selectedId;
         // spec.md §3.6 — submitted_at（draft なら updated_at）
         const ts = a.submitted_at ?? a.updated_at;
+        // 差戻し申請は背景を常時薄赤、選択時のみ枠とリングを赤系にする
+        const isReturned = a.status === "returned";
+        const borderClass = active
+          ? isReturned
+            ? "border-[#c44040] ring-1 ring-[#c44040]"
+            : "border-[#0178C8] ring-1 ring-[#0178C8]"
+          : "border-slate-200 hover:border-slate-300";
         return (
           <button
             key={a.id}
             type="button"
             onClick={() => onSelect(a.id)}
-            className={`flex items-start justify-between rounded border bg-white px-4 py-3 text-left transition ${
-              active
-                ? "border-[#0178C8] ring-1 ring-[#0178C8]"
-                : "border-slate-200 hover:border-slate-300"
-            }`}
+            className={`flex items-start justify-between rounded border px-4 py-3 text-left transition ${
+              isReturned ? "bg-[#fde8e8]" : "bg-white"
+            } ${borderClass}`}
           >
             <div className="flex-1 space-y-1">
               <div className="text-xs text-[#334155]">
@@ -312,59 +368,212 @@ function ApplicationList({
   );
 }
 
+const TITLE_MAX = 50;
+const DESCRIPTION_MAX = 500;
+
 function ApplicationDetail({
   app,
+  genres,
   canWithdraw,
   onWithdraw,
+  onResubmit,
   onClose,
 }: {
   app: PointApplication;
+  genres: ActivityGenre[];
   canWithdraw: boolean;
   onWithdraw: () => void;
+  onResubmit: (payload?: PointApplicationDraftIn) => void;
   onClose: () => void;
 }) {
   const approvers = buildApprovers(app);
+  const isReturned = app.status === "returned";
+
+  // 差戻し申請の編集用ローカル state（選択中の申請が変わったら初期化）
+  const [editTitle, setEditTitle] = useState<string>(app.title || "");
+  const [editGenreId, setEditGenreId] = useState<number | "">(
+    app.activity_genre_id ?? "",
+  );
+  const [editDescription, setEditDescription] = useState<string>(
+    app.description || "",
+  );
+  useEffect(() => {
+    setEditTitle(app.title || "");
+    setEditGenreId(app.activity_genre_id ?? "");
+    setEditDescription(app.description || "");
+  }, [app.id, app.title, app.activity_genre_id, app.description]);
+
+  // ジャンル変更でポイント数を即時表示（再申請時にサーバ側で再計算もされる）
+  const previewPoints = useMemo(() => {
+    if (editGenreId === "") return null;
+    return genres.find((g) => g.id === editGenreId)?.default_points ?? null;
+  }, [editGenreId, genres]);
+
+  function handleResubmitClick() {
+    if (!isReturned) return;
+    onResubmit({
+      title: editTitle || null,
+      activity_genre_id: editGenreId === "" ? null : Number(editGenreId),
+      description: editDescription || null,
+    });
+  }
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-[5px] border border-slate-200 bg-[#ecf5fa]">
-      <div className="flex items-center justify-between px-6 pt-5 pb-3">
-        <div className="text-sm font-bold text-[#334155]">
+    <div className="relative flex h-full flex-col overflow-hidden rounded-[5px] border border-slate-200 bg-[#ecf5fa]">
+      {/* × 閉じる: 右上端に絶対配置（取戻しやフィールドより外側） */}
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="閉じる"
+        className="absolute right-4 top-4 text-[#94a3b8] transition hover:text-[#334155]"
+      >
+        {/* icon3.png 準拠 — × 閉じる */}
+        <svg
+          viewBox="0 0 24 24"
+          width="16"
+          height="16"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          aria-hidden="true"
+        >
+          <path d="M6 6 L18 18" />
+          <path d="M18 6 L6 18" />
+        </svg>
+      </button>
+
+      {/* 申請番号（左）。差戻し以外は右に取戻しボタン（再申請は下のフッターに配置） */}
+      <div className="flex items-center justify-between pl-6 pr-14 pt-10 pb-3">
+        <div className="text-lg font-bold text-[#334155]">
           申請番号: {app.application_number ?? "—"}
         </div>
-        <div className="flex items-center gap-3">
+        {!isReturned && (
           <button
             type="button"
             onClick={onWithdraw}
             disabled={!canWithdraw}
-            title={canWithdraw ? "" : "取り消しできません"}
-            className="rounded border border-[#334155] bg-[#faf8f5] px-3 py-1.5 text-xs font-semibold text-[#334155] transition hover:bg-[#f5f1ea] disabled:cursor-not-allowed disabled:opacity-50"
+            title={canWithdraw ? "" : "取り戻しできません"}
+            className="flex items-center gap-2 rounded border border-[#334155] bg-[#faf8f5] px-3 py-1.5 text-xs font-semibold text-[#334155] transition hover:bg-[#f5f1ea] disabled:cursor-not-allowed disabled:opacity-50"
           >
-            ↶ 取消し
+            {/* icon2.png 準拠 — 取戻し（undo）アイコン */}
+            <svg
+              viewBox="0 0 24 24"
+              width="16"
+              height="16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M9 14 4 9l5-5" />
+              <path d="M4 9h11a4 4 0 0 1 0 8H7" />
+            </svg>
+            取戻し
           </button>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="閉じる"
-            className="text-base leading-none text-[#64748b] hover:text-[#334155]"
-          >
-            ×
-          </button>
-        </div>
+        )}
       </div>
 
-      <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-6 pb-5 pt-2">
-        <DetailField label="タイトル" value={app.title || "—"} />
-        <DetailField label="申請者" value={app.applicant_name || "—"} />
-        <DetailField
-          label="活動ジャンル"
-          value={app.activity_genre_name || "—"}
-        />
-        <PointsField points={app.points} />
-        <DetailField
-          label="活動内容"
-          value={app.description || "—"}
-          multiline
-        />
+      <div className="flex flex-1 flex-col gap-4 overflow-y-auto pl-6 pr-14 pb-3 pt-2">
+        {isReturned ? (
+          <>
+            {/* 差戻し申請: タイトル / ジャンル / 活動内容を編集可能に */}
+            <div>
+              <label
+                className="mb-1 block text-sm font-bold text-[#334155]"
+                htmlFor="resubmit-title"
+              >
+                タイトル
+              </label>
+              <input
+                id="resubmit-title"
+                type="text"
+                value={editTitle}
+                maxLength={TITLE_MAX}
+                onChange={(e) => setEditTitle(e.target.value)}
+                className="w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm text-[#334155] focus:border-[#0178C8] focus:outline-none"
+              />
+              <div className="mt-1 text-right text-[10px] text-[#64748b]">
+                {editTitle.length}/{TITLE_MAX}
+              </div>
+            </div>
+
+            <div>
+              <label
+                className="mb-1 block text-sm font-bold text-[#334155]"
+                htmlFor="resubmit-genre"
+              >
+                活動ジャンル
+              </label>
+              <div className="relative w-[354px] max-w-full">
+                <select
+                  id="resubmit-genre"
+                  value={editGenreId}
+                  onChange={(e) =>
+                    setEditGenreId(
+                      e.target.value === "" ? "" : Number(e.target.value),
+                    )
+                  }
+                  className={`w-full appearance-none rounded border border-slate-300 bg-white px-3 py-2 pr-9 text-sm focus:border-[#0178C8] focus:outline-none ${
+                    editGenreId === "" ? "text-slate-300" : "text-[#334155]"
+                  }`}
+                >
+                  <option value="">ジャンルを選択</option>
+                  {genres.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.name}
+                    </option>
+                  ))}
+                </select>
+                <span
+                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px] leading-none text-[#334155]"
+                  aria-hidden="true"
+                >
+                  ▼
+                </span>
+              </div>
+            </div>
+
+            <PointsField points={previewPoints} />
+
+            <div>
+              <label
+                className="mb-1 block text-sm font-bold text-[#334155]"
+                htmlFor="resubmit-description"
+              >
+                活動内容
+              </label>
+              <textarea
+                id="resubmit-description"
+                value={editDescription}
+                maxLength={DESCRIPTION_MAX}
+                rows={6}
+                onChange={(e) => setEditDescription(e.target.value)}
+                className="w-full resize-none rounded border border-slate-300 bg-white px-3 py-2 text-sm text-[#334155] focus:border-[#0178C8] focus:outline-none"
+              />
+              <div className="mt-1 text-right text-[10px] text-[#64748b]">
+                {editDescription.length}/{DESCRIPTION_MAX}
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* 通常: 読み取り専用表示（申請者欄は不要なので非表示） */}
+            <DetailField label="タイトル" value={app.title || "—"} />
+            <DetailField
+              label="活動ジャンル"
+              value={app.activity_genre_name || "—"}
+            />
+            <PointsField points={app.points} />
+            <DetailField
+              label="活動内容"
+              value={app.description || "—"}
+              multiline
+            />
+          </>
+        )}
 
         <div>
           <div className="mb-2 text-sm font-bold text-[#334155]">
@@ -381,6 +590,34 @@ function ApplicationDetail({
           )}
         </div>
       </div>
+
+      {/* フッター: 差戻し申請のときだけ再申請ボタンを左下に配置（S-04 の承認ボタンと同じ位置感） */}
+      {isReturned && (
+        <div className="flex shrink-0 items-center pl-6 pr-14 pb-5 pt-2">
+          <button
+            type="button"
+            onClick={handleResubmitClick}
+            className="flex items-center gap-2.5 rounded border border-[#334155] bg-[#faf8f5] px-8 py-2.5 text-xs font-semibold text-[#334155] transition hover:bg-[#f5f1ea]"
+          >
+            {/* 紙飛行機/送信アイコン（申請ボタンと同じ） */}
+            <svg
+              viewBox="0 0 24 24"
+              width="14"
+              height="14"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M3 11 L21 3 L13 21 L11 13 Z" />
+              <path d="M11 13 L21 3" />
+            </svg>
+            再申請
+          </button>
+        </div>
+      )}
     </div>
   );
 }
