@@ -6,6 +6,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.db import dispose_engine, get_engine
+from app.routers import cascade as cascade_router
 from app.settings import get_settings
 
 
@@ -67,6 +68,9 @@ def create_app() -> FastAPI:
                 "error": str(e),
                 "hint": "cd backend && pip install -e '.[dev]' && alembic upgrade head",
             }
+
+    # ── ルーター登録 ──────────────────────────────────
+    app.include_router(cascade_router.router)
 
     return app
 

@@ -1,0 +1,591 @@
+{
+  "summary": {
+    "sales_effect_oku": 6.0,
+    "sales_target_oku": 6.0,
+    "roe_delta_pt": 1.05,
+    "roic_delta_pt": 0.32,
+    "points_total": 6000
+  },
+  "columns": {
+    "actions": [
+      {
+        "calc_id": "daily_social",
+        "label": "日常×社会貢献",
+        "value": 1200,
+        "unit": "pt",
+        "category": "social",
+        "size": "daily",
+        "desc": "助け合い・日々の貢献"
+      },
+      {
+        "calc_id": "daily_safety",
+        "label": "日常×安心安全",
+        "value": 1200,
+        "unit": "pt",
+        "category": "safety",
+        "size": "daily",
+        "desc": "報告・改善・整理整頓"
+      },
+      {
+        "calc_id": "daily_future",
+        "label": "日常×未来共創",
+        "value": 1200,
+        "unit": "pt",
+        "category": "future",
+        "size": "daily",
+        "desc": "小さな提案・改善"
+      },
+      {
+        "calc_id": "cross_social",
+        "label": "越境×社会貢献",
+        "value": 600,
+        "unit": "pt",
+        "category": "social",
+        "size": "cross",
+        "desc": "部門越境・社外連携"
+      },
+      {
+        "calc_id": "cross_safety",
+        "label": "越境×安心安全",
+        "value": 600,
+        "unit": "pt",
+        "category": "safety",
+        "size": "cross",
+        "desc": "横断的な安全活動"
+      },
+      {
+        "calc_id": "cross_future",
+        "label": "越境×未来共創",
+        "value": 600,
+        "unit": "pt",
+        "category": "future",
+        "size": "cross",
+        "desc": "他部門との新規取組"
+      },
+      {
+        "calc_id": "creative_social",
+        "label": "創造×社会貢献",
+        "value": 200,
+        "unit": "pt",
+        "category": "social",
+        "size": "creative",
+        "desc": "新規CSR・地域共創"
+      },
+      {
+        "calc_id": "creative_safety",
+        "label": "創造×安心安全",
+        "value": 200,
+        "unit": "pt",
+        "category": "safety",
+        "size": "creative",
+        "desc": "保安の革新"
+      },
+      {
+        "calc_id": "creative_future",
+        "label": "創造×未来共創",
+        "value": 200,
+        "unit": "pt",
+        "category": "future",
+        "size": "creative",
+        "desc": "PoC・新事業創出"
+      }
+    ],
+    "hudo": [
+      {
+        "calc_id": "shinri",
+        "label": "心理的安全性の醸成",
+        "boost": 0.45,
+        "desc": "失敗を許容する組織文化"
+      },
+      {
+        "calc_id": "chosen",
+        "label": "挑戦できる風土",
+        "boost": 0.78,
+        "desc": "未来をつなぐエネルギー"
+      },
+      {
+        "calc_id": "jiritsu",
+        "label": "自律と対話の文化",
+        "boost": 0.55,
+        "desc": "自分で考え対話する"
+      },
+      {
+        "calc_id": "gakushu",
+        "label": "学習・成長の文化",
+        "boost": 0.62,
+        "desc": "自発的な学びを称える"
+      },
+      {
+        "calc_id": "shokumu",
+        "label": "職務への誇り・貢献実感",
+        "boost": 0.72,
+        "desc": "やりがいの源泉"
+      },
+      {
+        "calc_id": "tayou",
+        "label": "多様性を活かす文化",
+        "boost": 0.5,
+        "desc": "多様な視点を歓迎"
+      },
+      {
+        "calc_id": "kenkou",
+        "label": "健康で安心な職場",
+        "boost": 0.84,
+        "desc": "心身の健康が挑戦の基盤"
+      }
+    ],
+    "effect": [
+      {
+        "calc_id": "eng",
+        "label": "ENG指数",
+        "current": 59.4,
+        "target": 65.0,
+        "projected": 63.4,
+        "unit": "%",
+        "achievement": 0.72,
+        "type": "survey"
+      },
+      {
+        "calc_id": "challenge",
+        "label": "挑戦指数",
+        "current": 3.46,
+        "target": 3.75,
+        "projected": 3.63,
+        "unit": "スコア",
+        "achievement": 0.57,
+        "type": "survey"
+      },
+      {
+        "calc_id": "transform",
+        "label": "変革人財割合",
+        "current": 15.0,
+        "target": 20.0,
+        "projected": 17.6,
+        "unit": "%",
+        "achievement": 0.53,
+        "type": "survey"
+      },
+      {
+        "calc_id": "retention",
+        "label": "定着率",
+        "current": 95.8,
+        "target": 98.0,
+        "projected": 97.6,
+        "unit": "%",
+        "achievement": 0.84,
+        "type": "survey"
+      },
+      {
+        "calc_id": "dx_core",
+        "label": "DXコア人財数",
+        "current": 200,
+        "target": 650,
+        "projected": 432,
+        "unit": "名",
+        "achievement": 0.52,
+        "type": "count"
+      },
+      {
+        "calc_id": "reskill",
+        "label": "リスキル実践者数",
+        "current": 43,
+        "target": 2000,
+        "projected": 981,
+        "unit": "名",
+        "achievement": 0.48,
+        "type": "count"
+      },
+      {
+        "calc_id": "renewable_mid",
+        "label": "再エネ取扱量",
+        "current": 9.2,
+        "target": 13.0,
+        "projected": 10.0,
+        "unit": "万kW",
+        "achievement": 0.21,
+        "type": "count"
+      }
+    ],
+    "mid_survey": [
+      {
+        "calc_id": "safety_zero",
+        "label": "保安事故ゼロ継続",
+        "value_display": "継続",
+        "achievement": 0.3,
+        "reliability": "★★"
+      },
+      {
+        "calc_id": "poc",
+        "label": "共創PoC件数",
+        "current": 10,
+        "target": 15,
+        "projected": 11.6,
+        "unit": "件",
+        "achievement": 0.32,
+        "reliability": "★★"
+      },
+      {
+        "calc_id": "jcsi",
+        "label": "JCSI",
+        "current": 4,
+        "target": 5,
+        "projected": 4.12,
+        "unit": "年連続",
+        "achievement": 0.12,
+        "reliability": "★★★"
+      },
+      {
+        "calc_id": "ltv",
+        "label": "顧客LTV",
+        "current": 240,
+        "target": 280,
+        "projected": 243.7,
+        "unit": "千円/戸",
+        "achievement": 0.09,
+        "reliability": "★★★"
+      },
+      {
+        "calc_id": "region",
+        "label": "地域共創力",
+        "current": 10,
+        "target": 15,
+        "projected": 10.4,
+        "unit": "件",
+        "achievement": 0.08,
+        "reliability": "★★★"
+      },
+      {
+        "calc_id": "esg",
+        "label": "ESG評価",
+        "current": 3,
+        "target": 5,
+        "projected": 3.39,
+        "unit": "指数",
+        "achievement": 0.19,
+        "reliability": "★★★"
+      },
+      {
+        "calc_id": "recruit",
+        "label": "採用・定着力",
+        "current": 95.8,
+        "target": 98,
+        "projected": 96.4,
+        "unit": "%",
+        "achievement": 0.29,
+        "reliability": "★★"
+      },
+      {
+        "calc_id": "safety_brand",
+        "label": "保安ブランド",
+        "value_display": "維持",
+        "achievement": 0.12,
+        "reliability": "★★★"
+      },
+      {
+        "calc_id": "co2",
+        "label": "CO2削減貢献量",
+        "current": 60,
+        "target": 87,
+        "projected": 62.1,
+        "unit": "万t",
+        "achievement": 0.08,
+        "reliability": "★"
+      }
+    ],
+    "financial": {
+      "main": {
+        "calc_id": "sales_effect",
+        "label": "売上効果",
+        "value": 6.0,
+        "target": 6.0,
+        "unit": "億円",
+        "highlight": true,
+        "desc": "6,000P目標達成時に+6.0億円"
+      },
+      "drivers": [
+        {
+          "calc_id": "revenue",
+          "label": "売上ドライバー",
+          "value": 12.99,
+          "unit": "%",
+          "desc": "JCSI/LTV/ESG/地域/PoC"
+        },
+        {
+          "calc_id": "cost",
+          "label": "コスト削減",
+          "value": 12.65,
+          "unit": "%",
+          "desc": "ESG/採用/保安"
+        },
+        {
+          "calc_id": "capital",
+          "label": "資本効率化",
+          "value": 18.16,
+          "unit": "%",
+          "desc": "ESG/保安ブランド/採用"
+        }
+      ],
+      "ref": [
+        {
+          "calc_id": "roic",
+          "label": "ROIC（参考）",
+          "value": 0.32,
+          "unit": "pt改善",
+          "current": 2.53,
+          "projected": 2.85
+        },
+        {
+          "calc_id": "roe",
+          "label": "ROE（参考）",
+          "value": 1.05,
+          "unit": "pt改善",
+          "current": 8.32,
+          "projected": 9.37
+        }
+      ]
+    }
+  },
+  "connections": [
+    {
+      "from": "daily_social",
+      "to": [
+        "shinri",
+        "chosen",
+        "shokumu"
+      ]
+    },
+    {
+      "from": "daily_safety",
+      "to": [
+        "shinri",
+        "shokumu",
+        "kenkou"
+      ]
+    },
+    {
+      "from": "daily_future",
+      "to": [
+        "chosen",
+        "jiritsu",
+        "gakushu"
+      ]
+    },
+    {
+      "from": "cross_social",
+      "to": [
+        "chosen",
+        "jiritsu",
+        "tayou"
+      ]
+    },
+    {
+      "from": "cross_safety",
+      "to": [
+        "jiritsu",
+        "tayou",
+        "kenkou"
+      ]
+    },
+    {
+      "from": "cross_future",
+      "to": [
+        "chosen",
+        "jiritsu",
+        "tayou"
+      ]
+    },
+    {
+      "from": "creative_social",
+      "to": [
+        "chosen",
+        "gakushu",
+        "tayou"
+      ]
+    },
+    {
+      "from": "creative_safety",
+      "to": [
+        "shinri",
+        "chosen",
+        "gakushu"
+      ]
+    },
+    {
+      "from": "creative_future",
+      "to": [
+        "chosen",
+        "jiritsu",
+        "gakushu"
+      ]
+    },
+    {
+      "from": "shinri",
+      "to": [
+        "eng",
+        "challenge",
+        "retention"
+      ]
+    },
+    {
+      "from": "chosen",
+      "to": [
+        "eng",
+        "challenge",
+        "transform"
+      ]
+    },
+    {
+      "from": "jiritsu",
+      "to": [
+        "eng",
+        "challenge",
+        "transform",
+        "retention"
+      ]
+    },
+    {
+      "from": "gakushu",
+      "to": [
+        "eng",
+        "challenge",
+        "transform",
+        "retention"
+      ]
+    },
+    {
+      "from": "shokumu",
+      "to": [
+        "eng",
+        "retention"
+      ]
+    },
+    {
+      "from": "tayou",
+      "to": [
+        "eng",
+        "transform",
+        "retention"
+      ]
+    },
+    {
+      "from": "kenkou",
+      "to": [
+        "eng",
+        "retention"
+      ]
+    },
+    {
+      "from": "eng",
+      "to": [
+        "safety_zero",
+        "poc",
+        "jcsi",
+        "ltv",
+        "region",
+        "esg",
+        "recruit",
+        "safety_brand"
+      ]
+    },
+    {
+      "from": "challenge",
+      "to": [
+        "poc"
+      ]
+    },
+    {
+      "from": "transform",
+      "to": [
+        "poc",
+        "co2",
+        "region",
+        "esg"
+      ]
+    },
+    {
+      "from": "retention",
+      "to": [
+        "safety_zero",
+        "jcsi",
+        "ltv",
+        "esg",
+        "recruit",
+        "safety_brand"
+      ]
+    },
+    {
+      "from": "safety_zero",
+      "to": [
+        "revenue",
+        "cost",
+        "capital"
+      ]
+    },
+    {
+      "from": "poc",
+      "to": [
+        "revenue",
+        "capital"
+      ]
+    },
+    {
+      "from": "jcsi",
+      "to": [
+        "revenue",
+        "cost",
+        "capital"
+      ]
+    },
+    {
+      "from": "ltv",
+      "to": [
+        "revenue",
+        "capital"
+      ]
+    },
+    {
+      "from": "region",
+      "to": [
+        "revenue",
+        "cost",
+        "capital"
+      ]
+    },
+    {
+      "from": "esg",
+      "to": [
+        "revenue",
+        "cost",
+        "capital"
+      ]
+    },
+    {
+      "from": "recruit",
+      "to": [
+        "revenue",
+        "cost",
+        "capital"
+      ]
+    },
+    {
+      "from": "safety_brand",
+      "to": [
+        "revenue",
+        "cost",
+        "capital"
+      ]
+    },
+    {
+      "from": "co2",
+      "to": [
+        "capital"
+      ]
+    },
+    {
+      "from": "revenue",
+      "to": [
+        "sales_effect"
+      ]
+    }
+  ]
+}
