@@ -124,22 +124,51 @@ function CascadeBoardInner() {
   }, [data]);
 
   // モーダル用：全ノードの label / description / target / unit / reliability を 1 つの map に集約
+  // INDICATOR_META に target/unit が定義されている場合は backend より優先する。
   const cardMeta = useMemo(() => {
     const m = new Map<string, CardMeta>();
     for (const k of CELL_KEYS) m.set(k, { label: CELL_LABEL[k] });
     for (const h of HUDO_LIST) m.set(h.id, { label: h.label, description: h.desc });
     data?.cards.forEach((c) => {
       if (!c.calc_id) return;
+      const override = INDICATOR_META[c.calc_id];
       m.set(c.calc_id, {
         label: c.label,
         description: c.description,
-        target: c.target,
-        unit: c.unit,
+        target: override?.target ?? c.target,
+        unit: override?.unit ?? c.unit,
         reliability: c.reliability,
       });
     });
     return m;
   }, [data]);
+
+  // カード表示用：value（現在値）/ target / unit / qualitative を meta + backend から決定。
+  //   value: meta.baselineCurrent（静的）が優先。なければ backend の projected を使う（9セル入力で動的更新）。
+  //   target/unit: meta が定義されていれば優先。なければ backend の値。
+  const displayOf = useCallback(
+    (id: string) => {
+      const meta = INDICATOR_META[id];
+      const c = cardByCalcId.get(id);
+      const value =
+        meta?.baselineCurrent !== undefined && meta.baselineCurrent !== null
+          ? meta.baselineCurrent
+          : (c?.projected ?? null);
+      const target =
+        meta?.target !== undefined && meta.target !== null
+          ? meta.target
+          : (c?.target ?? null);
+      const unit = meta?.unit ?? c?.unit ?? null;
+      return {
+        value,
+        target,
+        unit,
+        qualitativeCurrent: meta?.qualitativeCurrent ?? null,
+        qualitativeTarget: meta?.qualitativeTarget ?? null,
+      };
+    },
+    [cardByCalcId],
+  );
 
   // connections から下流方向の隣接リストを構築
   const adjacency = useMemo(() => {
@@ -305,7 +334,12 @@ function CascadeBoardInner() {
           を達成するために必要な人的資本投資ポイント
           <strong className="text-brand-primary">（6,000P）</strong>
           からの逆算で各指標の目標値を算出しています。
-          <span className="ml-1 text-ink-secondary">
+          <span className="block">
+            各指標間の係数は文献値（柳モデル・人的資本可視化指針）に基づく仮置き。運用しながら実データを蓄積し、
+            <strong className="text-brand-primary">2030年を目処</strong>
+            に精緻化を進めます。
+          </span>
+          <span className="text-ink-secondary">
             各カードの 🔍 アイコンで詳細を表示。
           </span>
         </span>
@@ -356,13 +390,17 @@ function CascadeBoardInner() {
         <Column title="会社への効果 (KPI)" tone="leading">
           {COMPANY_EFFECT_IDS.filter((id) => visibleByTab(id)).map((id) => {
             const c = cardOf(id);
+            const d = displayOf(id);
             return c ? (
               <IndicatorCard
                 key={id}
                 id={id}
                 label={c.label}
-                target={c.target}
-                unit={c.unit}
+                value={d.value}
+                target={d.target}
+                unit={d.unit}
+                qualitativeCurrent={d.qualitativeCurrent}
+                qualitativeTarget={d.qualitativeTarget}
                 description={c.description}
                 reliability={c.reliability}
                 selected={activeId === id}
@@ -385,13 +423,17 @@ function CascadeBoardInner() {
         <Column title="事業実績・外部評価" tone="bridge">
           {MID_IDS.filter((id) => visibleByTab(id)).map((id) => {
             const c = cardOf(id);
+            const d = displayOf(id);
             return c ? (
               <IndicatorCard
                 key={id}
                 id={id}
                 label={c.label}
-                target={c.target}
-                unit={c.unit}
+                value={d.value}
+                target={d.target}
+                unit={d.unit}
+                qualitativeCurrent={d.qualitativeCurrent}
+                qualitativeTarget={d.qualitativeTarget}
                 description={c.description}
                 reliability={c.reliability}
                 selected={activeId === id}
@@ -414,14 +456,18 @@ function CascadeBoardInner() {
         <Column title="財務評価・企業価値 (遅行指標)" tone="lagging">
           {FINANCE_IDS.map((id) => {
             const c = cardOf(id);
+            const d = displayOf(id);
             const isMain = id === "sales_effect";
             return c ? (
               <IndicatorCard
                 key={id}
                 id={id}
                 label={c.label}
-                target={c.target}
-                unit={c.unit}
+                value={d.value}
+                target={d.target}
+                unit={d.unit}
+                qualitativeCurrent={d.qualitativeCurrent}
+                qualitativeTarget={d.qualitativeTarget}
                 description={c.description}
                 reliability={c.reliability}
                 emphasis={isMain ? "main" : "default"}

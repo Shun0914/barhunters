@@ -91,17 +91,32 @@ export type IndicatorMeta = {
   description: IndicatorDescription;
   /** 参考文献（あれば） */
   reference?: string;
+  /** 目標値（数値）。backend の値より優先。 */
+  target?: number | null;
+  /** 単位（formatNum で解釈）。backend の unit より優先。 */
+  unit?: string | null;
+  /** 静的な現在値フォールバック。設定すると 9セル入力では動かない（unit 不一致や非対応の指標で使う）。 */
+  baselineCurrent?: number | null;
+  /** 数値で表せない指標の質的な現在値テキスト。 */
+  qualitativeCurrent?: string;
+  /** 数値で表せない指標の質的な目標値テキスト。 */
+  qualitativeTarget?: string;
 };
 
+// 全 targetRationale 末尾に共通で付ける精緻化方針（2030年目処）。
+const REFINE_NOTE = " 運用データを継続的に蓄積し、5年スパンで再校正予定。";
+
 export const INDICATOR_META: Record<string, IndicatorMeta> = {
-  // ─── 列2: 風土・組織文化 ───
+  // ─── 列2: 風土・組織文化（target/value なし、description.measures をカード表示） ───
   shokumu: {
     description: {
       measures: "自社・自部署・自分の仕事に対する誇りや帰属意識の強さ",
       measurement:
         "年次エンゲージメントサーベイの「職務への誇り」関連設問のスコア（5段階評価の平均） /* TODO: 実測方法確認 */",
       targetRationale:
-        "業界平均より高い水準を維持。職務誇りは退職意向と強く負相関する研究知見に基づく /* TODO: 業界基準値確認 */",
+        "業界平均より高い水準を維持。職務誇りは退職意向と強く負相関する研究知見に基づく。" +
+        REFINE_NOTE +
+        " /* TODO: 業界基準値確認 */",
     },
   },
   shinri: {
@@ -110,7 +125,9 @@ export const INDICATOR_META: Record<string, IndicatorMeta> = {
       measurement:
         "Edmondsonの心理的安全性7項目尺度をベースとしたサーベイ（年次実施） /* TODO: 実測方法確認 */",
       targetRationale:
-        "Google「Project Aristotle」が「効果的なチームの最重要因子」と特定。業界平均を上回る水準を目標 /* TODO: 業界基準値確認 */",
+        "Google「Project Aristotle」が「効果的なチームの最重要因子」と特定。業界平均を上回る水準を目標。" +
+        REFINE_NOTE +
+        " /* TODO: 業界基準値確認 */",
     },
   },
   kenkou: {
@@ -119,7 +136,9 @@ export const INDICATOR_META: Record<string, IndicatorMeta> = {
       measurement:
         "健康経営優良法人ホワイト500の評価項目をベースとした内部評価 /* TODO: 実測方法確認 */",
       targetRationale:
-        "健康経営優良法人ホワイト500の上位基準。生産性研究に基づく水準 /* TODO: 西部ガスの認定状況確認 */",
+        "健康経営優良法人ホワイト500の上位基準。生産性研究に基づく水準。" +
+        REFINE_NOTE +
+        " /* TODO: 西部ガスの認定状況確認 */",
     },
   },
   tayou: {
@@ -128,7 +147,8 @@ export const INDICATOR_META: Record<string, IndicatorMeta> = {
       measurement:
         "女性管理職比率・キャリア採用比率・育休取得率・障害者雇用率等の総合スコア /* TODO: 実測方法確認 */",
       targetRationale:
-        "経産省「人材版伊藤レポート2.0」の推奨基準。多様性が革新と業績に寄与する研究知見",
+        "経産省「人材版伊藤レポート2.0」の推奨基準。多様性が革新と業績に寄与する研究知見。" +
+        REFINE_NOTE,
     },
   },
   jiritsu: {
@@ -137,7 +157,9 @@ export const INDICATOR_META: Record<string, IndicatorMeta> = {
       measurement:
         "1on1実施率・自律性に関するサーベイ設問・360度評価の対話関連項目を集約 /* TODO: 実測方法確認 */",
       targetRationale:
-        "自己決定理論（Deci & Ryan）の自律性が内発的動機の核。業界平均超えを目指す /* TODO: 業界基準値確認 */",
+        "自己決定理論（Deci & Ryan）の自律性が内発的動機の核。業界平均超えを目指す。" +
+        REFINE_NOTE +
+        " /* TODO: 業界基準値確認 */",
     },
   },
   gakushu: {
@@ -145,7 +167,8 @@ export const INDICATOR_META: Record<string, IndicatorMeta> = {
       measures: "個人の学習機会と成長実感、組織として学び続ける文化の度合い",
       measurement:
         "一人当たり研修時間・自己啓発支援利用率・成長実感サーベイスコアの総合 /* TODO: 実測方法確認 */",
-      targetRationale: "ESG関連開示の人的資本投資指標。学習組織研究（Senge）の知見に基づく",
+      targetRationale:
+        "ESG関連開示の人的資本投資指標。学習組織研究（Senge）の知見に基づく。" + REFINE_NOTE,
     },
   },
   chosen: {
@@ -153,7 +176,8 @@ export const INDICATOR_META: Record<string, IndicatorMeta> = {
       measures: "失敗を許容し新しい取り組みを奨励する風土の度合い、実際の挑戦行動量",
       measurement:
         "新規プロジェクト立ち上げ数・社内公募応募率・挑戦経験に関するサーベイ項目 /* TODO: 実測方法確認 */",
-      targetRationale: "心理的安全性とセットで革新を生む要素。Edmondson研究に基づく",
+      targetRationale:
+        "心理的安全性とセットで革新を生む要素。Edmondson研究に基づく。" + REFINE_NOTE,
     },
   },
 
@@ -164,77 +188,119 @@ export const INDICATOR_META: Record<string, IndicatorMeta> = {
       measurement:
         "Utrecht Work Engagement Scale（UWES）または社内サーベイ（年1〜2回実施） /* TODO: 西部ガスでの実測方法確認 */",
       targetRationale:
-        "業界平均（約55%）を10pt上回る水準。退職率・生産性との相関研究に基づく /* TODO: 中期計画との整合確認 */",
+        "業界平均（約55%）を10pt上回る水準。退職率・生産性との相関研究に基づく。" +
+        REFINE_NOTE +
+        " /* TODO: 中期計画との整合確認 */",
     },
+    target: 65.0,
+    unit: "%",
+    // baselineCurrent なし → 9セル入力で backend の projected が動的に流入
   },
   retention: {
     description: {
       measures: "入社3年以内の社員が継続して在籍している比率",
       measurement: "各年度の入社者数 vs 3年経過時点での在籍者数",
       targetRationale:
-        "インフラ業界の安定性を活かす目標。離職コスト（年収の30〜100%）の最小化",
+        "ACT2027 の中計目標は 95% 維持・向上。離職コスト（年収の30〜100%）の最小化と人材定着を両立。" +
+        REFINE_NOTE,
     },
+    target: 95.0,
+    unit: "%",
   },
   challenge: {
     description: {
       measures: "新規事業・新規プロジェクト・社内公募・越境経験の実施・参加度合い",
       measurement: "社員一人当たり挑戦行動数を5段階で評価し平均化 /* TODO: 認定方法確認 */",
       targetRationale:
-        "業界平均3.0を上回り、変革人財輩出の前提条件として設定 /* TODO: 業界基準値確認 */",
+        "2022年度 3.46 → 2027年度 3.75 を中計目標として設定。変革人財輩出の前提条件。" +
+        REFINE_NOTE +
+        " /* TODO: 業界基準値確認 */",
     },
+    target: 3.75,
+    unit: "スコア",
   },
   transform: {
     description: {
-      measures: "既存事業を超えて新規価値を創出できる人財の組織内比率",
+      measures: "既存事業を超えて新規価値を創出できる人財（管理職候補者）の組織内比率",
       measurement:
         "360度評価・上長評価・実績評価を統合した変革人財認定制度 /* TODO: 認定方法確認 */",
       targetRationale:
-        "経営戦略上必要な変革リーダー数を逆算。経産省「人的資本投資指針」参照 /* TODO: 中期計画との整合確認 */",
+        "管理職候補者比率 15% → 20% を中計目標として設定。経産省「人的資本投資指針」参照。" +
+        REFINE_NOTE +
+        " /* TODO: 中期計画との整合確認 */",
     },
+    target: 20.0,
+    unit: "%",
   },
 
   // ─── 列4: 事業実績・外部評価 ───
   safety_zero: {
     description: {
-      measures: "ガス供給に関わる保安事故（人身・設備・公衆）の発生件数",
-      measurement: "経産省ガス事業法に基づく保安事故報告件数を年次集計",
-      targetRationale: "ガス事業者として絶対遵守すべき基本要件。人命・社会インフラへの責任",
+      measures: "ガス供給に関わる保安事故（人身・設備・公衆）の連続無発生年数",
+      measurement:
+        "経産省ガス事業法に基づく保安事故報告。連続ゼロを継続している年数を集計（2022〜2024年度で3年連続）",
+      targetRationale:
+        "2027年度末まで継続堅持で 5年連続を達成。ガス事業者として絶対遵守すべき基本要件、人命・社会インフラへの責任。" +
+        REFINE_NOTE,
     },
+    target: 5,
+    unit: "年連続",
+    baselineCurrent: 3,
   },
   safety_brand: {
     description: {
-      measures: "保安・安全に関する社会的信頼度。重大事故・是正命令等の発生件数",
+      measures: "保安・安全に関する社会的信頼度。重大事故・是正命令等の連続無発生年数",
       measurement:
-        "行政処分・重大インシデント・大規模苦情の発生件数を集計 /* TODO: 計測対象の定義確認 */",
+        "行政処分・重大インシデント・大規模苦情の連続ゼロ年数を集計（2022〜2024年度で3年連続） /* TODO: 計測対象の定義確認 */",
       targetRationale:
-        "100年企業として築いた保安ブランドの維持。一度の失墜は10年で取り戻せない",
+        "2027年度末まで継続堅持で 5年連続を達成。100年企業として築いた保安ブランドの維持、一度の失墜は10年で取り戻せない。" +
+        REFINE_NOTE,
     },
+    target: 5,
+    unit: "年連続",
+    baselineCurrent: 3,
   },
   jcsi: {
     description: {
       measures:
-        "日本版顧客満足度指数。サービス産業生産性協議会の業界別CS調査スコア",
-      measurement: "SPRINGの年次JCSI調査における電気・ガス業界での評価",
+        "日本版顧客満足度指数（SPRING調査）の電気・ガス業界における連続第1位年数",
+      measurement: "SPRINGの年次JCSI調査における電気・ガス業界での順位（連続第1位の年数）",
       targetRationale:
-        "業界トップクラス（上位5社以内）を5年連続維持。顧客LTVとの強い相関 /* TODO: 西部ガスの現在の順位確認 */",
+        "現在 4年連続第1位 → 2027年度末までに 6年連続第1位を維持。顧客LTVとの強い相関。" +
+        REFINE_NOTE +
+        " /* TODO: 西部ガスの現在の順位最終確認 */",
     },
+    target: 6,
+    unit: "年連続第1位",
+    baselineCurrent: 4,
   },
   ltv: {
     description: {
-      measures: "1顧客（戸）あたりの生涯価値。契約期間 × 年間取引額",
+      measures:
+        "顧客接点プラットフォーム（マイページ）の会員数。LTV 向上の代理指標",
       measurement:
-        "顧客データから契約継続年数と平均年商を算出（新規・既存別に集計） /* TODO: 算出方法確認 */",
+        "マイページ会員数（推定 60万件）+ SAIBULAND 会員数（推定 8万件）の合算をベースに、マイページ会員数を主指標として表示 /* TODO: 算出方法確認 */",
       targetRationale:
-        "解約率低減と単価向上による試算。電気事業者との競争激化を踏まえた水準 /* TODO: 中期計画との整合確認 */",
+        "ACT2027 で マイページ 73.3万件 / SAIBULAND 13.3万件 を目標。解約率低減と単価向上、電気事業者との競争激化を踏まえた水準。" +
+        REFINE_NOTE +
+        " /* TODO: 2024年度の正確な実績値確認 */",
     },
+    target: 73.3,
+    unit: "万件",
+    baselineCurrent: 60,
   },
   recruit: {
     description: {
-      measures: "採用目標達成率と早期離職率を統合した採用力指標",
+      measures: "採用後 3年経過時点の定着率",
       measurement:
-        "採用計画に対する実績充足率 × 入社1年以内の定着率 /* TODO: 算出方法確認 */",
-      targetRationale: "インフラ事業の継続性を担保する人財確保。労働市場の競争激化に対応",
+        "各年度の入社者に対する 3年後在籍率を算出 /* TODO: 算出方法確認 */",
+      targetRationale:
+        "現状 95.8% を維持・向上し 95% 以上をターゲット。インフラ事業の継続性を担保する人財確保、労働市場の競争激化に対応。" +
+        REFINE_NOTE,
     },
+    target: 95,
+    unit: "%",
+    baselineCurrent: 95.8,
   },
   region: {
     description: {
@@ -242,17 +308,26 @@ export const INDICATOR_META: Record<string, IndicatorMeta> = {
         "地域社会との共創プロジェクト（自治体・住民・地元企業との協働事業）の年間実施件数",
       measurement: "地域貢献活動・包括連携協定・地域課題解決事業の実施件数を集計",
       targetRationale:
-        "ガス事業の地域密着性を活かした事業拡大の基盤。中期経営計画の地域戦略に整合 /* TODO: 中期計画との整合確認 */",
+        "ACT2027 では 2027年度に 15件を目標。中間マイルストーンとして 2026年度末で 10件を案分目標に設定。" +
+        REFINE_NOTE +
+        " /* TODO: 中期計画との整合確認 */",
     },
+    target: 10,
+    unit: "件",
+    baselineCurrent: 5,
   },
   esg: {
     description: {
-      measures: "主要ESG評価機関による外部評価のスコア",
+      measures: "主要ESG評価機関の指数組入状況（MSCI ESG・FTSE Russell 等）",
       measurement:
-        "MSCI ESG・Sustainalytics・FTSE等、主要評価機関のレーティングを集約 /* TODO: 参照する評価機関確認 */",
-      targetRationale: "業界トップ層の評価獲得。投資家のESG重視傾向に対応",
+        "MSCI ESG・Sustainalytics・FTSE 等、主要評価機関のレーティングおよび指数組入実績を集約 /* TODO: 参照する評価機関最終確認 */",
+      targetRationale:
+        "現在は主要指数組入実績あり。2027年度も主要ESG指数組入を維持し、投資家のESG重視傾向に対応。" +
+        REFINE_NOTE,
     },
     reference: "Wilberg 2025",
+    qualitativeCurrent: "主要指数組入実績あり",
+    qualitativeTarget: "主要ESG指数組入維持",
   },
   poc: {
     description: {
@@ -260,8 +335,13 @@ export const INDICATOR_META: Record<string, IndicatorMeta> = {
         "社外パートナー（スタートアップ・大学・他社）との共創型実証実験の年間実施数",
       measurement:
         "共創プロジェクト管理台帳に登録されたPoC実施件数 /* TODO: カウント対象の定義確認 */",
-      targetRationale: "新規事業創出の前段階としてのPoC量。革新的事業開発のリードタイム逆算",
+      targetRationale:
+        "現在 5件（推定）→ 2026年度末 10件を中間目標。新規事業創出の前段階としてのPoC量を確保し、革新的事業開発のリードタイムを短縮。" +
+        REFINE_NOTE,
     },
+    target: 10,
+    unit: "件",
+    baselineCurrent: 5,
   },
   co2: {
     description: {
@@ -270,8 +350,12 @@ export const INDICATOR_META: Record<string, IndicatorMeta> = {
       measurement:
         "高効率機器販売・再エネ供給・カーボンクレジット等の削減効果を算出",
       targetRationale:
-        "2050年カーボンニュートラル目標から逆算した中間目標。SBT認定基準に整合",
+        "2024年度 46万t → 2027年度 87万t の中間値として 2026年度末 73.3万t を案分目標。2050年カーボンニュートラル目標から逆算、SBT認定基準に整合。" +
+        REFINE_NOTE,
     },
+    target: 73.3,
+    unit: "万t",
+    baselineCurrent: 46,
   },
 
   // ─── 列5: 財務評価・企業価値 ───
@@ -279,47 +363,71 @@ export const INDICATOR_META: Record<string, IndicatorMeta> = {
     description: {
       measures: "人的資本投資（6,000P）による年間売上増加効果",
       measurement: "各KPI改善が売上に与える影響を回帰モデルで試算",
-      targetRationale: "投資ポイント1Pあたり10万円換算（柳モデル）からの逆算",
+      targetRationale:
+        "6,000P × 10万円/P = 6.0億円（柳モデルからの逆算）。" + REFINE_NOTE,
     },
+    target: 6.0,
+    unit: "億円",
+    // baselineCurrent なし → 9セル入力で backend の projected が動的に流入
   },
   // backend ID は revenue。仕様書上の表記名は「売上ドライバー」(sales_driver)
   revenue: {
     description: {
-      measures: "売上構成要素（顧客数 × 単価 × 継続率）の総合的な伸び率",
-      measurement: "主要事業セグメントの売上分解と前年同期比",
+      measures: "売上構成要素の代表として、電力販売量（億kWh）を主指標に置く",
+      measurement: "主要事業セグメントの電力販売量（前年同期比）",
       targetRationale:
-        "インフラ事業の安定性を維持しつつ新規領域での成長を組み込む /* TODO: 目標値（%）確定 */",
+        "ACT2027 で 6.4億kWh → 9.0億kWh（2027年度）を中計目標。インフラ事業の安定性を維持しつつ新規領域の成長を組み込む。" +
+        REFINE_NOTE,
     },
+    target: 9.0,
+    unit: "億kWh",
+    baselineCurrent: 6.4,
   },
   // backend ID は cost。仕様書上の表記名は「コスト削減」(cost_reduction)
   cost: {
     description: {
       measures: "人的資本投資による業務効率化・離職コスト低減等のコスト削減効果",
       measurement: "業務時間削減・採用コスト削減・離職コスト削減の合算",
-      targetRationale: "過去5年の人事施策効果実績からの推定値 /* TODO: 目標値（%）確定 */",
+      targetRationale:
+        "現時点では数値目標は未確定。「業務集約・電力原価低減」を質的目標として設定。" +
+        REFINE_NOTE +
+        " /* TODO: 数値目標が出れば差し替え */",
     },
+    qualitativeTarget: "業務集約・電力原価低減",
   },
   // backend ID は capital。仕様書上の表記名は「資本効率化」(capital_efficiency)
   capital: {
     description: {
-      measures: "投下資本に対するリターン効率の改善度合い",
-      measurement: "ROA・資本回転率等の効率指標の前年比改善",
-      targetRationale: "中期経営計画の資本効率目標に整合 /* TODO: 目標値（%）確定 */",
+      measures: "政策保有株式の縮減度合い（2023年度水準を100とした相対値）",
+      measurement: "2023年度末の政策保有株式残高を100とし、各時点の残高比率で表示",
+      targetRationale:
+        "ACT2027 で 2028年度までに 50%（2023年度比 半減）を目標。中期経営計画の資本効率目標に整合。" +
+        REFINE_NOTE,
     },
+    target: 50,
+    unit: "%",
+    baselineCurrent: 100,
   },
   roic: {
     description: {
       measures: "投下資本利益率。事業に投じた資本がどれだけ利益を生んだか",
       measurement: "NOPAT（税引後営業利益） ÷ 投下資本（有利子負債 + 自己資本）",
       targetRationale:
-        "WACC（加重平均資本コスト）を上回る水準。エクイティスプレッドの観点",
+        "ACT2027 で 1.8% → 2.3%（2027年度）。WACC を上回る水準、エクイティスプレッドの観点。" +
+        REFINE_NOTE,
     },
+    target: 2.3,
+    unit: "%",
   },
   roe: {
     description: {
       measures: "自己資本利益率。株主資本がどれだけ効率的に利益を生んだか",
       measurement: "当期純利益 ÷ 自己資本",
-      targetRationale: "株主資本コスト（CAPM算出）を上回る水準。柳モデルでの企業価値創出",
+      targetRationale:
+        "ACT2027 で 6.0% → 8.0%（2027年度）。株主資本コスト（CAPM算出）を上回る水準、柳モデルでの企業価値創出。" +
+        REFINE_NOTE,
     },
+    target: 8.0,
+    unit: "%",
   },
 };
