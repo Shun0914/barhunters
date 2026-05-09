@@ -32,6 +32,12 @@ export default async function Home() {
       <pre className="overflow-auto rounded-lg border border-zinc-200 bg-zinc-50 p-4 text-sm dark:border-zinc-800 dark:bg-zinc-950">
         {JSON.stringify(data, null, 2)}
       </pre>
+      <a
+        href="/cascade"
+        className="inline-flex w-fit items-center gap-2 rounded-md border bg-white px-3 py-2 text-sm font-medium hover:bg-zinc-50"
+      >
+        因果ストーリーへ →
+      </a>
     </main>
   );
 }
