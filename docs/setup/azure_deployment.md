@@ -160,21 +160,21 @@ postgresql+psycopg://<ユーザー>:<パスワード>@<サーバー名>.postgres
 | `POINT_AGGREGATE_STATUSES` | （任意）因果集計の対象ステータス。既定は `承認済` |
 | `MYSQL_SSL_CA` | （通常は不要）Azure MySQL 接続で CA ファイルを明示するときの **コンテナ内パス** |
 
-**「一般設定」→「スタートアップ コマンド」** の例:
+**「一般設定」→「スタートアップ コマンド」**:
+
+GitHub Actions などで **`backend/` だけ ZIP デプロイ**している場合、コンテナ内に **`antenv` が無く** `uvicorn` コマンドも PATH にありません。ログに `uvicorn: not found` / `Could not find virtual environment directory .../antenv` が出るのはこの状態です。
+
+**推奨（wwwroot に `requirements.txt` がある前提）** — 起動時に依存を入れてからモジュール実行:
 
 ```bash
-cd /home/site/wwwroot && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
+cd /home/site/wwwroot && python -m pip install --no-cache-dir -r requirements.txt && python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
 ```
+
+（初回・スケールアウト時に `pip` が走るため、起動が数十秒〜かかることがあります。Oryx のリモートビルドで `antenv` が生成される運用なら、従来どおり `uvicorn app.main:app ...` だけでもよいです。）
 
 **デプロイ内容**: `backend/` が wwwroot に展開される想定（`app` パッケージがルートに来る配置）。ZIP デプロイや Actions の artifact 構成は class4 の `azure_deployment_guide.md` §5〜6 と同じ思想でよいです。
 
-**依存関係**: App Service 上で MySQL を使う場合は **`pymysql` を入れる**必要があります。
-
-```bash
-pip install -e ".[mysql]"
-```
-
-（`pyproject.toml` の optional `mysql` を利用。PostgreSQL なら `.[postgres]`。）
+**依存関係**: `requirements.txt` に **`pymysql`** 等が含まれていること（本リポジトリの `backend/requirements.txt` を利用）。
 
 ### 2.4 フロントエンド App Service
 
