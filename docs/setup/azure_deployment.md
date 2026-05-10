@@ -126,6 +126,8 @@ mysql+pymysql://<ユーザー>:<パスワード>@<サーバー名>.mysql.databas
 
 パスワードに `@` などが含まれる場合は **URL エンコード**が必要です。
 
+**TLS（エラー 3159）**: Azure MySQL は **`require_secure_transport=ON`** のことが多く、TLS なし接続は拒否されます（`Connections using insecure transport are prohibited`）。本リポジトリの `app/db.py` は **`*.mysql.database.azure.com`** 向けに **TLS を自動で有効化**します。証明書検証で失敗する場合は [Azure の TLS 手順](https://learn.microsoft.com/ja-jp/azure/mysql/flexible-server/how-to-connect-tls-ssl) で CA を取得し、環境変数 **`MYSQL_SSL_CA`** に PEM ファイルのパスを設定してください（App Service にアップロードするか、ビルド成果物に同梱する運用）。
+
 **PostgreSQL（SQLAlchemy 2）の例**
 
 ```text
@@ -142,6 +144,7 @@ postgresql+psycopg://<ユーザー>:<パスワード>@<サーバー名>.postgres
 | `ALLOW_ORIGINS` | フロントの本番オリジン（カンマ区切り）。例: `https://<web-app>.azurewebsites.net` |
 | `DEV_DEFAULT_USER_ID` | （デモ継続時）シードで作ったユーザーの UUID。未設定でも「先頭ユーザー」にフォールバック |
 | `POINT_AGGREGATE_STATUSES` | （任意）因果集計の対象ステータス。既定は `承認済` |
+| `MYSQL_SSL_CA` | （通常は不要）Azure MySQL 接続で CA ファイルを明示するときの **コンテナ内パス** |
 
 **「一般設定」→「スタートアップ コマンド」** の例:
 
