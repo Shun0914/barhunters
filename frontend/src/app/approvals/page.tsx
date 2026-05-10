@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+
 import { ApprovalsGate } from "./ApprovalsGate";
 
 export const metadata = {
@@ -5,5 +7,15 @@ export const metadata = {
 };
 
 export default function ApprovalsPage() {
-  return <ApprovalsGate />;
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-full items-center justify-center text-sm text-[#64748b]">
+          読み込み中…
+        </div>
+      }
+    >
+      <ApprovalsGate />
+    </Suspense>
+  );
 }

@@ -129,9 +129,7 @@ def list_my_applications(
     order: Literal["updated_at_desc", "submitted_at_desc"] = "submitted_at_desc",
 ) -> list[PointApplicationOut]:
     """spec.md §3.6 — 申請者本人の申請一覧。タブ・検索・既存の status filter に対応。"""
-    stmt = select(PointApplication).where(
-        PointApplication.applicant_user_id == current_user.id
-    )
+    stmt = select(PointApplication).where(PointApplication.applicant_user_id == current_user.id)
     if tab is not None:
         statuses = TAB_TO_STATUSES[tab]
         if statuses is not None:

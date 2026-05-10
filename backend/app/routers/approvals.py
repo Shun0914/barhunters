@@ -197,16 +197,12 @@ def list_filterable_applicants(
     """spec.md §3.7.4 — 自分が承認に関わる全申請の、申請者一覧（氏名 50 音順）。"""
     me = current_user.id
     applicant_ids_stmt = (
-        select(PointApplication.applicant_user_id)
-        .where(_involves_me_clause(me))
-        .distinct()
+        select(PointApplication.applicant_user_id).where(_involves_me_clause(me)).distinct()
     )
     applicant_ids = [row for row in db.scalars(applicant_ids_stmt) if row is not None]
     if not applicant_ids:
         return []
-    users = db.scalars(
-        select(User).where(User.id.in_(applicant_ids)).order_by(User.name)
-    ).all()
+    users = db.scalars(select(User).where(User.id.in_(applicant_ids)).order_by(User.name)).all()
     return [UserBriefOut.model_validate(u) for u in users]
 
 
@@ -240,7 +236,10 @@ def approve_application(
             status_code=status.HTTP_409_CONFLICT, detail="承認可能な状態ではありません"
         )
     if _step_owner(application) != current_user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="あなたの承認段ではありません")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="あなたの承認段ではありません",
+        )
 
     total = application.approval_total_steps or 0
     current = application.current_approval_step or 0
@@ -291,7 +290,10 @@ def return_application(
             status_code=status.HTTP_409_CONFLICT, detail="差戻し可能な状態ではありません"
         )
     if _step_owner(application) != current_user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="あなたの承認段ではありません")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="あなたの承認段ではありません",
+        )
 
     now = datetime.now(timezone.utc)
     application.status = "returned"

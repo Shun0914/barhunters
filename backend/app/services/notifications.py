@@ -15,9 +15,7 @@ from sqlalchemy.orm import Session
 from app.models import Notification, PointApplication, User
 from app.schemas.notification import NotificationOut
 
-NotificationType = Literal[
-    "approval_request", "approved", "returned", "withdrawn"
-]
+NotificationType = Literal["approval_request", "approved", "returned", "withdrawn"]
 
 
 def _ensure_user_name(db: Session, user_id: str | None) -> str:
@@ -88,9 +86,7 @@ def create_notification(
 # --- enrich (sender_name 埋め込み) -----------------------------------------
 
 
-def _load_sender_names(
-    db: Session, sender_ids: list[str | None]
-) -> dict[str, str]:
+def _load_sender_names(db: Session, sender_ids: list[str | None]) -> dict[str, str]:
     ids = {sid for sid in sender_ids if sid}
     if not ids:
         return {}
@@ -119,8 +115,6 @@ def enrich_notification(notification: Notification, db: Session) -> Notification
     return _to_out(notification, sender_map)
 
 
-def enrich_notifications(
-    notifications: list[Notification], db: Session
-) -> list[NotificationOut]:
+def enrich_notifications(notifications: list[Notification], db: Session) -> list[NotificationOut]:
     sender_map = _load_sender_names(db, [n.sender_user_id for n in notifications])
     return [_to_out(n, sender_map) for n in notifications]

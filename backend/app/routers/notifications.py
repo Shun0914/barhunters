@@ -49,9 +49,7 @@ def list_notifications(
         # spec.md §3.8 検索バー — タイトル / 本文 / 送信者氏名（部分一致・小文字化）
         pattern = f"%{q.lower()}%"
         sender_alias = aliased(User)
-        stmt = stmt.outerjoin(
-            sender_alias, sender_alias.id == Notification.sender_user_id
-        ).where(
+        stmt = stmt.outerjoin(sender_alias, sender_alias.id == Notification.sender_user_id).where(
             or_(
                 func.lower(Notification.title).like(pattern),
                 func.lower(Notification.body).like(pattern),
@@ -69,11 +67,7 @@ def list_recent_notifications(
     limit: int = Query(default=4, ge=1, le=20),
 ) -> list[NotificationOut]:
     """spec.md §1.3 — ベルポップオーバー用の最新 N 件（既読・未読を区別しない）。"""
-    stmt = (
-        _base_query(current_user.id)
-        .order_by(Notification.created_at.desc())
-        .limit(limit)
-    )
+    stmt = _base_query(current_user.id).order_by(Notification.created_at.desc()).limit(limit)
     return enrich_notifications(list(db.scalars(stmt)), db)
 
 

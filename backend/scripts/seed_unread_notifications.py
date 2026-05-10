@@ -48,15 +48,9 @@ def main() -> None:
             return
 
         applicant = session.get(User, DEV_DEFAULT_USER_ID)
-        kakaricho = session.scalars(
-            select(User).where(User.role == "係長").limit(1)
-        ).first()
-        kacho = session.scalars(
-            select(User).where(User.role == "課長").limit(1)
-        ).first()
-        bumoncho = session.scalars(
-            select(User).where(User.role == "部門長").limit(1)
-        ).first()
+        kakaricho = session.scalars(select(User).where(User.role == "係長").limit(1)).first()
+        kacho = session.scalars(select(User).where(User.role == "課長").limit(1)).first()
+        bumoncho = session.scalars(select(User).where(User.role == "部門長").limit(1)).first()
         if not all([applicant, kakaricho, kacho, bumoncho]):
             print("ユーザー（申太郎/係長/課長/部門長）が揃っていません。")
             return
@@ -69,7 +63,9 @@ def main() -> None:
             .limit(1)
         ).first()
         if application is None:
-            print("関連付ける申請がありません。先に seed_sample_application.py を実行してください。")
+            print(
+                "関連付ける申請がありません。先に seed_sample_application.py を実行してください。"
+            )
             return
 
         now = datetime.now(timezone.utc)
@@ -78,23 +74,31 @@ def main() -> None:
         plan: list[tuple[User, User, str, str, str]] = [
             # 申太郎宛 — 自分の申請の進捗
             (
-                applicant, kakaricho, "approved",
+                applicant,
+                kakaricho,
+                "approved",
                 "申請承認のお知らせ",
                 f"{application.title}が承認されました。",
             ),
             (
-                applicant, kacho, "returned",
+                applicant,
+                kacho,
+                "returned",
                 "申請が差戻されました",
                 f"{application.title}が差戻されました。再編集して再申請してください。",
             ),
             (
-                applicant, bumoncho, "approved",
+                applicant,
+                bumoncho,
+                "approved",
                 "申請承認のお知らせ",
                 "資格試験合格報告が承認されました。",
             ),
             # 係長宛 — 部下からの承認依頼
             (
-                kakaricho, applicant, "approval_request",
+                kakaricho,
+                applicant,
+                "approval_request",
                 f"承認依頼: {application.title}",
                 (
                     f"{applicant.name}さんよりポイント申請の承認依頼が届きました。"
@@ -102,7 +106,9 @@ def main() -> None:
                 ),
             ),
             (
-                kakaricho, applicant, "approval_request",
+                kakaricho,
+                applicant,
+                "approval_request",
                 "承認依頼: 社内勉強会への登壇",
                 (
                     f"{applicant.name}さんよりポイント申請の承認依頼が届きました。"
@@ -111,7 +117,9 @@ def main() -> None:
             ),
             # 課長宛 — 第2承認の依頼
             (
-                kacho, kakaricho, "approval_request",
+                kacho,
+                kakaricho,
+                "approval_request",
                 "承認依頼: 業務改善提案発表会への登壇",
                 (
                     f"{applicant.name}さんよりポイント申請の承認依頼が届きました。"
@@ -119,7 +127,9 @@ def main() -> None:
                 ),
             ),
             (
-                kacho, kakaricho, "approval_request",
+                kacho,
+                kakaricho,
+                "approval_request",
                 "承認依頼: 顧客アンケート分析レポート作成",
                 (
                     f"{applicant.name}さんよりポイント申請の承認依頼が届きました。"
@@ -127,7 +137,9 @@ def main() -> None:
                 ),
             ),
             (
-                kacho, kakaricho, "approval_request",
+                kacho,
+                kakaricho,
+                "approval_request",
                 "承認依頼: 新人研修の講師",
                 (
                     f"{applicant.name}さんよりポイント申請の承認依頼が届きました。"
@@ -136,7 +148,9 @@ def main() -> None:
             ),
             # 部門長宛
             (
-                bumoncho, kacho, "approval_request",
+                bumoncho,
+                kacho,
+                "approval_request",
                 "承認依頼: 全社プロジェクト推進",
                 (
                     f"{applicant.name}さんよりポイント申請の承認依頼が届きました。"

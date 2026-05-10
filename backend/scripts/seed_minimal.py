@@ -47,7 +47,9 @@ def main() -> None:
     session: Session = session_local()
 
     if session.scalars(select(User).limit(1)).first() is not None:
-        print("既に users が存在するためスキップします（再投入する場合は DB をクリーンにしてください）。")
+        print(
+            "既に users が存在するためスキップします（再投入する場合は DB をクリーンにしてください）。"
+        )
         session.close()
         return
 
@@ -68,9 +70,7 @@ def main() -> None:
         )
     )
     for i in range(2, 9):
-        session.add(
-            User(id=str(uuid4()), name=f"一般職員 {i:02d}", org_id=org_id, role="一般職員")
-        )
+        session.add(User(id=str(uuid4()), name=f"一般職員 {i:02d}", org_id=org_id, role="一般職員"))
 
     # 活動ジャンル（Q-02 暫定値）
     session.add(ActivityGenre(name="挑戦", default_points=10, sort_order=1, is_active=True))

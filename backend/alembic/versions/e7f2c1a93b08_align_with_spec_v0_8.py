@@ -118,9 +118,7 @@ def upgrade() -> None:
 
         batch.add_column(sa.Column("approval_total_steps", sa.Integer(), nullable=True))
         batch.add_column(sa.Column("current_approval_step", sa.Integer(), nullable=True))
-        batch.add_column(
-            sa.Column("submitted_at", sa.DateTime(timezone=True), nullable=True)
-        )
+        batch.add_column(sa.Column("submitted_at", sa.DateTime(timezone=True), nullable=True))
         batch.add_column(sa.Column("decided_at", sa.DateTime(timezone=True), nullable=True))
         batch.add_column(sa.Column("returned_at", sa.DateTime(timezone=True), nullable=True))
         batch.add_column(sa.Column("returned_by", sa.String(length=36), nullable=True))
