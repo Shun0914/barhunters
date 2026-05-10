@@ -1,1 +1,1 @@
-"""Pydantic スキーマ。frontend/src/lib/api/types.ts と対応する。"""
+"""Pydantic スキーマ（API のリクエスト・レスポンス型。FE の types と対応）。"""

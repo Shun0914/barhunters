@@ -19,7 +19,7 @@ const NAV_GROUPS: { group: string; items: NavItem[] }[] = [
     group: "ダッシュボード",
     items: [
       { label: "ダッシュボード", href: "/dashboard", icon: ICONS.dashboard },
-      { label: "因果ストーリー", href: "/causal-story", icon: ICONS.story },
+      { label: "因果ストーリー", href: "/cascade", icon: ICONS.story },
     ],
   },
   {

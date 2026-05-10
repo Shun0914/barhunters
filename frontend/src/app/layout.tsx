@@ -1,21 +1,18 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Noto_Sans_JP } from "next/font/google";
 import "./globals.css";
 import { AppShell } from "@/components/AppShell";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const notoSansJP = Noto_Sans_JP({
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+  variable: "--font-noto-sans-jp",
 });
 
 export const metadata: Metadata = {
   title: "barhunters",
-  description: "人的資本・挑戦活動の可視化とポイント申請",
+  description: "人的資本・挑戦活動の可視化・ポイント申請・因果ストーリー",
 };
 
 export default function RootLayout({
@@ -24,10 +21,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ja">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+    <html lang="ja" className={notoSansJP.variable}>
+      <body className="min-h-screen bg-brand-bg-page font-sans text-ink-primary antialiased">
         <AppShell>{children}</AppShell>
       </body>
     </html>

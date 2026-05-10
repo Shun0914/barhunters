@@ -13,3 +13,11 @@ docs/minutes/
 # 不明ファイル
 docs/research/.pdf
 /screenshot/
+
+# Local database
+local.db
+*.sqlite
+*.sqlite3
+
+# Local debug scripts
+backend/check_db.py

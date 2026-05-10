@@ -32,3 +32,7 @@ select = ["E", "F", "I", "UP"]
 "alembic/env.py" = ["I001"]
 "alembic/versions/*.py" = ["E501", "I001", "UP007", "UP035"]
 "scripts/*.py" = ["E402", "E501"]
+# 係数行列・メタの Wide リテラルが多く、100 桁での折り返しが可読性を損なう
+"app/services/calculator.py" = ["E501"]
+"app/services/points_service.py" = ["E501"]
+"app/schemas/cascade.py" = ["E501"]

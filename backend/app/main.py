@@ -13,6 +13,9 @@ from app.routers import (
     point_applications,
     users,
 )
+from app.routers import (
+    cascade as cascade_router,
+)
 from app.settings import get_settings
 
 
@@ -41,6 +44,7 @@ def create_app() -> FastAPI:
     app.include_router(point_applications.router)
     app.include_router(approvals.router)
     app.include_router(notifications.router)
+    app.include_router(cascade_router.router)
 
     @app.get("/health")
     def health() -> dict[str, str]:
