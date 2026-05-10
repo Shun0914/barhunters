@@ -39,14 +39,15 @@ export function formatNum(
   if (unit === "%") return `${v.toFixed(1)}%`;
   if (unit === "スコア") return v.toFixed(2);
   if (unit === "名") return `${Math.round(v).toLocaleString()}名`;
-  if (unit === "件") return `${Math.round(v)}件`;
+  if (unit === "件") return `${v.toFixed(1)}件`;
   if (unit === "万kW") return `${v.toFixed(1)}万kW`;
   if (unit === "万t") return `${v.toFixed(1)}万t`;
   if (unit === "万件") return `${v.toFixed(1)}万件`;
-  if (unit === "千円/戸") return `${Math.round(v)}千円/戸`;
-  if (unit === "年連続") return `${Math.round(v)}年連続`;
-  if (unit === "年連続第1位") return `${Math.round(v)}年連続第1位`;
-  if (unit === "指数") return `${Math.round(v)}指数`;
+  if (unit === "千円/戸") return `${v.toFixed(1)}千円/戸`;
+  if (unit === "年連続") return `${v.toFixed(1)}年連続`;
+  if (unit === "年連続第1位") return `${v.toFixed(1)}年連続第1位`;
+  if (unit === "指数") return `${v.toFixed(1)}指数`;
+  if (unit === "日") return `${v.toFixed(2)}日`;
   if (unit === "億円") return `${v >= 0 ? "+" : ""}${v.toFixed(1)} 億円`;
   if (unit === "億kWh") return `${v.toFixed(1)} 億kWh`;
   return String(v);
@@ -64,11 +65,12 @@ export function deltaText(delta: number, unit?: string | null): string {
   if (unit === "万件") return `${sign}${abs.toFixed(1)}万件`;
   if (unit === "万t") return `${sign}${abs.toFixed(1)}万t`;
   if (unit === "万kW") return `${sign}${abs.toFixed(1)}万kW`;
-  if (unit === "件") return `${sign}${Math.round(abs)}件`;
+  if (unit === "件") return `${sign}${abs.toFixed(1)}件`;
   if (unit === "名") return `${sign}${Math.round(abs).toLocaleString()}名`;
-  if (unit === "年連続" || unit === "年連続第1位") return `${sign}${Math.round(abs)}年`;
-  if (unit === "千円/戸") return `${sign}${Math.round(abs)}千円/戸`;
-  if (unit === "指数") return `${sign}${Math.round(abs)}`;
+  if (unit === "年連続" || unit === "年連続第1位") return `${sign}${abs.toFixed(1)}年`;
+  if (unit === "千円/戸") return `${sign}${abs.toFixed(1)}千円/戸`;
+  if (unit === "指数") return `${sign}${abs.toFixed(1)}`;
+  if (unit === "日") return `${sign}${abs.toFixed(2)}日`;
   return `${sign}${abs.toFixed(1)}`;
 }
 
