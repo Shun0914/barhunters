@@ -20,6 +20,10 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["ruff>=0.8", "alembic>=1.14"]
+# 本番 DB が MySQL（Azure Database for MySQL 等）のとき: pip install -e ".[mysql]"
+mysql = ["pymysql>=1.1"]
+# 本番 DB が PostgreSQL のとき: pip install -e ".[postgres]"
+postgres = ["psycopg[binary]>=3.1"]
 
 [tool.ruff]
 line-length = 100
