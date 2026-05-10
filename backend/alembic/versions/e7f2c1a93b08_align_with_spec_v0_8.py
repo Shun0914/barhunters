@@ -67,8 +67,14 @@ def upgrade() -> None:
         )
 
     # 4) notifications: body_summary → body にリネーム、sender_user_id 追加
+    # MySQL は CHANGE/MODIFY に既存型の明示が必須（SQLite の batch とは要件が異なる）
     with op.batch_alter_table("notifications") as batch:
-        batch.alter_column("body_summary", new_column_name="body")
+        batch.alter_column(
+            "body_summary",
+            existing_type=sa.Text(),
+            existing_nullable=False,
+            new_column_name="body",
+        )
         batch.add_column(sa.Column("sender_user_id", sa.String(length=36), nullable=True))
         batch.create_foreign_key(
             "fk_notifications_sender_user_id_users",
@@ -157,7 +163,12 @@ def downgrade() -> None:
     with op.batch_alter_table("notifications") as batch:
         batch.drop_constraint("fk_notifications_sender_user_id_users", type_="foreignkey")
         batch.drop_column("sender_user_id")
-        batch.alter_column("body", new_column_name="body_summary")
+        batch.alter_column(
+            "body",
+            existing_type=sa.Text(),
+            existing_nullable=False,
+            new_column_name="body_summary",
+        )
 
     with op.batch_alter_table("activity_genres") as batch:
         batch.drop_column("is_active")
