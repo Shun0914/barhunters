@@ -31,6 +31,20 @@
 - Azure OpenAI / AI Foundry 連携は **スコープ外**（設定不要）。
 - 認証は現状 **開発用**（`X-Dev-User-Id` / `DEV_DEFAULT_USER_ID`）。本番 IdP は別途。
 
+### 1.1 環境メモ（App Service のホスト名）
+
+チーム内参照用。**リソース名が変わったらこの表を更新する。**
+
+| 用途 | URL |
+|------|-----|
+| **API（Python / FastAPI）** | `https://tech0-gen-11-step3-2-py-66.azurewebsites.net` |
+| **Web（Node / Next.js）** | `https://tech0-gen-11-step3-2-node-66.azurewebsites.net` |
+
+設定の対応例（プレースホルダの代わりにそのまま使える）:
+
+- **API の `ALLOW_ORIGINS`**: `https://tech0-gen-11-step3-2-node-66.azurewebsites.net`
+- **フロントビルドの `NEXT_PUBLIC_API_URL`**: `https://tech0-gen-11-step3-2-py-66.azurewebsites.net`（末尾スラッシュなし）
+
 ---
 
 ## 2. Azure 側の準備（ポータル・コンソール）
