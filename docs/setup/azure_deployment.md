@@ -43,11 +43,80 @@
    - **App Service（Node 20 LTS）** … Next.js 用
    - **Azure Database for MySQL（Flexible）** または **Azure Database for PostgreSQL** … 本番 DB
 
-### 2.2 データベース
+### 2.2 データベース（サーバー作成 → ネットワーク → 空の DB 名）
 
-1. DB サーバーの **ネットワーク**で、**バックエンド App Service の送信 IP**（または「Azure サービスに許可」等、方針に応じたルール）を許可。  
-   - class4 と同様、**バックエンド App Service の「プロパティ」→「送信 IP アドレス」** を MySQL ファイアウォールに登録する方法が分かりやすいです（デプロイレポート参照）。
-2. **Cloud Shell（Bash）** やローカル `mysql` / `psql` から接続し、**空のデータベース**を作成（例: `barhunters`）。
+ここでやることは **3 つだけ**です。
+
+| 順番 | やること |
+|------|----------|
+| ① | **DB サーバー**（MySQL または PostgreSQL のマネージド）を Azure 上に用意する（まだ無い場合はポータルで新規作成）。 |
+| ② | **ネットワーク／ファイアウォール**で、後から API を載せる **App Service からの接続**（と、マイグレーションを流す **自分の PC や Cloud Shell** が必要ならその IP）を許可する。 |
+| ③ | サーバー上に **論理データベース**（スキーマの入れ物）を 1 つ作る。名前の例: `barhunters`。中身のテーブルは後で Alembic が作る。 |
+
+---
+
+#### ① DB サーバーをまだ持っていない場合（ポータルで新規）
+
+**MySQL（Flexible Server）の例**
+
+1. ポータルで **「リソースの作成」** → **「Azure Database for MySQL」**（フレキシブル サーバー）を選択。
+2. **リソースグループ**・**サーバー名**（例: `barhunters-mysql-xx`）・**リージョン**・**MySQL バージョン** を指定。
+3. **管理者ユーザー名** と **パスワード** を決める（後で `DATABASE_URL` に使う。**必ずメモ**）。
+4. **ネットワーク**では、まずは次のどちらかで進めるのが分かりやすいです。
+   - **パブリック アクセス**を有効にし、後述の **②** で IP を足していく（class4 と同じ考え方）。
+   - またはチーム方針で **VNet 統合**のみ（その場合は App Service 側も同じ VNet に載せる必要あり。初心者向けではパブリック + IP 制限の方が手順が追いやすいことが多い）。
+5. **作成**まで完了させる。
+
+**PostgreSQL（Flexible Server）** も同様に **「Azure Database for PostgreSQL」** からフレキシブル サーバーを作成。SSL 必須になるので接続文字列に `sslmode=require` を付ける（下記例参照）。
+
+すでに **学校・チームで用意された MySQL/PostgreSQL サーバー** があるなら、① はスキップして **②③** だけ行う。
+
+---
+
+#### ② ファイアウォール（誰から DB に繋いでよいか）
+
+**バックエンド App Service から接続する**ため、MySQL/PostgreSQL の **「ネットワーク」** に **App Service の送信元 IP** を入れる方法が class4 と同じで分かりやすいです。
+
+1. **API 用 App Service**（Python を載せる予定のもの）をポータルで開く。
+2. 左メニュー **「設定」→「プロパティ」**（または類似の場所）で **「送信 IP アドレス」**（Outbound IP）を確認。複数行ある場合は **その一覧をすべて** DB 側の許可ルールに入れるか、Azure の案内に従って範囲指定する。
+3. **MySQL（または PostgreSQL）サーバー**を開き、**「設定」→「ネットワーク」**。
+4. **「+ ファイアウォール規則の追加」**（名称はポータル表示に合わせる）で、上記 IP を **開始 IP / 終了 IP** に設定して保存。
+
+**マイグレーションをローカル PC から流す**場合は、その PC のグローバル IP も同様に 1 件追加する（作業が終わったら削除してよい）。
+
+**Azure Database for PostgreSQL** では画面名が **「ネットワーク」／「ファイアウォール規則」** などになるが、考え方は同じ（接続元 IP の許可）。
+
+---
+
+#### ③ 論理データベース `barhunters` を作る（空で OK）
+
+**方法 A — ポータルだけ（おすすめ・MySQL/PostgreSQL 両方）**
+
+1. DB サーバーのリソース画面を開く。
+2. 左メニューに **「データベース」**（Databases）があれば **「+ 追加」** で名前 `barhunters` を作成。  
+   ※メニューが無い・作れない場合は **方法 B**。
+
+**方法 B — Cloud Shell またはローカル CLI**
+
+- **MySQL**: ② で **Cloud Shell 用の IP** も許可したうえで、ポータル上部 **Cloud Shell（Bash）** を開き、接続文字列のホスト名・管理者ユーザーで接続（[class4 の手順 2.3](https://github.com/Shun0914/project_class4/blob/main/docs/setup/azure_deployment_guide.md#23-%E3%83%87%E3%83%BC%E3%82%BF%E3%83%99%E3%83%BC%E3%82%B9%E3%82%92%E4%BD%9C%E6%88%90) と同型）。
+
+```bash
+mysql -h <サーバー名>.mysql.database.azure.com -u <管理者名> -p
+```
+
+```sql
+CREATE DATABASE barhunters CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+SHOW DATABASES;
+```
+
+- **PostgreSQL**: `psql` で接続し、`CREATE DATABASE barhunters;`
+
+---
+
+#### 接続情報のメモ場所
+
+- MySQL: サーバー画面 **「設定」→「接続文字列」** でホスト名・ポート・ユーザー名を確認。
+- パスワードはポータルでは再表示されないため、**作成時にメモしたもの**を使う。
 
 **接続文字列の例（MySQL + PyMySQL）**
 
@@ -160,14 +229,60 @@ CORS エラーが出る場合は **`ALLOW_ORIGINS`** にフロントのオリジ
 
 ---
 
-## 6. CI/CD（任意・次ステップ）
+## 6. CI/CD — デプロイセンター（GitHub Actions）から進める
 
-class4 と同様、**GitHub Actions + Publish Profile** で `main` プッシュ時にデプロイできます。
+**前回 class4 と同じやり方**に寄せるなら、**ZIP 手動ではなく**、App Service の **デプロイセンター**で GitHub と繋ぎ、**YAML は Azure 側のウィザードがリポジトリに追加する**（またはプレビューして保存）流れが本体です。
 
-- Secrets: 各 App Service の **発行プロファイル**、`NEXT_PUBLIC_API_URL`（フロントビルド用）
-- ワークフロー: Python ビルド → ZIP / `azure/webapps-deploy`、Node ビルド → standalone を zip
+### 6.0 このリポジトリで先に用意しておくもの
 
-詳細は project_class4 の `azure_deployment_guide.md` §5 を流用し、**リポジトリ名・パス・環境変数名（`ALLOW_ORIGINS`）** だけ barhunters に合わせて書き換えてください。
+- **`backend/requirements.txt`** … Azure のビルド（Oryx）や `pip install -r backend/requirements.txt` 型のワークフロー向け。**デプロイセンターを回す前に `main` に入れておく**と失敗が減ります。
+- **App Service の「構成」** … `DATABASE_URL`・`ALLOW_ORIGINS`・スタートアップコマンド（§2.3）は **ポータル側**に入れたまま。YAML にパスワードを書かない。
+
+### 6.1 API（Python）— デプロイセンターの手順
+
+1. [Azure Portal](https://portal.azure.com/) で **barhunters 用の API App Service** を開く。
+2. 左メニュー **「デプロイセンター」** を開く。
+3. **「設定」** で **ソース** に **GitHub** を選ぶ。初回は **GitHub へのアクセス承認**（組織／リポジトリの許可）を済ませる。
+4. **組織・リポジトリ・ブランチ**（例: `main`）を選ぶ。
+5. **ビルド プロバイダー** で **GitHub Actions** を選ぶ。
+6. **ランタイム**: **Python 3.12**（プロジェクトと合わせる）。
+7. ウィザードに **アプリケーションのルート** や **ワークディレクトリ** があれば **`backend`** を指定する（**モノレポ**のため。項目が無い場合は §6.3 で YAML を直す）。
+8. **保存**／**完了**。ポータルが **生成されるワークフローのプレビュー**を出したら内容を確認し、指示どおり **GitHub 側にワークフローファイルが追加される**（または PR ができる）まで進める。
+9. **GitHub** の **Actions** タブでワークフローが走る。**失敗したら** ログを開き、次を確認する（§6.3）。
+10. **Secrets**: デプロイセンター完了後、リポジトリの **Settings → Secrets and variables → Actions** に **発行プロファイル**用の Secret が増えていることが多い。ワークフロー内の `publish-profile: ${{ secrets.XXXX }}` と **名前が一致**しているか確認する。
+
+**API のスタートアップコマンド**（§2.3 の例）は、デプロイセンターとは別に **構成 → 一般設定** で入れておく。
+
+### 6.2 フロント（Node / Next.js standalone）— デプロイセンター＋追補
+
+1. **フロント用の App Service** を開き、同様に **デプロイセンター**で **GitHub**・**GitHub Actions**・**Node 20 LTS** を選ぶ。
+2. 自動生成 YAML は **「Next.js を standalone で zip して載せる」**ところまで含まないことが多い。
+3. **初回デプロイ後**、生成された `.github/workflows/*.yml` を、**project_class4** の  
+   `.github/workflows/main_tech0-gen-11-step3-2-node-67.yml` と見比べ、次を **barhunters 用に合わせて直す**のが現実的です。
+   - `npm ci` / `npm run build` の **`cd frontend`**
+   - ビルド時の **`NEXT_PUBLIC_API_URL`** … GitHub **Secrets** に本番 API の URL を登録し、ワークフローで `env:` に渡す（class4 と同型）
+   - **standalone の取り出し** … `.next/standalone`・`.next/static`・`public` を 1 つの `deploy` フォルダに集める
+   - **favicon 等** … barhunters は `frontend/src/app/favicon.ico` など。無いファイルを `cp` している行は削除してよい
+   - **`app-name`** と **`publish-profile` の Secret 名** … フロント用 App Service のものに差し替え
+4. App Service の **スタートアップコマンド**: `cd /home/site/wwwroot && node server.js`（§2.4）。
+
+### 6.3 自動生成 YAML のよくある直し（API）
+
+ポータルが出す雛形は **リポジトリ直下**を前提にしていることがあります。**barhunters は API が `backend/` 以下**なので、次のどちらかが必要になることが多いです。
+
+- **ビルド手順**で `pip install -r backend/requirements.txt` とし、成果物・アップロード対象を **`backend/`** にする  
+- または `defaults.run.working-directory: backend` を付け、相対パスを揃える
+
+**Oryx** がデプロイ時に再度 `pip install` する場合、`SCM_DO_BUILD_DURING_DEPLOYMENT=true`（既定）なら **ルートに `requirements.txt` が無いと失敗**することがあります。対策は **(a)** リポジトリ直下に `requirements.txt` を置いて `backend/requirements.txt` と同内容にする、**(b)** App Service のアプリ設定で `SCM_DO_BUILD_DURING_DEPLOYMENT=false` にして GitHub 側ビルドのみにする、など。状況に合わせて Actions ログで判断してください。
+
+### 6.4 初回だけ別作業（CI と無関係）
+
+- **本番 DB に対する `alembic upgrade head`**（§4）は、CI が通っても **自動では流れない**ことがほとんどです。ローカル（ファイアウォールで自分の IP 許可）か SSH などで **一度実行**してください。
+
+### 6.5 参考（class4）
+
+- ワークフロー実物: `project_class4/.github/workflows/main_tech0-gen-11-step3-2-py-67.yml`（API）、`main_tech0-gen-11-step3-2-node-67.yml`（フロント）
+- **環境変数名の差**: barhunters は CORS が **`ALLOW_ORIGINS`**（class4 の `ALLOWED_ORIGINS` ではない）
 
 ---
 
