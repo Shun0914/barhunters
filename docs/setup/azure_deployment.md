@@ -11,6 +11,8 @@
 
 **追跡用 Issue**: GitHub [#29](https://github.com/Shun0914/barhunters/issues/29)（Epic: デプロイと CI/CD）
 
+**デプロイレポート（事例）**: [2026-05-10 — Azure API（Oryx 圧縮成果物とスタートアップ）](../reports/2026-05-10_azure_api_deployment_report.md)
+
 ---
 
 ## 1. 構成の目安（class4 と同型）
@@ -162,17 +164,27 @@ postgresql+psycopg://<ユーザー>:<パスワード>@<サーバー名>.postgres
 
 **「一般設定」→「スタートアップ コマンド」**:
 
-GitHub Actions などで **`backend/` だけ ZIP デプロイ**している場合、コンテナ内に **`antenv` が無く** `uvicorn` コマンドも PATH にありません。ログに `uvicorn: not found` / `Could not find virtual environment directory .../antenv` が出るのはこの状態です。
+パターンを次で分けます。**Oryx が `output.tar.zst` を `wwwroot` に置き、起動時に `/tmp/...` へ展開する運用**（ログに `Output is compressed` / `App path is set to '/tmp/...'` と出る）では、**`cd /home/site/wwwroot` を付けない**でください。`wwwroot` 直下に展開済みの `app/` が無く、**Application Error（503）**の原因になります。
 
-**推奨（wwwroot に `requirements.txt` がある前提）** — 起動時に依存を入れてからモジュール実行:
+**A — Oryx リモートビルドで `antenv` がある（推奨・本リポジトリの GitHub Actions デプロイに該当しやすい）**
+
+```bash
+python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
+```
+
+またはスタートアップを**空**にし、生成される `startup.sh` に任せる。
+
+**B — `backend/` だけを ZIP 等で載せ、コンテナ内に `antenv` が無い**（ログに `uvicorn: not found` / `Could not find virtual environment directory .../antenv`）
+
+`wwwroot` に `requirements.txt` と `app/` がそのままある前提で、起動時に依存を入れてから起動:
 
 ```bash
 cd /home/site/wwwroot && python -m pip install --no-cache-dir -r requirements.txt && python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
 ```
 
-（初回・スケールアウト時に `pip` が走るため、起動が数十秒〜かかることがあります。Oryx のリモートビルドで `antenv` が生成される運用なら、従来どおり `uvicorn app.main:app ...` だけでもよいです。）
+（初回・スケールアウト時に `pip` が走るため、起動が数十秒〜かかることがあります。）
 
-**デプロイ内容**: `backend/` が wwwroot に展開される想定（`app` パッケージがルートに来る配置）。ZIP デプロイや Actions の artifact 構成は class4 の `azure_deployment_guide.md` §5〜6 と同じ思想でよいです。
+**デプロイ内容**: Actions の artifact は **`backend/` のみ**（`app` がルートに来る配置）。ZIP や class4 の `azure_deployment_guide.md` §5〜6 と同じ思想でよいです。実際のランタイムのカレントは **A では Oryx が設定した `App path`** になります。
 
 **依存関係**: `requirements.txt` に **`pymysql`** 等が含まれていること（本リポジトリの `backend/requirements.txt` を利用）。
 
