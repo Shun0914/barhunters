@@ -40,7 +40,7 @@ jobs:
         run: |
           rm -rf deploy
           mkdir -p deploy/.next
-          cp -R frontend/.next/standalone/* deploy/
+          cp -R frontend/.next/standalone/. deploy/
           cp -R frontend/.next/static deploy/.next/static
           cp -R frontend/public deploy/public
 
