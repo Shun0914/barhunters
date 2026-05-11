@@ -17,36 +17,38 @@ export function TotalPointsCard({ total, annualTarget }: Props) {
         <span className="text-[11px] text-ink-secondary">フィルター対象</span>
       </div>
 
-      <div className="flex items-baseline gap-1.5">
-        <span className="text-[16px] font-medium text-ink-secondary">=</span>
-        <span
-          className="text-[30px] font-bold leading-none tabular-nums"
-          style={{ color: BLUE }}
-        >
-          {total.toLocaleString()}
-        </span>
-        <span className="text-[14px] font-medium" style={{ color: BLUE }}>
-          P
-        </span>
-      </div>
-
-      <div>
-        <div
-          className="h-2 w-full overflow-hidden rounded-full"
-          style={{ background: BLUE_BG }}
-        >
-          <div
-            className="h-full rounded-full transition-all duration-300"
-            style={{ width: `${percent}%`, background: BLUE }}
-          />
+      <div className="flex flex-1 flex-col justify-center gap-2">
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-[16px] font-medium text-ink-secondary">=</span>
+          <span
+            className="text-[30px] font-bold leading-none tabular-nums"
+            style={{ color: BLUE }}
+          >
+            {total.toLocaleString()}
+          </span>
+          <span className="text-[14px] font-medium" style={{ color: BLUE }}>
+            P
+          </span>
         </div>
-        <div className="mt-0.5 flex items-center justify-between text-[12px] tabular-nums">
-          <span className="text-ink-secondary">
-            {total.toLocaleString()} / {annualTarget.toLocaleString()} P
-          </span>
-          <span className="font-semibold" style={{ color: BLUE }}>
-            {percent}%
-          </span>
+
+        <div>
+          <div
+            className="h-2 w-full overflow-hidden rounded-full"
+            style={{ background: BLUE_BG }}
+          >
+            <div
+              className="h-full rounded-full transition-all duration-300"
+              style={{ width: `${percent}%`, background: BLUE }}
+            />
+          </div>
+          <div className="mt-0.5 flex items-center justify-between text-[12px] tabular-nums">
+            <span className="text-ink-secondary">
+              {total.toLocaleString()} / {annualTarget.toLocaleString()} P
+            </span>
+            <span className="font-semibold" style={{ color: BLUE }}>
+              {percent}%
+            </span>
+          </div>
         </div>
       </div>
     </section>

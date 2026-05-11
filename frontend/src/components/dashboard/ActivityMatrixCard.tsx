@@ -38,37 +38,39 @@ export function ActivityMatrixCard({ data }: Props) {
     <section className="flex flex-col gap-2 rounded-lg border border-black/5 bg-white p-3 shadow-sm">
       <h2 className="text-[14px] font-semibold text-ink-primary">活動マトリクス（合計P）</h2>
 
-      <div className="grid grid-cols-[auto_1fr_1fr_1fr] gap-1.5 text-[12px]">
-        <div />
-        {CATEGORIES.map((c) => (
-          <div
-            key={c.key}
-            className="flex items-end justify-center pb-0.5 text-ink-secondary"
-          >
-            {c.label}
-          </div>
-        ))}
-
-        {ACTIONS.map((a) => (
-          <div key={a.key} className="contents">
-            <div className="flex items-center pr-2 text-ink-secondary">
-              {a.label}
+      <div className="flex flex-1 flex-col justify-center">
+        <div className="grid grid-cols-[auto_1fr_1fr_1fr] gap-1.5 text-[12px]">
+          <div />
+          {CATEGORIES.map((c) => (
+            <div
+              key={c.key}
+              className="flex items-end justify-center pb-0.5 text-ink-secondary"
+            >
+              {c.label}
             </div>
-            {CATEGORIES.map((c) => {
-              const v = data.matrix[a.key][c.key];
-              const { bg, fg } = rampColor(v, min, max);
-              return (
-                <div
-                  key={c.key}
-                  className="flex h-10 items-center justify-center rounded-md font-bold tabular-nums"
-                  style={{ background: bg, color: fg }}
-                >
-                  {v.toLocaleString()}
-                </div>
-              );
-            })}
-          </div>
-        ))}
+          ))}
+
+          {ACTIONS.map((a) => (
+            <div key={a.key} className="contents">
+              <div className="flex items-center pr-2 text-ink-secondary">
+                {a.label}
+              </div>
+              {CATEGORIES.map((c) => {
+                const v = data.matrix[a.key][c.key];
+                const { bg, fg } = rampColor(v, min, max);
+                return (
+                  <div
+                    key={c.key}
+                    className="flex h-10 items-center justify-center rounded-md font-bold tabular-nums"
+                    style={{ background: bg, color: fg }}
+                  >
+                    {v.toLocaleString()}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );
