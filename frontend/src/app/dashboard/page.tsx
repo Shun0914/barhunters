@@ -17,6 +17,8 @@ export default function DashboardPage() {
     hq: "SALES",
     departments: ["福岡リビング営業部"],
     roles: ["部長", "課長"],
+    fiscalYear: "FY2026",
+    month: 5,
   });
 
   const data = useMemo(() => computeDashboardData(filter), [filter]);
@@ -24,17 +26,18 @@ export default function DashboardPage() {
   return (
     <div className="flex h-full flex-col">
       <PageHeader title="ダッシュボード" />
-      <div className="flex-1 overflow-auto bg-[#faf8f5] px-8 pb-8">
-        <div className="grid grid-cols-[1fr_1fr_220px] grid-rows-[auto_auto] gap-3">
-          <ActiveRateCard data={data} />
-          <OneOnOneCard data={data} />
-          <FilterPanel
-            filter={filter}
-            onChange={setFilter}
-            className="row-span-2"
-          />
-          <ActivityMatrixCard data={data} />
-          <TotalPointsCard total={data.totalPoints} />
+      <div className="flex-1 min-h-0 overflow-hidden bg-[#faf8f5] px-6 pb-4 pt-2">
+        <div className="grid h-full grid-cols-[1fr_220px] gap-2">
+          <div className="grid grid-cols-2 grid-rows-2 gap-2">
+            <ActiveRateCard data={data} />
+            <OneOnOneCard data={data} />
+            <ActivityMatrixCard data={data} />
+            <TotalPointsCard
+              total={data.totalPoints}
+              annualTarget={data.annualTarget}
+            />
+          </div>
+          <FilterPanel filter={filter} onChange={setFilter} />
         </div>
       </div>
     </div>

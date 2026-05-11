@@ -5,6 +5,8 @@ import type { DashboardData, DashboardFilter } from "./types";
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
+const ANNUAL_TARGET = 6000;
+
 export function computeDashboardData(filter: DashboardFilter): DashboardData {
   // 部署数・役職数で揺らす簡易係数（範囲に丸める）
   const deptFactor = clamp(filter.departments.length / 3, 0.3, 1.5);
@@ -40,18 +42,31 @@ export function computeDashboardData(filter: DashboardFilter): DashboardData {
     matrix.creative.safety +
     matrix.creative.future;
 
+  // 1on1 件数（整数）。フィルター対象規模に合わせて係数で揺らす（f=1 で合計 30 件）。
+  const breakdown = {
+    seniorToLead: Math.max(0, Math.round(4 * f)),
+    leadToChief: Math.max(0, Math.round(7 * f)),
+    chiefToGeneral: Math.max(0, Math.round(11 * f)),
+    leadToGeneral: Math.max(0, Math.round(8 * f)),
+  };
+  const oneOnOneTotal =
+    breakdown.seniorToLead +
+    breakdown.leadToChief +
+    breakdown.chiefToGeneral +
+    breakdown.leadToGeneral;
+
+  // 「全部門選択」相当（部署フィルタ空 = 全部門 or 全部選択）→ 全社平均比は意味を持たないため null。
+  const isAllDepartments = filter.departments.length === 0;
+
   return {
+    // 累積モデル前提：分子は単調増加・分母は固定 → 率も非減少。
     activeRate: clamp(Math.round(38 * f), 0, 100),
-    activeRateMoM: -2,
-    activeRateVsCompany: 2,
-    oneOnOneTotal: Math.round(30 * f),
-    oneOnOneBreakdown: {
-      seniorToLead: 12.7,
-      leadToChief: 21.4,
-      chiefToGeneral: 35.7,
-      leadToGeneral: 30.2,
-    },
+    activeRateMoM: 2,                // 累積モデルなので ≥ 0
+    activeRateVsCompany: isAllDepartments ? null : 2,
+    oneOnOneTotal,
+    oneOnOneBreakdown: breakdown,
     matrix,
     totalPoints,
+    annualTarget: ANNUAL_TARGET,
   };
 }

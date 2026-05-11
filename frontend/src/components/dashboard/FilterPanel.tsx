@@ -5,7 +5,9 @@ import { HD_DEPARTMENTS, ROLES, SAIBU_HQ } from "@/lib/dashboard/org";
 import type {
   Company,
   DashboardFilter,
+  FiscalYear,
   Headquarters,
+  Month,
   Role,
 } from "@/lib/dashboard/types";
 
@@ -21,6 +23,10 @@ const COMPANIES: { key: Company; label: string }[] = [
 ];
 
 const HQ_KEYS: Headquarters[] = ["CORPORATE", "ENERGY", "SUPPLY", "SALES"];
+
+const FISCAL_YEARS: FiscalYear[] = ["FY2026", "FY2025", "FY2024"];
+// 4月始まり順（4月→3月）。
+const MONTHS: Month[] = [4, 5, 6, 7, 8, 9, 10, 11, 12, 1, 2, 3];
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
@@ -68,10 +74,55 @@ export function FilterPanel({ filter, onChange, className }: Props) {
   return (
     <aside
       className={cn(
-        "flex h-full flex-col gap-4 rounded-lg border border-black/5 bg-white p-4 shadow-sm",
+        "flex h-full flex-col gap-3 overflow-y-auto rounded-lg border border-black/5 bg-white p-3 shadow-sm",
         className,
       )}
     >
+      <div>
+        <SectionTitle>期間</SectionTitle>
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap gap-1.5">
+            {FISCAL_YEARS.map((fy) => {
+              const active = filter.fiscalYear === fy;
+              return (
+                <button
+                  key={fy}
+                  type="button"
+                  onClick={() => onChange({ ...filter, fiscalYear: fy })}
+                  className={cn(
+                    "rounded px-2 py-1 text-[12px] font-medium transition-colors",
+                    active
+                      ? "bg-brand-primary text-white"
+                      : "border border-black/10 bg-white text-ink-primary hover:bg-brand-bg-light",
+                  )}
+                >
+                  {fy}
+                </button>
+              );
+            })}
+          </div>
+          <select
+            value={filter.month}
+            onChange={(e) =>
+              onChange({
+                ...filter,
+                month: Number(e.target.value) as Month,
+              })
+            }
+            className="rounded border border-black/10 bg-white px-2 py-1 text-[13px] text-ink-primary"
+            aria-label="月"
+          >
+            {MONTHS.map((m) => (
+              <option key={m} value={m}>
+                {m}月
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <hr className="border-black/10" />
+
       <div>
         <SectionTitle>会社</SectionTitle>
         <div className="flex flex-col gap-1.5">

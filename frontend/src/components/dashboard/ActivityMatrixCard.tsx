@@ -35,15 +35,15 @@ export function ActivityMatrixCard({ data }: Props) {
   const max = Math.max(...allValues);
 
   return (
-    <section className="flex flex-col gap-3 rounded-lg border border-black/5 bg-white p-4 shadow-sm">
-      <h2 className="text-[13px] font-medium text-ink-primary">活動マトリクス（合計P）</h2>
+    <section className="flex flex-col gap-2 rounded-lg border border-black/5 bg-white p-3 shadow-sm">
+      <h2 className="text-[14px] font-semibold text-ink-primary">活動マトリクス（合計P）</h2>
 
       <div className="grid grid-cols-[auto_1fr_1fr_1fr] gap-1.5 text-[12px]">
         <div />
         {CATEGORIES.map((c) => (
           <div
             key={c.key}
-            className="flex items-end justify-center pb-1 text-ink-secondary"
+            className="flex items-end justify-center pb-0.5 text-ink-secondary"
           >
             {c.label}
           </div>
@@ -60,7 +60,7 @@ export function ActivityMatrixCard({ data }: Props) {
               return (
                 <div
                   key={c.key}
-                  className="flex h-12 items-center justify-center rounded-md font-bold tabular-nums"
+                  className="flex h-10 items-center justify-center rounded-md font-bold tabular-nums"
                   style={{ background: bg, color: fg }}
                 >
                   {v.toLocaleString()}

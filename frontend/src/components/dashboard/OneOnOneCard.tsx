@@ -4,104 +4,92 @@ import type { DashboardData } from "@/lib/dashboard/types";
 
 type Props = { data: DashboardData };
 
-// 4色 blue ramp（ライトトーンから濃トーンへ）
-const SEGMENTS: { key: keyof DashboardData["oneOnOneBreakdown"]; label: string; color: string }[] = [
-  { key: "seniorToLead",   label: "部長 ↔ 課長",  color: "#9DC4E5" },
-  { key: "leadToChief",    label: "課長 ↔ 係長",  color: "#5B9BD5" },
-  { key: "chiefToGeneral", label: "係長 ↔ 一般",  color: "#2F77BC" },
-  { key: "leadToGeneral",  label: "課長 ↔ 一般",  color: "#185FA5" },
+type SegmentKey = keyof DashboardData["oneOnOneBreakdown"];
+
+// 4 色 blue ramp（濃 → 薄）。棒と凡例で共通。
+const BARS: { key: SegmentKey; label: string; color: string }[] = [
+  { key: "seniorToLead",   label: "部長↔課長", color: "#185FA5" },
+  { key: "leadToChief",    label: "課長↔係長", color: "#3D86C7" },
+  { key: "chiefToGeneral", label: "係長↔一般", color: "#6FA9DD" },
+  { key: "leadToGeneral",  label: "課長↔一般", color: "#A3CAE9" },
 ];
 
-const RING_BG = "#EAF1F8";
-
-function MultiArcDonut({
-  segments,
-  size = 140,
-  stroke = 14,
-}: {
-  segments: { value: number; color: string }[];
-  size?: number;
-  stroke?: number;
-}) {
-  const r = (size - stroke) / 2;
-  const c = 2 * Math.PI * r;
-  const total = segments.reduce((a, s) => a + s.value, 0) || 1;
-
-  // 各セグメントの長さと、その手前までの累積を事前計算（描画中の再代入を避ける）。
-  const arcs = segments.reduce<{ len: number; offset: number; color: string }[]>(
-    (list, s) => {
-      const len = (s.value / total) * c;
-      const offset = -list.reduce((a, x) => a + x.len, 0);
-      return [...list, { len, offset, color: s.color }];
-    },
-    [],
-  );
-
-  return (
-    <svg width={size} height={size} className="-rotate-90">
-      <circle
-        cx={size / 2}
-        cy={size / 2}
-        r={r}
-        fill="none"
-        stroke={RING_BG}
-        strokeWidth={stroke}
-      />
-      {arcs.map((a, i) => (
-        <circle
-          key={i}
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
-          fill="none"
-          stroke={a.color}
-          strokeWidth={stroke}
-          strokeDasharray={`${a.len} ${c}`}
-          strokeDashoffset={a.offset}
-        />
-      ))}
-    </svg>
-  );
-}
+// SVG viewBox（縦軸ラベルなし・X軸ラベルなし、値テキスト + バーのみで縦を詰める）。
+const VB_W = 100;
+const VB_H = 80;
+const BAR_AREA_TOP = 12;
+const BAR_AREA_BOTTOM = 72;
+const BAR_AREA_HEIGHT = BAR_AREA_BOTTOM - BAR_AREA_TOP;
+const BAR_WIDTH = 14;
+const SLOT_WIDTH = 22;
+const GROUP_X0 = (VB_W - SLOT_WIDTH * BARS.length) / 2 + (SLOT_WIDTH - BAR_WIDTH) / 2;
 
 export function OneOnOneCard({ data }: Props) {
-  const segments = SEGMENTS.map((s) => ({
-    ...s,
-    value: data.oneOnOneBreakdown[s.key],
-  }));
+  const bars = BARS.map((b) => ({ ...b, value: data.oneOnOneBreakdown[b.key] }));
+  const maxValue = Math.max(1, ...bars.map((b) => b.value));
 
   return (
-    <section className="flex flex-col gap-3 rounded-lg border border-black/5 bg-white p-4 shadow-sm">
-      <h2 className="text-[13px] font-medium text-ink-primary">1on1 実施状況</h2>
+    <section className="flex flex-col gap-2 rounded-lg border border-black/5 bg-white p-3 shadow-sm">
+      <h2 className="text-[14px] font-semibold text-ink-primary">1on1 実施状況</h2>
 
-      <div className="flex items-center gap-4">
-        <div className="relative shrink-0" style={{ width: 140, height: 140 }}>
-          <MultiArcDonut segments={segments} />
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-[10px] text-ink-secondary">合計</span>
-            <span className="text-[24px] font-bold tabular-nums text-ink-primary">
-              {data.oneOnOneTotal}
-              <span className="text-[14px] font-medium text-ink-secondary">件</span>
-            </span>
-          </div>
-        </div>
-
-        <ul className="flex flex-1 flex-col gap-1 text-[12px] text-ink-primary">
-          {segments.map((s) => (
-            <li key={s.key} className="flex items-center justify-between gap-2">
-              <span className="flex items-center gap-1.5">
-                <span
-                  className="inline-block h-2.5 w-2.5 rounded-sm"
-                  style={{ background: s.color }}
+      <div className="flex items-center gap-3">
+        {/* 左: 縦棒グラフ（X軸ラベル無し） */}
+        <svg
+          viewBox={`0 0 ${VB_W} ${VB_H}`}
+          className="shrink-0"
+          style={{ width: 160 }}
+        >
+          {bars.map((bar, i) => {
+            const h = (bar.value / maxValue) * BAR_AREA_HEIGHT;
+            const x = GROUP_X0 + i * SLOT_WIDTH;
+            const y = BAR_AREA_BOTTOM - h;
+            const centerX = x + BAR_WIDTH / 2;
+            return (
+              <g key={bar.key}>
+                <text
+                  x={centerX}
+                  y={Math.max(y - 2, 8)}
+                  textAnchor="middle"
+                  fontSize="8"
+                  fontWeight="600"
+                  fill="#185FA5"
+                >
+                  {bar.value}
+                </text>
+                <rect
+                  x={x}
+                  y={y}
+                  width={BAR_WIDTH}
+                  height={h}
+                  fill={bar.color}
+                  rx={1}
                 />
-                {s.label}
-              </span>
-              <span className="font-medium tabular-nums text-ink-secondary">
-                {s.value.toFixed(1)}%
-              </span>
+              </g>
+            );
+          })}
+        </svg>
+
+        {/* 右: 凡例 */}
+        <ul className="flex flex-1 flex-col gap-0.5 text-[11px] text-ink-primary">
+          {bars.map((bar) => (
+            <li key={bar.key} className="flex items-center gap-2">
+              <span
+                className="inline-block h-2 w-2 rounded-full"
+                style={{ background: bar.color }}
+              />
+              <span className="flex-1">{bar.label}</span>
+              <span className="font-semibold tabular-nums">{bar.value}</span>
             </li>
           ))}
         </ul>
+      </div>
+
+      <div className="text-center text-[12px] text-ink-secondary">
+        合計{" "}
+        <span className="text-[16px] font-bold text-ink-primary tabular-nums">
+          {data.oneOnOneTotal}
+        </span>{" "}
+        件
       </div>
     </section>
   );
