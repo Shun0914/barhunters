@@ -80,6 +80,8 @@ export type NotificationTab = "all" | "unread";
 export type PointApplicationDraftIn = {
   title?: string | null;
   activity_genre_id?: number | null;
+  // 明示的に指定された場合は default_points より優先する。
+  points?: number | null;
   description?: string | null;
   approver_1_user_id?: string | null;
   approver_2_user_id?: string | null;

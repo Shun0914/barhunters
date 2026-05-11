@@ -98,7 +98,7 @@ def create_draft(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> PointApplicationOut:
-    points = _resolve_points(db, payload.activity_genre_id)
+    points = _resolve_points(db, payload.activity_genre_id, payload.points)
     application = PointApplication(
         id=str(uuid4()),
         applicant_user_id=current_user.id,
@@ -204,7 +204,7 @@ def update_draft(
     application.approver_1_user_id = payload.approver_1_user_id
     application.approver_2_user_id = payload.approver_2_user_id
     application.approver_3_user_id = payload.approver_3_user_id
-    application.points = _resolve_points(db, payload.activity_genre_id)
+    application.points = _resolve_points(db, payload.activity_genre_id, payload.points)
 
     db.commit()
     db.refresh(application)
@@ -308,7 +308,7 @@ def resubmit_application(
         application.title = payload.title
         application.activity_genre_id = payload.activity_genre_id
         application.description = payload.description
-        application.points = _resolve_points(db, payload.activity_genre_id)
+        application.points = _resolve_points(db, payload.activity_genre_id, payload.points)
 
     # 必須項目バリデーション（再申請時も submit と同じ条件）
     errors = _validate_submit(application)
@@ -376,7 +376,14 @@ def withdraw_application(
     return enrich_application(application, db)
 
 
-def _resolve_points(db: Session, activity_genre_id: int | None) -> int | None:
+def _resolve_points(
+    db: Session,
+    activity_genre_id: int | None,
+    override: int | None = None,
+) -> int | None:
+    """payload に points が明示されていればそれを採用し、無ければ genre の default_points を返す。"""
+    if override is not None:
+        return override
     if activity_genre_id is None:
         return None
     genre = db.get(ActivityGenre, activity_genre_id)
