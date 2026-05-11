@@ -39,16 +39,19 @@ jobs:
       - name: Prepare standalone artifact for deployment
         run: |
           rm -rf deploy
-          mkdir -p deploy/.next
+          mkdir -p deploy/.next/static deploy/public
           cp -R frontend/.next/standalone/. deploy/
-          cp -R frontend/.next/static deploy/.next/static
-          cp -R frontend/public deploy/public
+          cp -R frontend/.next/static/. deploy/.next/static
+          cp -R frontend/public/. deploy/public
+
+      - name: Zip artifact for deployment
+        run: zip release.zip ./deploy -r
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: node-app
-          path: deploy/
+          path: release.zip
 
   deploy:
     runs-on: ubuntu-latest
@@ -59,7 +62,9 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: node-app
-          path: .
+
+      - name: Unzip artifact for deployment
+        run: unzip release.zip
 
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
@@ -67,5 +72,5 @@ jobs:
         with:
           app-name: "tech0-gen-11-step3-2-node-66"
           slot-name: "Production"
-          package: .
+          package: ./deploy
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_BD214CA604374515BA001B3C3FC2255C }}
