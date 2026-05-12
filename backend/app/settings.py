@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     # 04_データ要件.md §2.2 で実装で確定とされている値の暫定。
     # 例: "承認済"  → 承認済のみ集計
     #     "提出済,承認済" → 申請中以降を全部含める
-    POINT_AGGREGATE_STATUSES: str = "承認済"
+    POINT_AGGREGATE_STATUSES: str = "approved"
 
     @property
     def origin_list(self) -> list[str]:

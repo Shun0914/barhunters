@@ -13,7 +13,7 @@
 from sqlalchemy import select
 from sqlalchemy.engine import Engine
 
-from app.models import ActivityGenre, PointApplication
+from app.models import ActivityGenre, PointApplication, User
 from app.schemas.cascade import PointsInput
 
 # ════════════════════════════════════════════════════════════
@@ -22,26 +22,23 @@ from app.schemas.cascade import PointsInput
 
 # activity_genre.name → PointsInput field のマッピング
 GENRE_TO_FIELD: dict[str, str] = {
-    "学習系": "learning",
-    "挑戦系": "challenge",
-    "保安系": "safety",
-    "顧客系": "customer",
-    "□□系": "other",
+    "日常×社会貢献": "daily_social",
+    "日常×安心安全": "daily_safety",
+    "日常×未来共創": "daily_future",
+    "越境×社会貢献": "cross_social",
+    "越境×安心安全": "cross_safety",
+    "越境×未来共創": "cross_future",
+    "創造×社会貢献": "creative_social",
+    "創造×安心安全": "creative_safety",
+    "創造×未来共創": "creative_future",
 }
 
 
-def aggregate_approved_points(engine: Engine, statuses: list[str]) -> PointsInput:
-    """指定ステータスの申請を活動ジャンル別に集計する。
-
-    因果ストーリー画面（cascade router）が呼び出す。
-
-    Args:
-        engine: SQLAlchemy Engine
-        statuses: 集計対象ステータス（例 ["承認済"]）
-
-    Returns:
-        PointsInput（learning/challenge/safety/customer/other）
-    """
+def aggregate_approved_points(
+    engine: Engine,
+    statuses: list[str],
+    org_id: str | None = None,
+) -> PointsInput:
     if not statuses:
         return PointsInput()
 
@@ -50,15 +47,24 @@ def aggregate_approved_points(engine: Engine, statuses: list[str]) -> PointsInpu
         .join(ActivityGenre, ActivityGenre.id == PointApplication.activity_genre_id)
         .where(PointApplication.status.in_(statuses))
     )
+    if org_id is not None:
+        stmt = stmt.join(User, User.id == PointApplication.applicant_user_id).where(
+            User.org_id == org_id
+        )
 
     totals: dict[str, int] = {
-        f: 0 for f in ("learning", "challenge", "safety", "customer", "other")
+        f: 0 for f in (
+            "daily_social", "daily_safety", "daily_future",
+            "cross_social", "cross_safety", "cross_future",
+            "creative_social", "creative_safety", "creative_future",
+        )
     }
 
     with engine.connect() as conn:
         for genre_name, points in conn.execute(stmt).all():
-            field = GENRE_TO_FIELD.get(genre_name, "other")
-            totals[field] += int(points or 0)
+            field = GENRE_TO_FIELD.get(genre_name)
+            if field:
+                totals[field] += int(points or 0)
 
     return PointsInput(**totals)
 

@@ -12,11 +12,14 @@ v5 出力：
 """
 
 from datetime import datetime
+from typing import Literal
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 
+from app.auth import get_current_user
 from app.db import get_engine, get_session_factory
+from app.models import User
 from app.models.indicator import Indicator
 from app.schemas.cascade import (
     CardData,
@@ -350,13 +353,31 @@ def simulate_cascade(req: SimulateRequest) -> CascadeResponse:
 
 
 @router.get("/aggregated-points", response_model=PointsInput)
-def get_aggregated_points() -> PointsInput:
-    """DB集計後ポイントを9セル形式で返す。"""
+def get_aggregated_points(
+    scope: Literal["company", "department"] = Query("company"),
+    current_user: User = Depends(get_current_user),
+) -> PointsInput:
+    """DB集計後ポイントを9セル形式で返す。
+
+    scope:
+      - "company"    : 全社集計（従来動作）
+      - "department" : ログインユーザーの所属 org_id で絞り込む
+    """
     s = get_settings()
     eng = get_engine(s.DATABASE_URL)
 
+    if scope == "department" and current_user.org_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="所属部署が未設定のため、自部署集計は利用できません",
+        )
+
+    org_id = current_user.org_id if scope == "department" else None
+
     try:
-        legacy_points = aggregate_approved_points(eng, s.aggregate_statuses)
+        legacy_points = aggregate_approved_points(
+            eng, s.aggregate_statuses, org_id=org_id
+        )
     except Exception:
         return PointsInput()
 

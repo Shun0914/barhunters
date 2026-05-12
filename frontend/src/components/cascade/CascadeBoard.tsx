@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { simulateCascade } from "@/lib/cascade/client";
+import { fetchAggregatedPoints, simulateCascade } from "@/lib/cascade/client";
 import {
   CELL_LABEL,
   COMPANY_EFFECT_IDS,
@@ -94,6 +94,22 @@ function CascadeBoardInner() {
 
   // ホバー > クリック の優先度で「現在の焦点」を決める
   const activeId = hoveredId ?? selected;
+
+  // scope 切替（および初回マウント）で、DB集計済みポイントを取得して初期値に反映する。
+  // 取得後は既存の simulate フローが points 変化を検知して再計算する。
+  useEffect(() => {
+    const ctrl = new AbortController();
+    fetchAggregatedPoints(scope, ctrl.signal)
+      .then((data) => {
+        setPoints(data);
+      })
+      .catch((e: unknown) => {
+        if (e instanceof DOMException && e.name === "AbortError") return;
+        // スコープ切替に失敗してもページ全体は壊さない（エラーは画面下部の simulate エラー欄を流用）。
+        setError(e instanceof Error ? e.message : String(e));
+      });
+    return () => ctrl.abort();
+  }, [scope]);
 
   // 初回 + 入力変更時に simulate を叩く（デバウンス）
   const abortRef = useRef<AbortController | null>(null);
