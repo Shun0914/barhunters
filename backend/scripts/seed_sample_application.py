@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """S-02 動作確認用のサンプル申請を追加投入する。
 
-- 一般職員 申太郎（DEV_DEFAULT_USER_ID）の申請
+- 一般社員 申太郎（DEV_DEFAULT_USER_ID）の申請
 - status=submitted, current_approval_step=2（第1承認者承認済 → 第2承認者が決裁中）
 - application_number は採番テーブルから取得（既存の連番を進める）
 
@@ -62,7 +62,7 @@ def main() -> None:
             print(f"既に投入済みです: id={exists.id} number={exists.application_number}")
             return
 
-        # 申請者と同じ組織から係長・課長・部門長を 1 名ずつ取得
+        # 申請者と同じ組織から係長・課長・部長を 1 名ずつ取得
         def _pick(role: str) -> User:
             user = session.scalars(
                 select(User)
@@ -76,7 +76,7 @@ def main() -> None:
 
         approver_1 = _pick("係長")
         approver_2 = _pick("課長")
-        approver_3 = _pick("部門長")
+        approver_3 = _pick("部長")
 
         # 「挑戦」ジャンルを使用
         genre = session.scalars(

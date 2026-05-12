@@ -53,9 +53,9 @@ def main() -> None:
 
         kacho = session.scalars(select(User).where(User.role == "課長").limit(1)).first()
         kakaricho = session.scalars(select(User).where(User.role == "係長").limit(1)).first()
-        bumoncho = session.scalars(select(User).where(User.role == "部門長").limit(1)).first()
+        bumoncho = session.scalars(select(User).where(User.role == "部長").limit(1)).first()
         if kacho is None or kakaricho is None or bumoncho is None:
-            print("ユーザー（課長/係長/部門長）が揃っていません。")
+            print("ユーザー（課長/係長/部長）が揃っていません。")
             return
 
         application = session.scalars(

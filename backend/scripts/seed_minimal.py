@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """開発用シード（spec.md §4.1 MVP 組織モデル準拠）。
 
-- 1 組織 + 11 名（部門長 1 / 課長 1 / 係長 1 / 一般職員 8）
+- 1 組織 + 11 名（部長 1 / 課長 1 / 係長 1 / 一般社員 8）
 - 活動ジャンル: 挑戦 (10P) / その他 (5P)（Q-02 暫定値、決まり次第差し替え）
-- 既定の current user 用の固定 UUID を 1 名（一般職員）に割り当て、`backend/.env` に
+- 既定の current user 用の固定 UUID を 1 名（一般社員）に割り当て、`backend/.env` に
   `DEV_DEFAULT_USER_ID=...` として転記して使う運用。
 
 `backend/` をカレントにして実行::
@@ -57,20 +57,20 @@ def main() -> None:
     session.add(Organization(id=org_id, name="人材戦略部 第1課 1係"))
     session.flush()
 
-    # 役職ヒエラルキー: 部門長 1 / 課長 1 / 係長 1 / 一般職員 8
-    session.add(User(id=str(uuid4()), name="部門長 太郎", org_id=org_id, role="部門長"))
+    # 役職ヒエラルキー: 部長 1 / 課長 1 / 係長 1 / 一般社員 8（frontend 表記に統一）
+    session.add(User(id=str(uuid4()), name="部長 太郎", org_id=org_id, role="部長"))
     session.add(User(id=str(uuid4()), name="課長 花子", org_id=org_id, role="課長"))
     session.add(User(id=str(uuid4()), name="係長 次郎", org_id=org_id, role="係長"))
     session.add(
         User(
             id=DEV_DEFAULT_USER_ID,
-            name="一般職員 申太郎",
+            name="一般社員 申太郎",
             org_id=org_id,
-            role="一般職員",
+            role="一般社員",
         )
     )
     for i in range(2, 9):
-        session.add(User(id=str(uuid4()), name=f"一般職員 {i:02d}", org_id=org_id, role="一般職員"))
+        session.add(User(id=str(uuid4()), name=f"一般社員 {i:02d}", org_id=org_id, role="一般社員"))
 
     # 活動ジャンル（Q-02 暫定値）
     session.add(ActivityGenre(name="挑戦", default_points=10, sort_order=1, is_active=True))
@@ -96,7 +96,8 @@ def main() -> None:
     session.commit()
     session.close()
     print(
-        f"Seed OK: organization x1, users x11, activity_genres x2, indicators x1\n"
+        "Seed OK: organization x1, users x11 (部長/課長/係長/一般社員), "
+        "activity_genres x2, indicators x1\n"
         f"  DEV_DEFAULT_USER_ID = {DEV_DEFAULT_USER_ID}\n"
         f"  → backend/.env に転記してサーバ起動してください。"
     )
