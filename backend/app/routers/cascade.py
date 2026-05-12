@@ -120,19 +120,21 @@ def _format_value(node: KpiResult) -> str:
     if unit == "スコア":
         return f"{val:.2f}"
     if unit == "名":
-        return f"{int(val):,}名"
+        return f"{val:,.0f}名"
     if unit == "件":
-        return f"{int(val)}件"
+        return f"{val:.1f}件"
     if unit == "万kW":
         return f"{val:.1f}万kW"
     if unit == "万t":
         return f"{val:.1f}万t"
     if unit == "千円/戸":
-        return f"{int(val)}千円/戸"
+        return f"{val:.1f}千円/戸"
     if unit == "年連続":
-        return f"{int(val)}年連続"
+        return f"{val:.1f}年連続"
     if unit == "指数":
-        return f"{int(val)}指数"
+        return f"{val:.1f}指数"
+    if unit == "日":
+        return f"{val:.2f}日"
     return f"{val}"
 
 
@@ -230,7 +232,7 @@ def _financial_to_cards(
             projected=ROIC_CURRENT + result.roic_delta,
             improvement=result.roic_delta,
             reliability="★",
-            description="参考値（フル効果時）",
+            description="人的資本単独寄与（ACT2027 目標 +0.2pt の一部）",
             unit="%",
         )
     )
@@ -252,7 +254,7 @@ def _financial_to_cards(
             projected=ROE_CURRENT + result.roe_delta,
             improvement=result.roe_delta,
             reliability="★",
-            description="参考値（フル効果時）",
+            description="人的資本単独寄与（ACT2027 目標 +1.7pt の一部）",
             unit="%",
         )
     )
