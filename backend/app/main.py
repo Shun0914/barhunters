@@ -11,6 +11,7 @@ from app.routers import (
     dashboard,
     masters,
     notifications,
+    one_on_ones,
     point_applications,
     users,
 )
@@ -47,6 +48,7 @@ def create_app() -> FastAPI:
     app.include_router(notifications.router)
     app.include_router(cascade_router.router)
     app.include_router(dashboard.router)
+    app.include_router(one_on_ones.router)
 
     @app.get("/health")
     def health() -> dict[str, str]:
