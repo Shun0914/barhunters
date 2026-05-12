@@ -4,6 +4,7 @@
   GET  /api/cascade            - DB集計後ポイントから計算（要：5→9 暫定変換）
   POST /api/cascade/simulate   - 任意の9セルポイント値で計算
   GET  /api/cascade/aggregated-points  - DB集計後ポイント
+  GET  /api/cascade/indicator-meta     - 指標の説明メタ（JSON 配信）
 
 v5 出力：
   - 売上効果カード（メイン）
@@ -38,6 +39,7 @@ from app.services.calculator import (
     KpiResult,
     calculate,
 )
+from app.services.indicator_meta_service import load_indicator_meta
 from app.services.points_service import aggregate_approved_points
 from app.settings import get_settings
 
@@ -397,3 +399,12 @@ def get_aggregated_points(
         "other": getattr(legacy_points, "other", 0),
     }
     return _legacy_5_to_9cells(legacy_dict)
+
+
+@router.get("/indicator-meta")
+def get_indicator_meta() -> dict:
+    """指標の説明メタを返す（業務オーナーが backend JSON で更新する想定）。
+
+    認証不要。読み取り専用、機密性なし。
+    """
+    return load_indicator_meta()
