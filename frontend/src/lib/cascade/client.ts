@@ -1,4 +1,4 @@
-import { getApiBaseUrl } from "@/lib/api";
+import { apiFetch, getApiBaseUrl } from "@/lib/api";
 import type { CascadeResponse, PointsInput } from "./types";
 
 export type CascadeScope = "company" | "department";
@@ -26,17 +26,8 @@ export async function fetchAggregatedPoints(
   scope: CascadeScope,
   signal?: AbortSignal,
 ): Promise<PointsInput> {
-  const url = `${getApiBaseUrl()}/api/cascade/aggregated-points?scope=${scope}`;
-  const res = await fetch(url, {
+  return apiFetch<PointsInput>(`/api/cascade/aggregated-points?scope=${scope}`, {
     method: "GET",
-    cache: "no-store",
     signal,
   });
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error(
-      `GET /api/cascade/aggregated-points ${res.status}: ${body || res.statusText}`,
-    );
-  }
-  return (await res.json()) as PointsInput;
 }

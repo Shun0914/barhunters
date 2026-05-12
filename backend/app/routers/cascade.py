@@ -14,7 +14,7 @@ v5 出力：
 from datetime import datetime
 from typing import Literal
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 
 from app.auth import get_current_user
@@ -365,6 +365,12 @@ def get_aggregated_points(
     """
     s = get_settings()
     eng = get_engine(s.DATABASE_URL)
+
+    if scope == "department" and current_user.org_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="所属部署が未設定のため、自部署集計は利用できません",
+        )
 
     org_id = current_user.org_id if scope == "department" else None
 
