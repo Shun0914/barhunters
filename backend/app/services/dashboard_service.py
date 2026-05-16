@@ -16,6 +16,7 @@
 
 from __future__ import annotations
 
+import re
 from calendar import monthrange
 from datetime import date, timedelta
 
@@ -28,6 +29,19 @@ from app.models import OneOnOne, Organization, PointApplication, User
 ANNUAL_TARGETS: dict[str, int] = {
     "default": 6000,
 }
+
+_FY_RE = re.compile(r"^FY\d{4}$")
+
+
+def normalize_fy(fy: str) -> str:
+    """クエリ fy を正規化し、形式チェックする。不正時は ValueError。"""
+    s = fy.strip()
+    if _FY_RE.fullmatch(s) is None:
+        raise ValueError("fy は FY2026 の形式で指定してください（FY に続けて4桁の年）")
+    y = int(s[2:])
+    if not 2000 <= y <= 2100:
+        raise ValueError("fy の年は 2000〜2100 の範囲で指定してください")
+    return s
 
 
 # ════════════════════════════════════════════════════════════
@@ -42,7 +56,7 @@ def period_from_fy_month(fy: str, month: int) -> tuple[date, date]:
     例: FY2026, month=5 → (2026-04-01, 2026-05-31)
         FY2026, month=2 → (2026-04-01, 2027-02-28)
     """
-    fy_year = int(fy[2:])
+    fy_year = int(normalize_fy(fy)[2:])
     start = date(fy_year, 4, 1)
     end_year = fy_year if month >= 4 else fy_year + 1
     last_day = monthrange(end_year, month)[1]
@@ -174,11 +188,13 @@ def aggregate_one_on_one(
         )
         .group_by(OneOnOne.pair_type)
     ).all()
+    total_all = sum(int(c) for _pt, c in rows)
     for pair_type, count in rows:
         if pair_type in breakdown:
             breakdown[pair_type] = int(count)
 
-    return {"breakdown": breakdown, "total": sum(breakdown.values())}
+    # 凡例外の pair_type も DB 実件として total に反映（breakdown には載せない）
+    return {"breakdown": breakdown, "total": total_all}
 
 
 # ════════════════════════════════════════════════════════════
