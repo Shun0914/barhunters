@@ -7,7 +7,7 @@ import { ApprovalView } from "@/components/approvals/ApprovalView";
 import { apiFetch } from "@/lib/api";
 import type { UserBrief } from "@/lib/api/types";
 
-/** /approvals のアクセス制御。一般職員は決裁権限がないため申請状況へリダイレクト。 */
+/** /approvals のアクセス制御。一般社員（および移行前のレガシー役職名「一般職員」）は決裁権限がないため申請状況へリダイレクト。 */
 export function ApprovalsGate() {
   const router = useRouter();
   const [allowed, setAllowed] = useState<boolean | null>(null);
@@ -17,7 +17,7 @@ export function ApprovalsGate() {
     apiFetch<UserBrief>("/api/users/me")
       .then((me) => {
         if (cancelled) return;
-        if (me.role === "一般職員") {
+        if (me.role === "一般社員" || me.role === "一般職員") {
           router.replace("/applications");
         } else {
           setAllowed(true);

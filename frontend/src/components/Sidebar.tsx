@@ -14,6 +14,11 @@ import type { UserBrief } from "@/lib/api/types";
 // spec.md §1.1 のサイドナビ構成（MVP は PC 固定幅・常時展開・お気に入り非表示）
 type NavItem = { label: string; href: string; icon: React.ReactNode };
 
+/** 決裁権限・1on1 記録対象から除外される末端ロール（移行前のレガシー表記も含む） */
+function isGeneralEmployeeLikeRole(role: string | null | undefined): boolean {
+  return role === "一般社員" || role === "一般職員";
+}
+
 const NAV_GROUPS: { group: string; items: NavItem[] }[] = [
   {
     group: "ダッシュボード",
@@ -35,6 +40,14 @@ const STANDALONE_ITEMS: NavItem[] = [
   { label: "ポイント承認", href: "/approvals", icon: ICONS.approve },
 ];
 
+// STANDALONE_ITEMS（ポイント承認）の下に出すグループ。
+const POST_STANDALONE_GROUPS: { group: string; items: NavItem[] }[] = [
+  {
+    group: "1on1",
+    items: [{ label: "1on1実施", href: "/oneonone/new", icon: ICONS.profile }],
+  },
+];
+
 const OTHER_ITEMS: NavItem[] = [
   { label: "通知一覧", href: "/notifications", icon: ICONS.bell },
 ];
@@ -45,6 +58,7 @@ const OTHER_ITEMS: NavItem[] = [
 const ALL_HREFS: string[] = [
   ...NAV_GROUPS.flatMap((g) => g.items.map((i) => i.href)),
   ...STANDALONE_ITEMS.map((i) => i.href),
+  ...POST_STANDALONE_GROUPS.flatMap((g) => g.items.map((i) => i.href)),
   ...OTHER_ITEMS.map((i) => i.href),
 ];
 
@@ -77,15 +91,16 @@ export function Sidebar() {
   const isActive = (href: string) => href === activeHref;
 
   // ログインユーザーの役職に応じてメニューを出し分ける。
-  // 一般職員は決裁することがないため「ポイント承認」を非表示にする。
+  // 一般社員（およびレガシー「一般職員」）は決裁がないので「ポイント承認」非表示、1on1 記録導線も不要。
   const [me, setMe] = useState<UserBrief | null>(null);
   useEffect(() => {
     apiFetch<UserBrief>("/api/users/me")
       .then(setMe)
       .catch(() => setMe(null));
   }, []);
-  const standaloneItems =
-    me?.role === "一般職員" ? [] : STANDALONE_ITEMS;
+  const standaloneItems = isGeneralEmployeeLikeRole(me?.role) ? [] : STANDALONE_ITEMS;
+  const oneOnOneNavGroups =
+    me != null && isGeneralEmployeeLikeRole(me.role) ? [] : POST_STANDALONE_GROUPS;
 
   return (
     /* Figma: サイドバー背景は #faf8f5、幅 250px */
@@ -150,6 +165,29 @@ export function Sidebar() {
             </ul>
           </div>
         )}
+
+        {oneOnOneNavGroups.map((g) => (
+          <div key={g.group} className="mb-2">
+            <div className="px-4 py-1.5 text-[10px] font-medium tracking-wide text-[#334155]">
+              {g.group}
+            </div>
+            <ul>
+              {g.items.map((item) => {
+                const active = isActive(item.href);
+                return (
+                  <li key={item.href}>
+                    <Link href={item.href} className={navLinkClass(active)}>
+                      <span className={active ? "text-[#0178C8]" : "text-[#64748b]"}>
+                        {item.icon}
+                      </span>
+                      <span>{item.label}</span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
 
         <div className="mb-2">
           <div className="px-4 py-1.5 text-[10px] font-medium tracking-wide text-[#334155]">
