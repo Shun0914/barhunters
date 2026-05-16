@@ -9,9 +9,13 @@ export type FiscalYear = "FY2026" | "FY2025" | "FY2024";
 export type Month = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
 
 export interface DashboardFilter {
-  company: Company;
-  hq: Headquarters | null;       // SAIBU 選択時のみ
-  departments: string[];          // 部署名の配列
+  /** 会社（複数選択可）。空配列 = フィルタなし（全件対象）。 */
+  companies: Company[];
+  /** 本部（複数選択可）。空配列 = フィルタなし（全件対象）。 */
+  hqs: Headquarters[];
+  /** 部署名（複数選択可）。空配列 = フィルタなし（全件対象）。 */
+  departments: string[];
+  /** 役職（複数選択可）。空配列 = フィルタなし（全件対象）。 */
   roles: Role[];
   /** 期間フィルター（PR-A では UI のみ・データ非連動）。 */
   fiscalYear: FiscalYear;

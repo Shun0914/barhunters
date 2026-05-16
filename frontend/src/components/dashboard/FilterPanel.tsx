@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 import { cn } from "@/lib/utils";
 import { HD_DEPARTMENTS, ROLES, SAIBU_HQ } from "@/lib/dashboard/org";
 import type {
@@ -28,48 +30,127 @@ const FISCAL_YEARS: FiscalYear[] = ["FY2026", "FY2025", "FY2024"];
 // 4月始まり順（4月→3月）。
 const MONTHS: Month[] = [4, 5, 6, 7, 8, 9, 10, 11, 12, 1, 2, 3];
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
+const EMPTY_FILTER_FIELDS = {
+  companies: [] as Company[],
+  hqs: [] as Headquarters[],
+  departments: [] as string[],
+  roles: [] as Role[],
+};
+
+function toggleValue<T>(arr: readonly T[], value: T): T[] {
+  const set = new Set(arr);
+  if (set.has(value)) set.delete(value);
+  else set.add(value);
+  return Array.from(set);
+}
+
+/**
+ * Excel フィルタ風の折りたたみ式プルダウン。
+ * - ヘッダーをクリックで展開/折りたたみ
+ * - 展開時は「全選択」「全解除」+ チェックボックスリスト
+ * - 選択状態バッジ: 未選択 or 全選択 → 「全件対象」、部分選択 → 「N/M選択中」
+ */
+function FilterDropdown<T extends string>({
+  label,
+  options,
+  selected,
+  onSelectionChange,
+  getLabel,
+}: {
+  label: string;
+  options: readonly T[];
+  selected: readonly T[];
+  onSelectionChange: (next: T[]) => void;
+  getLabel: (value: T) => string;
+}) {
+  const [open, setOpen] = useState(false);
+
+  const total = options.length;
+  const count = selected.length;
+  // 「未選択 = 全件対象」「全選択 = 結果的に全件対象」を同じバッジで表現する。
+  const isAllOrNone = count === 0 || count === total;
+  const badge = isAllOrNone ? "全件対象" : `${count}/${total} 選択中`;
+
+  const toggleOne = (value: T) => onSelectionChange(toggleValue(selected, value));
+  const selectAll = () => onSelectionChange([...options]);
+  const clearAll = () => onSelectionChange([]);
+
   return (
-    <div className="mb-2 text-[12px] font-medium tracking-wide text-ink-secondary">
-      {children}
+    <div className="rounded border border-black/10">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between gap-2 rounded-t px-2 py-1.5 text-left text-[13px] font-medium text-ink-primary hover:bg-brand-bg-light"
+        aria-expanded={open}
+      >
+        <span className="flex items-center gap-1.5">
+          <span>{label}</span>
+          <span className="text-[10px] text-ink-secondary">
+            {open ? "▲" : "▼"}
+          </span>
+        </span>
+        <span
+          className={cn(
+            "rounded-full px-1.5 py-0.5 text-[10px] font-medium",
+            isAllOrNone
+              ? "bg-black/5 text-ink-secondary"
+              : "bg-brand-primary/10 text-brand-primary",
+          )}
+        >
+          {badge}
+        </span>
+      </button>
+      {open ? (
+        <div className="border-t border-black/10 bg-white p-2">
+          <div className="mb-1.5 flex gap-1">
+            <button
+              type="button"
+              onClick={selectAll}
+              className="flex-1 rounded border border-black/10 bg-white px-1.5 py-0.5 text-[10px] font-medium text-ink-secondary hover:bg-brand-bg-light hover:text-brand-primary"
+            >
+              全選択
+            </button>
+            <button
+              type="button"
+              onClick={clearAll}
+              className="flex-1 rounded border border-black/10 bg-white px-1.5 py-0.5 text-[10px] font-medium text-ink-secondary hover:bg-brand-bg-light hover:text-brand-primary"
+            >
+              全解除
+            </button>
+          </div>
+          <div className="flex max-h-[200px] flex-col gap-1 overflow-y-auto pr-1">
+            {options.map((o) => (
+              <label
+                key={o}
+                className="flex cursor-pointer items-start gap-2 text-[12px] text-ink-primary"
+              >
+                <input
+                  type="checkbox"
+                  checked={selected.includes(o)}
+                  onChange={() => toggleOne(o)}
+                  className="mt-0.5 accent-brand-primary"
+                />
+                <span className="leading-tight">{getLabel(o)}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
 
 export function FilterPanel({ filter, onChange, className }: Props) {
-  const departmentList: readonly string[] =
-    filter.company === "HD"
-      ? HD_DEPARTMENTS
-      : filter.hq
-        ? SAIBU_HQ[filter.hq].departments
-        : [];
+  // 全部署リスト（HD + SAIBU 全本部の和集合、重複は除外）。
+  // 初期実装では本部選択と部署選択は連動させない（部署一覧は常に全件表示）。
+  const allDepartments: string[] = Array.from(
+    new Set([
+      ...HD_DEPARTMENTS,
+      ...HQ_KEYS.flatMap((h) => SAIBU_HQ[h].departments),
+    ]),
+  );
 
-  const updateCompany = (company: Company) => {
-    onChange({
-      ...filter,
-      company,
-      hq: company === "SAIBU" ? (filter.hq ?? "CORPORATE") : null,
-      departments: [],
-    });
-  };
-
-  const updateHq = (hq: Headquarters) => {
-    onChange({ ...filter, hq, departments: [] });
-  };
-
-  const toggleDepartment = (name: string) => {
-    const set = new Set(filter.departments);
-    if (set.has(name)) set.delete(name);
-    else set.add(name);
-    onChange({ ...filter, departments: Array.from(set) });
-  };
-
-  const toggleRole = (role: Role) => {
-    const set = new Set(filter.roles);
-    if (set.has(role)) set.delete(role);
-    else set.add(role);
-    onChange({ ...filter, roles: Array.from(set) });
-  };
+  const clearAllFilters = () => onChange({ ...filter, ...EMPTY_FILTER_FIELDS });
 
   return (
     <aside
@@ -78,8 +159,31 @@ export function FilterPanel({ filter, onChange, className }: Props) {
         className,
       )}
     >
+      {/* クイックボタン（最上部） */}
+      <div className="flex flex-col gap-1.5">
+        <button
+          type="button"
+          onClick={clearAllFilters}
+          className="rounded border border-black/10 bg-white px-2 py-1.5 text-[12px] font-medium text-ink-primary hover:bg-brand-bg-light hover:text-brand-primary"
+        >
+          🌐 全社で見る
+        </button>
+        <button
+          type="button"
+          onClick={clearAllFilters}
+          className="rounded border border-black/10 bg-white px-2 py-1.5 text-[12px] font-medium text-ink-secondary hover:bg-brand-bg-light hover:text-brand-primary"
+        >
+          🗑️ フィルタをクリア
+        </button>
+      </div>
+
+      <hr className="border-black/10" />
+
+      {/* 期間（常時表示） */}
       <div>
-        <SectionTitle>期間</SectionTitle>
+        <div className="mb-2 text-[12px] font-medium tracking-wide text-ink-secondary">
+          期間
+        </div>
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap gap-1.5">
             {FISCAL_YEARS.map((fy) => {
@@ -123,97 +227,38 @@ export function FilterPanel({ filter, onChange, className }: Props) {
 
       <hr className="border-black/10" />
 
-      <div>
-        <SectionTitle>会社</SectionTitle>
-        <div className="flex flex-col gap-1.5">
-          {COMPANIES.map((c) => (
-            <label
-              key={c.key}
-              className="flex cursor-pointer items-center gap-2 text-[13px] text-ink-primary"
-            >
-              <input
-                type="radio"
-                name="company"
-                checked={filter.company === c.key}
-                onChange={() => updateCompany(c.key)}
-                className="accent-brand-primary"
-              />
-              {c.label}
-            </label>
-          ))}
-        </div>
-      </div>
+      {/* プルダウンフィルタ */}
+      <FilterDropdown
+        label="会社"
+        options={COMPANIES.map((c) => c.key) as Company[]}
+        selected={filter.companies}
+        onSelectionChange={(companies) => onChange({ ...filter, companies })}
+        getLabel={(key) => COMPANIES.find((c) => c.key === key)?.label ?? key}
+      />
 
-      {filter.company === "SAIBU" ? (
-        <div>
-          <SectionTitle>本部</SectionTitle>
-          <div className="flex flex-col gap-1.5">
-            {HQ_KEYS.map((h) => (
-              <label
-                key={h}
-                className="flex cursor-pointer items-center gap-2 text-[13px] text-ink-primary"
-              >
-                <input
-                  type="radio"
-                  name="hq"
-                  checked={filter.hq === h}
-                  onChange={() => updateHq(h)}
-                  className="accent-brand-primary"
-                />
-                {SAIBU_HQ[h].label}
-              </label>
-            ))}
-          </div>
-        </div>
-      ) : null}
+      <FilterDropdown
+        label="本部"
+        options={HQ_KEYS}
+        selected={filter.hqs}
+        onSelectionChange={(hqs) => onChange({ ...filter, hqs })}
+        getLabel={(key) => SAIBU_HQ[key].label}
+      />
 
-      <div>
-        <SectionTitle>部署</SectionTitle>
-        <div className="flex max-h-[280px] flex-col gap-1 overflow-y-auto pr-1">
-          {departmentList.length === 0 ? (
-            <span className="text-[12px] text-ink-secondary">
-              （本部を選択してください）
-            </span>
-          ) : (
-            departmentList.map((d) => (
-              <label
-                key={d}
-                className="flex cursor-pointer items-start gap-2 text-[13px] text-ink-primary"
-              >
-                <input
-                  type="checkbox"
-                  checked={filter.departments.includes(d)}
-                  onChange={() => toggleDepartment(d)}
-                  className="mt-0.5 accent-brand-primary"
-                />
-                <span className="leading-tight">{d}</span>
-              </label>
-            ))
-          )}
-        </div>
-      </div>
+      <FilterDropdown
+        label="部署"
+        options={allDepartments}
+        selected={filter.departments}
+        onSelectionChange={(departments) => onChange({ ...filter, departments })}
+        getLabel={(name) => name}
+      />
 
-      <hr className="border-black/10" />
-
-      <div>
-        <SectionTitle>役職</SectionTitle>
-        <div className="flex flex-col gap-1.5">
-          {ROLES.map((r) => (
-            <label
-              key={r}
-              className="flex cursor-pointer items-center gap-2 text-[13px] text-ink-primary"
-            >
-              <input
-                type="checkbox"
-                checked={filter.roles.includes(r)}
-                onChange={() => toggleRole(r)}
-                className="accent-brand-primary"
-              />
-              {r}
-            </label>
-          ))}
-        </div>
-      </div>
+      <FilterDropdown
+        label="役職"
+        options={ROLES}
+        selected={filter.roles}
+        onSelectionChange={(roles) => onChange({ ...filter, roles })}
+        getLabel={(name) => name}
+      />
     </aside>
   );
 }

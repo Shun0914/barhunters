@@ -20,10 +20,12 @@ function isManagerLikeRole(role: string | null | undefined): boolean {
 
 export function DashboardPageClient() {
   const [filter, setFilter] = useState<DashboardFilter>({
-    company: "SAIBU",
-    hq: "SALES",
-    departments: ["福岡リビング営業部"],
-    roles: ["部長", "課長"],
+    // 起動時は全フィルタ空 = 全社合算で表示する。
+    // クイックボタン「全社で見る」「フィルタをクリア」と同義状態。
+    companies: [],
+    hqs: [],
+    departments: [],
+    roles: [],
     fiscalYear: "FY2026",
     month: 5,
   });

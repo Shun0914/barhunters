@@ -2,19 +2,32 @@
 // 本実装では集計バックエンド（人事DB / ポイント DB）と連携する想定 /* TODO: API 連携 */。
 
 import { HD_DEPARTMENTS, SAIBU_HQ } from "./org";
-import type { DashboardData, DashboardFilter } from "./types";
+import type { DashboardData, DashboardFilter, Headquarters } from "./types";
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
 const ANNUAL_TARGET = 6000;
 
+const ALL_HQS: Headquarters[] = ["CORPORATE", "ENERGY", "SUPPLY", "SALES"];
+
 export function computeDashboardData(filter: DashboardFilter): DashboardData {
-  const availableDepartments =
-    filter.company === "HD"
-      ? HD_DEPARTMENTS.length
-      : filter.hq
-        ? SAIBU_HQ[filter.hq].departments.length
-        : Object.values(SAIBU_HQ).reduce((sum, hq) => sum + hq.departments.length, 0);
+  // 「空配列 = フィルタなし」のロジックで、会社・本部の絞り込み範囲から
+  // 候補となる部署総数を計算する。
+  const includesHd =
+    filter.companies.length === 0 || filter.companies.includes("HD");
+  const includesSaibu =
+    filter.companies.length === 0 || filter.companies.includes("SAIBU");
+  const hqsScope: Headquarters[] =
+    filter.hqs.length === 0 ? ALL_HQS : filter.hqs;
+
+  let availableDepartments = 0;
+  if (includesHd) availableDepartments += HD_DEPARTMENTS.length;
+  if (includesSaibu) {
+    availableDepartments += hqsScope.reduce(
+      (sum, h) => sum + SAIBU_HQ[h].departments.length,
+      0,
+    );
+  }
   // 部署未選択は「全部門」扱いで、比較表示と数値ロジックの意味を揃える。
   const selectedDepartments =
     filter.departments.length === 0 ? availableDepartments : filter.departments.length;
