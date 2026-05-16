@@ -32,7 +32,6 @@ export function OneOnOneForm() {
   const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [info, setInfo] = useState<string | null>(null);
 
   useEffect(() => {
     apiFetch<SubordinateRolesOut>("/api/one-on-ones/subordinate-roles")
@@ -51,7 +50,6 @@ export function OneOnOneForm() {
     e.preventDefault();
     setSubmitting(true);
     setError(null);
-    setInfo(null);
     try {
       await apiFetch<OneOnOneOut>("/api/one-on-ones", {
         method: "POST",
@@ -61,7 +59,6 @@ export function OneOnOneForm() {
           note: note ? note : null,
         }),
       });
-      setInfo("1on1 を記録しました。ダッシュボードへ遷移します…");
       router.push("/dashboard");
     } catch (e: unknown) {
       if (e instanceof ApiError) {
@@ -81,9 +78,9 @@ export function OneOnOneForm() {
         <PageHeader title="1on1 実施報告" />
         <div className="flex-1 bg-white px-8 py-6">
           <div className="max-w-md rounded border border-slate-200 bg-[#ecf5fa] p-4 text-sm text-[#334155]">
-            あなたの役職では 1on1 の記録対象となる相手がいません。
+            あなたの役職では 1on1 の記録はできません。
             <br />
-            （部下に当たる役職のメンバーがいる役職の方のみ記録可能です）
+            （部長・課長・係長が、運用どおり記録できる相手役職を選択して報告できます）
           </div>
         </div>
       </div>
@@ -168,14 +165,6 @@ export function OneOnOneForm() {
               className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
             >
               {error}
-            </div>
-          ) : null}
-          {info ? (
-            <div
-              role="status"
-              className="rounded border border-[#3a9e55]/30 bg-[#dff5e3] px-3 py-2 text-sm text-[#3a9e55]"
-            >
-              {info}
             </div>
           ) : null}
 

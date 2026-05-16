@@ -5,9 +5,10 @@
 
 仕様:
 - 記録者はログインユーザー（自動取得）
-- 相手は役職階層上、自分より下の役職のみ
+- 相手として選べる役職は、ダッシュボードの pair_type（凡例）と `scripts/seed_one_on_ones.py` と同じ一覧に限定する
+  （それ以外は pair_type が other のみとなるため）。
 - 個人名は出さず役職のみ（実施相手の個別 user は記録しない）
-- 一般社員は記録不可（部下なし → subordinate-roles が空 → UI 側でガード）
+- 一般社員は記録不可（選択可能リストが空 → API / UI でガード）
 """
 
 from __future__ import annotations
@@ -24,11 +25,15 @@ from app.models import OneOnOne, User
 
 router = APIRouter(prefix="/api/one-on-ones", tags=["one-on-ones"])
 
-# 役職階層（上から下）。役員は seed には現状無いが、将来の拡張に備えて定義。
-ROLE_HIERARCHY: list[str] = ["役員", "部長", "課長", "係長", "一般社員"]
+# 記録者の役職 → 1on1 相手として UI で選べる役職（seed_one_on_ones.SUBORDINATE_ROLES と同一）。
+RECORDABLE_PARTNER_ROLES: dict[str, list[str]] = {
+    "部長": ["課長"],
+    "課長": ["係長", "一般社員"],
+    "係長": ["一般社員"],
+}
 
 # (recorder_role, partner_role) → ダッシュボード 1on1 カード凡例キー。
-# 該当の無い組み合わせは "other"（ダッシュボードでは集計対象外）。
+# scripts/seed_one_on_ones.PAIR_TYPE_MAP と同一であること。
 PAIR_TYPE_MAP: dict[tuple[str, str], str] = {
     ("部長", "課長"): "seniorToLead",
     ("課長", "係長"): "leadToChief",
@@ -38,11 +43,10 @@ PAIR_TYPE_MAP: dict[tuple[str, str], str] = {
 
 
 def get_subordinate_roles(role: str | None) -> list[str]:
-    """役職階層上、その役職より下の全ての役職を返す（自分は含まない）。"""
-    if role is None or role not in ROLE_HIERARCHY:
+    """記録用途で相手として選べる役職のリスト。未対応・一般社員等は空。"""
+    if role is None:
         return []
-    idx = ROLE_HIERARCHY.index(role)
-    return ROLE_HIERARCHY[idx + 1 :]
+    return list(RECORDABLE_PARTNER_ROLES.get(role, []))
 
 
 def compute_pair_type(recorder_role: str, partner_role: str) -> str:

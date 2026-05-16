@@ -35,7 +35,7 @@ PAIR_TYPE_MAP: dict[tuple[str, str], str] = {
     ("係長", "一般社員"): "chiefToGeneral",
 }
 
-# recorder の役職から、対象となる相手役職の候補を導出する。
+# frontend Dashboard の pair_type と一致させる。**記録できる相手役職一覧は app.routers.one_on_ones.RECORDABLE_PARTNER_ROLES と同期すること。**
 SUBORDINATE_ROLES: dict[str, list[str]] = {
     "部長": ["課長"],
     "課長": ["係長", "一般社員"],
