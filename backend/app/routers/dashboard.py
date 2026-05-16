@@ -6,13 +6,16 @@
   - GET /api/dashboard/points-summary  : 合計ポイント + 年間目標
   - GET /api/dashboard/member-points-by-genre : 課長・部長向けジャンル別（自 org）
 
-クエリパラメータ共通：
-  company    : "HD" | "SAIBU"（MVP では DB 絞り込みに使わない）
-  hq         : 本部キー（MVP では DB 絞り込みに使わない）
-  departments: CSV 文字列。Organization.name と一致するもののみ集計対象に。
-  roles      : CSV 文字列（MVP では DB 絞り込みに使わない）
-  fy         : "FY2026" など
-  month      : 1-12
+クエリパラメータ共通（複数値対応・空 = フィルタなし＝全件対象）：
+  companies    : "HD" / "SAIBU"（MVP では DB 絞り込みに使わない）
+  hqs          : 本部キー（MVP では DB 絞り込みに使わない）
+  departments  : Organization.name と一致するもののみ集計対象に。
+  roles        : 役職（MVP では DB 絞り込みに使わない）
+  fy           : "FY2026" など
+  month        : 1-12
+
+例:
+  GET /api/dashboard/active-rate?companies=HD&companies=SAIBU&hqs=SALES&hqs=ENERGY
 """
 
 from __future__ import annotations
@@ -38,61 +41,52 @@ def _validated_fy(fy: str) -> str:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
-def _parse_csv(value: str | None) -> list[str]:
-    if not value:
-        return []
-    return [v for v in (s.strip() for s in value.split(",")) if v]
-
-
 @router.get("/active-rate")
 def get_active_rate(
-    company: str = Query("SAIBU"),
-    hq: str | None = Query(None),
-    departments: str | None = Query(None),
-    roles: str | None = Query(None),
+    companies: list[str] = Query(default_factory=list),
+    hqs: list[str] = Query(default_factory=list),
+    departments: list[str] = Query(default_factory=list),
+    roles: list[str] = Query(default_factory=list),
     fy: str = Query("FY2026"),
     month: int = Query(5, ge=1, le=12),
     db: Session = Depends(get_db),
     _user: User = Depends(get_current_user),
 ) -> dict:
     fy = _validated_fy(fy)
-    dept_list = _parse_csv(departments)
-    org_ids = dashboard_service.resolve_org_ids(db, departments=dept_list)
+    org_ids = dashboard_service.resolve_org_ids(db, departments=departments)
     return dashboard_service.aggregate_active_rate(db, org_ids, fy, month)
 
 
 @router.get("/oneonone")
 def get_one_on_one(
-    company: str = Query("SAIBU"),
-    hq: str | None = Query(None),
-    departments: str | None = Query(None),
-    roles: str | None = Query(None),
+    companies: list[str] = Query(default_factory=list),
+    hqs: list[str] = Query(default_factory=list),
+    departments: list[str] = Query(default_factory=list),
+    roles: list[str] = Query(default_factory=list),
     fy: str = Query("FY2026"),
     month: int = Query(5, ge=1, le=12),
     db: Session = Depends(get_db),
     _user: User = Depends(get_current_user),
 ) -> dict:
     fy = _validated_fy(fy)
-    dept_list = _parse_csv(departments)
-    org_ids = dashboard_service.resolve_org_ids(db, departments=dept_list)
+    org_ids = dashboard_service.resolve_org_ids(db, departments=departments)
     return dashboard_service.aggregate_one_on_one(db, org_ids, fy, month)
 
 
 @router.get("/points-summary")
 def get_points_summary(
-    company: str = Query("SAIBU"),
-    hq: str | None = Query(None),
-    departments: str | None = Query(None),
-    roles: str | None = Query(None),
+    companies: list[str] = Query(default_factory=list),
+    hqs: list[str] = Query(default_factory=list),
+    departments: list[str] = Query(default_factory=list),
+    roles: list[str] = Query(default_factory=list),
     fy: str = Query("FY2026"),
     month: int = Query(5, ge=1, le=12),
     db: Session = Depends(get_db),
     _user: User = Depends(get_current_user),
 ) -> dict:
     fy = _validated_fy(fy)
-    dept_list = _parse_csv(departments)
-    org_ids = dashboard_service.resolve_org_ids(db, departments=dept_list)
-    dept_name = dept_list[0] if len(dept_list) == 1 else None
+    org_ids = dashboard_service.resolve_org_ids(db, departments=departments)
+    dept_name = departments[0] if len(departments) == 1 else None
     return dashboard_service.aggregate_points_summary(
         db, org_ids, fy, month, dept_name=dept_name
     )
