@@ -117,14 +117,13 @@ def _financial_to_cards(
         )
     )
 
-    # 売上ドライバー寄与
+    # 売上ドライバー / コスト削減 / 資本効率化 — v7: Excel 整合の 億円 で表示
     drivers_meta = [
-        ("revenue", "売上ドライバー", "JCSI/LTV/ESG/地域/PoC"),
-        ("cost", "コスト削減", "ESG/採用/保安"),
-        ("capital", "資本効率化", "ESG/保安ブランド/採用"),
+        ("revenue", "売上ドライバー", "JCSI/LTV/ESG/地域/PoC", result.sales_effect_oku),
+        ("cost", "コスト削減", "ESG/採用/保安", result.cost_savings_oku),
+        ("capital", "資本効率化", "ESG/保安ブランド/採用", result.capital_savings_oku),
     ]
-    for calc_id, default_label, desc in drivers_meta:
-        delta = result.drivers[calc_id]
+    for calc_id, default_label, desc, value_oku in drivers_meta:
         ind = indicator_map.get(calc_id)
         cards.append(
             CardData(
@@ -135,13 +134,13 @@ def _financial_to_cards(
                 column_key=ind.column_key if ind else "lagging",
                 sort_order=ind.sort_order if ind else 0,
                 link_url=ind.link_url if ind else None,
-                value_display=f"+{delta * 100:.2f}%",
+                value_display=f"+{value_oku:.2f}億円",
                 current=0.0,
                 target=0.0,
-                projected=delta,
-                improvement=delta,
+                projected=value_oku,
+                improvement=value_oku,
                 description=desc,
-                unit="%",
+                unit="億円",
             )
         )
 

@@ -45,9 +45,13 @@ ROE_TARGET_2027 = 0.080   # 8.0%
 # 営業利益率（売上→NOPAT 換算用）
 OP_MARGIN = OP_INCOME_M / REVENUE_M     # ≒ 4.16%
 
-# 売上効果メイン目標
-SALES_TARGET_M = 600
-SALES_TARGET_OKU = 6.0
+# 売上効果メイン目標（v7: Excel 整合、Phase 1 = 6,000P 投入時のフルポテンシャル）
+SALES_TARGET_M = 970
+SALES_TARGET_OKU = 9.7
+# 参考: Phase 別目標 (docs/calculation_logic.md §7 参照)
+#   Phase 1 (1年, 6,000P)   : 売上 +9.7億 / ROIC +0.20pt / ROE +0.70pt
+#   Phase 2 (3年, 20,000P)  : 売上 +32億  / ROIC +0.67pt / ROE +2.3pt
+#   Phase 3 (10年, 40,000P) : 売上 +65億  / ROIC +1.34pt / ROE +4.7pt
 
 # ════════════════════════════════════════════════════════════
 # シート9：9セル → 7風土 接続行列（v5 合意済）
@@ -246,13 +250,29 @@ FIN_RELIABILITY: dict[str, str] = {
 }
 
 # ════════════════════════════════════════════════════════════
-# キャリブレーション係数
+# Excel ベース校正係数（v7）
 # ════════════════════════════════════════════════════════════
-# v5：日常重視配分で 6,000P → 売上+6億円
-SALES_CALIBRATION = 0.01815
-
-# v6: ROIC/ROE は売上効果から OP_MARGIN × (1-TAX_RATE) で NOPAT に換算し、
-#      投下資本/自己資本で除して理論的に求める。proxy 係数は撤廃。
+# 6,000P 投入時の cascade 出力（revenue, cost, capital ドライバー）を、
+# Excel Sheet 10「財務ドライバー寄与率」と整合させるための変換係数。
+# 出典: 西部ガス_計算ロジック_ポイント.xlsx Sheet 10
+#
+# Excel 値（6,000P 投入時）:
+#   売上効果       : +9.7  億円 (revenue 寄与  0.384% × 2,544 億)
+#   コスト削減     : +5.4  億円 (cost    寄与  0.214% × 2,544 億)
+#   資本効率化     : +59.4 億円 (capital 寄与  2.10%  × 2,829 億)
+#
+# 実装の cascade 出力（6,000P 投入時、2025-05-16 計測）:
+#   revenue: 0.1294
+#   cost   : 0.1495
+#   capital: 0.1712
+#
+# 校正ファクタ = Excel 値 / (driver × ベース)
+#   EXCEL_REVENUE_FACTOR = 970 M / (0.1294 × 254,442 M) = 0.02948
+#   EXCEL_COST_FACTOR    = 540 M / (0.1495 × 254,442 M) = 0.01420
+#   EXCEL_CAPITAL_FACTOR = 5,940 M / (0.1712 × 282,876 M) = 0.12264
+EXCEL_REVENUE_FACTOR = 0.02948
+EXCEL_COST_FACTOR = 0.01420
+EXCEL_CAPITAL_FACTOR = 0.12264
 
 
 # ════════════════════════════════════════════════════════════
@@ -303,7 +323,7 @@ class KpiResult:
 
 
 class CascadeResult:
-    """v5: メインは売上効果。"""
+    """v7: 売上効果 / コスト削減 / 資本効率化 を Excel 整合の 億円 で持つ。"""
 
     def __init__(
         self,
@@ -313,6 +333,10 @@ class CascadeResult:
         drivers,
         sales_effect_m,
         sales_effect_oku,
+        cost_savings_m,
+        cost_savings_oku,
+        capital_savings_m,
+        capital_savings_oku,
         roic_delta,
         roe_delta,
         yearly,
@@ -324,6 +348,10 @@ class CascadeResult:
         self.drivers = drivers
         self.sales_effect_m = sales_effect_m
         self.sales_effect_oku = sales_effect_oku
+        self.cost_savings_m = cost_savings_m
+        self.cost_savings_oku = cost_savings_oku
+        self.capital_savings_m = capital_savings_m
+        self.capital_savings_oku = capital_savings_oku
         self.roic_delta = roic_delta
         self.roe_delta = roe_delta
         self.yearly = yearly
@@ -418,8 +446,17 @@ def _calc_mid(layer3: dict[str, KpiResult]) -> dict[str, KpiResult]:
 
 def _calc_financial(
     mid: dict[str, KpiResult],
-) -> tuple[dict[str, float], float, float, float, float]:
-    """中間層 → 売上効果 → NOPAT → ΔROIC/ΔROE（v6: 理論チェーン）"""
+) -> tuple[dict[str, float], float, float, float, float, float, float, float, float]:
+    """中間層 → 売上効果 / コスト削減 / 資本効率化 → ΔROIC / ΔROE（v7: Excel 整合）
+
+    - 売上効果       = revenue × REVENUE_M × EXCEL_REVENUE_FACTOR
+    - コスト削減     = cost    × REVENUE_M × EXCEL_COST_FACTOR
+    - 資本効率化     = capital × INVESTED_CAP × EXCEL_CAPITAL_FACTOR
+    - ROIC_new       = (NOPAT + 売上NOPAT寄与 + コストNOPAT寄与) / (INVESTED_CAP - 資本効率改善)
+        ・売上NOPAT寄与 = sales_effect_m × OP_MARGIN × (1 - TAX_RATE)
+        ・コストNOPAT寄与 = cost_savings_m × (1 - TAX_RATE)
+    - ROE_new        = ROIC_new × LEVERAGE
+    """
     revenue = cost = capital = 0.0
     for mid_id, node in mid.items():
         if mid_id not in MID_TO_FIN:
@@ -431,17 +468,38 @@ def _calc_financial(
 
     drivers = {"revenue": revenue, "cost": cost, "capital": capital}
 
-    # メイン：売上効果（既存ロジック維持）
-    sales_effect_m = revenue * REVENUE_M * SALES_CALIBRATION
+    # 3 経路の財務効果（Excel Sheet 10 整合）
+    sales_effect_m = revenue * REVENUE_M * EXCEL_REVENUE_FACTOR
     sales_effect_oku = sales_effect_m / 100
+    cost_savings_m = cost * REVENUE_M * EXCEL_COST_FACTOR
+    cost_savings_oku = cost_savings_m / 100
+    capital_savings_m = capital * INVESTED_CAP * EXCEL_CAPITAL_FACTOR
+    capital_savings_oku = capital_savings_m / 100
 
-    # v6: ROIC/ROE は売上効果から理論的に導出
-    # 売上 → 営業利益 → NOPAT → ΔROIC/ΔROE
-    nopat_increase_m = sales_effect_m * OP_MARGIN * (1 - TAX_RATE)
-    roic_delta = nopat_increase_m / INVESTED_CAP
-    roe_delta = nopat_increase_m / EQUITY_M
+    # ROIC: 売上 → NOPAT, コスト → NOPAT, 資本効率 → 投下資本減
+    nopat_from_sales = sales_effect_m * OP_MARGIN * (1 - TAX_RATE)
+    nopat_from_cost = cost_savings_m * (1 - TAX_RATE)
+    new_nopat = NOPAT_M + nopat_from_sales + nopat_from_cost
+    new_invested_cap = INVESTED_CAP - capital_savings_m
+    new_roic = new_nopat / new_invested_cap if new_invested_cap > 0 else ROIC_CURRENT
+    roic_delta = new_roic - ROIC_CURRENT
 
-    return drivers, sales_effect_m, sales_effect_oku, roic_delta, roe_delta
+    # ROE: ROIC × レバレッジ（Excel 整合）
+    new_roe = new_roic * LEVERAGE
+    roe_current_proxy = ROIC_CURRENT * LEVERAGE
+    roe_delta = new_roe - roe_current_proxy
+
+    return (
+        drivers,
+        sales_effect_m,
+        sales_effect_oku,
+        cost_savings_m,
+        cost_savings_oku,
+        capital_savings_m,
+        capital_savings_oku,
+        roic_delta,
+        roe_delta,
+    )
 
 
 def _build_yearly(roic_delta: float, roe_delta: float) -> list[YearlyResult]:
@@ -504,44 +562,93 @@ def _build_connections() -> list[Edge]:
             edges.append(Edge(from_id=mid_id, to_id="cost", coefficient=cc, reliability=rel))
         if kc > 0.01:
             edges.append(Edge(from_id=mid_id, to_id="capital", coefficient=kc, reliability=rel))
-    # 売上ドライバー → 売上効果（メイン）
+    # v7: 売上ドライバー → 売上効果 / コスト → コスト削減 / 資本 → 資本効率化
+    # 係数は Excel ベースの校正ファクタ × 該当ベース（売上 or 投下資本）。
     edges.append(
         Edge(
             from_id="revenue",
             to_id="sales_effect",
-            coefficient=SALES_CALIBRATION,
-            reliability="★",
-            citation="売上キャリブ（仮置き）",
+            coefficient=EXCEL_REVENUE_FACTOR * REVENUE_M / 100,
+            reliability="★★",
+            citation="Excel Sheet 10: 売上効果 = revenue × 売上 × 0.02948",
         )
     )
-    # v6: 売上効果 → ROIC（NOPAT/投下資本で理論的に算出）
+    edges.append(
+        Edge(
+            from_id="cost",
+            to_id="cost_savings",
+            coefficient=EXCEL_COST_FACTOR * REVENUE_M / 100,
+            reliability="★★",
+            citation="Excel Sheet 10: コスト削減 = cost × 売上 × 0.01420",
+        )
+    )
+    edges.append(
+        Edge(
+            from_id="capital",
+            to_id="capital_savings",
+            coefficient=EXCEL_CAPITAL_FACTOR * INVESTED_CAP / 100,
+            reliability="★★",
+            citation="Excel Sheet 10: 資本効率化 = capital × 投下資本 × 0.12264",
+        )
+    )
+    # v7: 売上効果 → ROIC（NOPAT 寄与）
     edges.append(
         Edge(
             from_id="sales_effect",
             to_id="roic",
             coefficient=OP_MARGIN * (1 - TAX_RATE) / INVESTED_CAP * REVENUE_M,
             reliability="★★★",
-            citation="ΔROIC = ΔSales × OP_MARGIN × (1-TaxRate) / 投下資本",
+            citation="ΔROIC ⊃ ΔSales × OP_MARGIN × (1-TaxRate) / 投下資本",
         )
     )
-    # v6: ROIC → ROE は概念的に残すが、式の上では使ってない（NOPAT/Equity で直接計算）
+    # v7: コスト削減 → ROIC（NOPAT 寄与）
+    edges.append(
+        Edge(
+            from_id="cost_savings",
+            to_id="roic",
+            coefficient=(1 - TAX_RATE) / INVESTED_CAP * REVENUE_M,
+            reliability="★★★",
+            citation="ΔROIC ⊃ ΔCost × (1-TaxRate) / 投下資本",
+        )
+    )
+    # v7: 資本効率化 → ROIC（投下資本減）
+    edges.append(
+        Edge(
+            from_id="capital_savings",
+            to_id="roic",
+            coefficient=1.0,
+            reliability="★★★",
+            citation="ΔROIC ⊃ NOPAT × ΔCapital / (投下資本 × 投下資本_new)",
+        )
+    )
+    # v7: ROIC → ROE = ROIC × レバレッジ
     edges.append(
         Edge(
             from_id="roic",
             to_id="roe",
             coefficient=LEVERAGE,
             reliability="★★★",
-            citation="参考：ROE = ROIC × レバレッジの関係（v6 では NOPAT/Equity で直接計算）",
+            citation="ROE = ROIC × レバレッジ (3.29)",
         )
     )
     return edges
 
 
 def calculate(points: PointsInput) -> CascadeResult:
-    """v5: 9セル → 売上効果（メイン）+ ROIC/ROE（参考）"""
+    """v7: 3カテゴリ → 売上効果 / コスト削減 / 資本効率化 → ROIC/ROE（Excel 整合）"""
     layer3 = _calc_layer3(points)
     mid = _calc_mid(layer3)
-    drivers, sales_m, sales_oku, roic_delta, roe_delta = _calc_financial(mid)
+    (
+        drivers,
+        sales_m,
+        sales_oku,
+        cost_m,
+        cost_oku,
+        capital_m,
+        capital_oku,
+        roic_delta,
+        roe_delta,
+    ) = _calc_financial(mid)
     yearly = _build_yearly(roic_delta, roe_delta)
     connections = _build_connections()
     return CascadeResult(
@@ -551,6 +658,10 @@ def calculate(points: PointsInput) -> CascadeResult:
         drivers=drivers,
         sales_effect_m=sales_m,
         sales_effect_oku=sales_oku,
+        cost_savings_m=cost_m,
+        cost_savings_oku=cost_oku,
+        capital_savings_m=capital_m,
+        capital_savings_oku=capital_oku,
         roic_delta=roic_delta,
         roe_delta=roe_delta,
         yearly=yearly,
