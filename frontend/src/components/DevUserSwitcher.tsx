@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import { apiFetch, getDevUserId, setDevUserId } from "@/lib/api";
@@ -73,6 +74,13 @@ export function DevUserSwitcher() {
           <div className="border-b border-slate-100 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-[#64748b]">
             開発用 ユーザー切替
           </div>
+          <Link
+            href="/mypage"
+            className="block border-b border-slate-100 px-3 py-2 text-xs font-medium text-[#0178C8] hover:bg-[#ecf5fa]"
+            onClick={() => setOpen(false)}
+          >
+            マイページ（ポイント内訳）
+          </Link>
           <button
             type="button"
             onClick={() => handleSelect(null)}

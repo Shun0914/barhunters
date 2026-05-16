@@ -1,9 +1,10 @@
 """ダッシュボード API（PR-B）。
 
-3 つの集計エンドポイントを提供：
+4 つの集計エンドポイントを提供：
   - GET /api/dashboard/active-rate    : アクティブ率（rate / mom / vs_company）
   - GET /api/dashboard/oneonone        : 1on1 件数（pair_type 別 + 合計）
   - GET /api/dashboard/points-summary  : 合計ポイント + 年間目標
+  - GET /api/dashboard/member-points-by-genre : 課長・部長向けジャンル別（自 org）
 
 クエリパラメータ共通：
   company    : "HD" | "SAIBU"（MVP では DB 絞り込みに使わない）
@@ -22,9 +23,12 @@ from sqlalchemy.orm import Session
 from app.auth import get_current_user
 from app.db import get_db
 from app.models import User
+from app.schemas.points_breakdown import OrgMemberGenrePointsRowOut, OrgMemberPointsByGenreOut
 from app.services import dashboard_service
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
+
+MANAGER_MEMBER_POINTS_ROLES = frozenset({"課長", "部長"})
 
 
 def _validated_fy(fy: str) -> str:
@@ -91,4 +95,37 @@ def get_points_summary(
     dept_name = dept_list[0] if len(dept_list) == 1 else None
     return dashboard_service.aggregate_points_summary(
         db, org_ids, fy, month, dept_name=dept_name
+    )
+
+
+@router.get("/member-points-by-genre", response_model=OrgMemberPointsByGenreOut)
+def get_member_points_by_genre_for_my_org(
+    fy: str = Query("FY2026"),
+    month: int = Query(5, ge=1, le=12),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> OrgMemberPointsByGenreOut:
+    """課長・部長のみ: 自分の所属 org メンバーのジャンル別ポイント（一覧表 UI 向けフラット行）。"""
+    if current_user.role not in MANAGER_MEMBER_POINTS_ROLES:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="この一覧は課長・部長のみ利用できます",
+        )
+    if not current_user.org_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="所属部署が未設定のため集計できません",
+        )
+
+    fy = _validated_fy(fy)
+    rows_raw = dashboard_service.aggregate_org_member_points_by_genre(
+        db,
+        org_id=current_user.org_id,
+        fy=fy,
+        month=month,
+    )
+    return OrgMemberPointsByGenreOut(
+        fy=fy,
+        month=month,
+        rows=[OrgMemberGenrePointsRowOut.model_validate(r) for r in rows_raw],
     )

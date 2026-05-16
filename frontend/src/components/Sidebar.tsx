@@ -56,6 +56,7 @@ const OTHER_ITEMS: NavItem[] = [
 // 例: pathname=/applications/new のとき /applications（申請状況）は active にならず、
 // /applications/new（申請フォーム）のみ active になる。
 const ALL_HREFS: string[] = [
+  "/mypage",
   ...NAV_GROUPS.flatMap((g) => g.items.map((i) => i.href)),
   ...STANDALONE_ITEMS.map((i) => i.href),
   ...POST_STANDALONE_GROUPS.flatMap((g) => g.items.map((i) => i.href)),

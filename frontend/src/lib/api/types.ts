@@ -13,6 +13,37 @@ export type UserBrief = {
   role: string | null;
 };
 
+/** GET /api/users/me/points-by-genre */
+export type GenrePointsRow = {
+  activity_genre_id: number;
+  activity_genre_name: string;
+  sort_order: number;
+  points: number;
+};
+
+export type MyPointsByGenreResponse = {
+  fy: string;
+  month: number;
+  rows: GenrePointsRow[];
+  total_points: number;
+};
+
+/** GET /api/dashboard/member-points-by-genre（課長・部長のみ） */
+export type OrgMemberGenrePointsRow = {
+  applicant_user_id: string;
+  applicant_name: string;
+  activity_genre_id: number;
+  activity_genre_name: string;
+  genre_sort_order: number;
+  points: number;
+};
+
+export type OrgMemberPointsByGenreResponse = {
+  fy: string;
+  month: number;
+  rows: OrgMemberGenrePointsRow[];
+};
+
 export type ApprovalRoute = {
   applicant_user_id: string;
   applicant_role: string | null;

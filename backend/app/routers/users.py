@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -10,6 +10,8 @@ from app.auth import get_current_user
 from app.db import get_db
 from app.models import User
 from app.schemas.master import ApprovalRouteOut, UserBriefOut
+from app.schemas.points_breakdown import GenrePointsRowOut, MyPointsByGenreOut
+from app.services import dashboard_service
 
 router = APIRouter(prefix="/api/users", tags=["users"])
 
@@ -34,6 +36,32 @@ def list_users(db: Session = Depends(get_db)) -> list[UserBriefOut]:
 def get_me(current_user: User = Depends(get_current_user)) -> UserBriefOut:
     """現在のログインユーザーを返す（サイドバー左下の表示用）。"""
     return UserBriefOut.model_validate(current_user)
+
+
+@router.get("/me/points-by-genre", response_model=MyPointsByGenreOut)
+def get_my_points_by_genre(
+    fy: str = Query("FY2026"),
+    month: int = Query(5, ge=1, le=12),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> MyPointsByGenreOut:
+    """自分の承認済みポイントを活動ジャンル別に返す（ダッシュボードと同 FY 累積期間）。"""
+    try:
+        fy_n = dashboard_service.normalize_fy(fy)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+    agg = dashboard_service.aggregate_my_points_by_genre(
+        db,
+        user_id=current_user.id,
+        fy=fy_n,
+        month=month,
+    )
+    return MyPointsByGenreOut(
+        fy=fy_n,
+        month=month,
+        rows=[GenrePointsRowOut.model_validate(r) for r in agg["rows"]],
+        total_points=agg["total_points"],
+    )
 
 
 @router.get("/approval-route", response_model=ApprovalRouteOut)

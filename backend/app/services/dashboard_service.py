@@ -1,9 +1,11 @@
 """ダッシュボード集計サービス（PR-B）。
 
-3 つのカード分の集計関数を提供する：
+カードおよびポイントジャンル内訳の集計関数：
   - aggregate_active_rate   : アクティブ率（累積モデル）
   - aggregate_one_on_one    : 1on1 件数（pair_type 別）
   - aggregate_points_summary: 合計ポイント + 年間目標
+  - aggregate_my_points_by_genre         : マイページ（自分×ジャンル）
+  - aggregate_org_member_points_by_genre : 課長・部長向け（部署メンバー×ジャンル）
 
 設計メモ：
 - 期間は「FY 頭（4/1）〜 選択月末」の累積。前月比は同 FY 内の前月との差。
@@ -23,7 +25,7 @@ from datetime import date, timedelta
 from sqlalchemy import distinct, func, select
 from sqlalchemy.orm import Session
 
-from app.models import OneOnOne, Organization, PointApplication, User
+from app.models import ActivityGenre, OneOnOne, Organization, PointApplication, User
 
 # 部署別の年間目標値（P）。未登録の部署は "default" を使う。
 ANNUAL_TARGETS: dict[str, int] = {
@@ -232,3 +234,112 @@ def aggregate_points_summary(
     )
 
     return {"total": int(total), "annual_target": annual_target}
+
+
+# ════════════════════════════════════════════════════════════
+# ジャンル別ポイント（マイページ・マネージャー向け表）
+# ════════════════════════════════════════════════════════════
+
+
+def _approved_period_bounds(fy: str, month: int) -> tuple[date, date]:
+    """承認済み申請の期間フィルタ用。(start_day, end_exclusive_next_day)。"""
+    start, end = period_from_fy_month(fy, month)
+    end_exclusive = end + timedelta(days=1)
+    return start, end_exclusive
+
+
+def aggregate_my_points_by_genre(
+    session: Session,
+    *,
+    user_id: str,
+    fy: str,
+    month: int,
+) -> dict:
+    """承認済み申請を FY 累積期間で activity_genre 別に合計（ジャンル未設定は対象外）。"""
+    start, end_exclusive = _approved_period_bounds(fy, month)
+    stmt = (
+        select(
+            ActivityGenre.id,
+            ActivityGenre.name,
+            ActivityGenre.sort_order,
+            func.coalesce(func.sum(PointApplication.points), 0).label("pts"),
+        )
+        .join(ActivityGenre, ActivityGenre.id == PointApplication.activity_genre_id)
+        .where(
+            PointApplication.applicant_user_id == user_id,
+            PointApplication.status == "approved",
+            PointApplication.decided_at.is_not(None),
+            PointApplication.decided_at >= start,
+            PointApplication.decided_at < end_exclusive,
+        )
+        .group_by(ActivityGenre.id, ActivityGenre.name, ActivityGenre.sort_order)
+        .order_by(ActivityGenre.sort_order, ActivityGenre.id)
+    )
+    rows_raw = session.execute(stmt).all()
+    rows = [
+        {
+            "activity_genre_id": int(gid),
+            "activity_genre_name": str(gname),
+            "sort_order": int(sort_order),
+            "points": int(pts),
+        }
+        for gid, gname, sort_order, pts in rows_raw
+        if int(pts) != 0
+    ]
+    total = sum(r["points"] for r in rows)
+    return {"rows": rows, "total_points": total}
+
+
+def aggregate_org_member_points_by_genre(
+    session: Session,
+    *,
+    org_id: str,
+    fy: str,
+    month: int,
+) -> list[dict]:
+    """所属 org のメンバーについて、ジャンル別の承認済みポイント行を返す。"""
+    start, end_exclusive = _approved_period_bounds(fy, month)
+    stmt = (
+        select(
+            User.id,
+            User.name,
+            ActivityGenre.id,
+            ActivityGenre.name,
+            ActivityGenre.sort_order,
+            func.coalesce(func.sum(PointApplication.points), 0).label("pts"),
+        )
+        .select_from(User)
+        .join(PointApplication, PointApplication.applicant_user_id == User.id)
+        .join(ActivityGenre, ActivityGenre.id == PointApplication.activity_genre_id)
+        .where(
+            User.org_id == org_id,
+            PointApplication.status == "approved",
+            PointApplication.decided_at.is_not(None),
+            PointApplication.decided_at >= start,
+            PointApplication.decided_at < end_exclusive,
+        )
+        .group_by(
+            User.id,
+            User.name,
+            ActivityGenre.id,
+            ActivityGenre.name,
+            ActivityGenre.sort_order,
+        )
+        .order_by(User.name, ActivityGenre.sort_order, ActivityGenre.id)
+    )
+    out: list[dict] = []
+    for uid, uname, gid, gname, sort_order, pts in session.execute(stmt).all():
+        p = int(pts)
+        if p == 0:
+            continue
+        out.append(
+            {
+                "applicant_user_id": str(uid),
+                "applicant_name": str(uname),
+                "activity_genre_id": int(gid),
+                "activity_genre_name": str(gname),
+                "genre_sort_order": int(sort_order),
+                "points": p,
+            }
+        )
+    return out
