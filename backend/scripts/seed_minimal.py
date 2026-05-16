@@ -72,9 +72,21 @@ def main() -> None:
     for i in range(2, 9):
         session.add(User(id=str(uuid4()), name=f"一般社員 {i:02d}", org_id=org_id, role="一般社員"))
 
-    # 活動ジャンル（Q-02 暫定値）
-    session.add(ActivityGenre(name="挑戦", default_points=10, sort_order=1, is_active=True))
-    session.add(ActivityGenre(name="その他", default_points=5, sort_order=2, is_active=True))
+    # 活動ジャンル — v7 2値ポイント体系 (5/14 合意)
+    # 日常 = 0.1P / 創造 = 5P × 社会貢献 / 安心安全 / 未来共創 の 6 ジャンル
+    # default_points は旧クライアント互換のため代表値を入れる（実値は level から導出）
+    v7_genres: list[tuple[str, int, int]] = [
+        ("日常×社会貢献", 1, 1),
+        ("日常×安心安全", 1, 2),
+        ("日常×未来共創", 1, 3),
+        ("創造×社会貢献", 5, 4),
+        ("創造×安心安全", 5, 5),
+        ("創造×未来共創", 5, 6),
+    ]
+    for name, pts, order in v7_genres:
+        session.add(
+            ActivityGenre(name=name, default_points=pts, sort_order=order, is_active=True)
+        )
 
     # 指標サンプル（既存仕様の維持）
     session.add(
@@ -97,7 +109,7 @@ def main() -> None:
     session.close()
     print(
         "Seed OK: organization x1, users x11 (部長/課長/係長/一般社員), "
-        "activity_genres x2, indicators x1\n"
+        "activity_genres x6 (v7 2値ポイント体系), indicators x1\n"
         f"  DEV_DEFAULT_USER_ID = {DEV_DEFAULT_USER_ID}\n"
         f"  → backend/.env に転記してサーバ起動してください。"
     )

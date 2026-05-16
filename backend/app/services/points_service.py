@@ -1,37 +1,20 @@
-"""ポイント申請領域のビジネスロジック。
+"""ポイント申請領域のビジネスロジック（v7）。
 
 @owner: ポイント申請担当チーム
 @used_by:
-  - app/routers/points.py（ポイント申請担当者が実装予定）
+  - app/routers/point_applications.py
   - app/services/points_service.py:aggregate_approved_points()
     → app/routers/cascade.py（因果ストーリー）から呼ばれる
 
-このファイルにポイント申請に関する全ビジネスロジックを集約する。
-申請のCRUD、承認/差戻し、集計など。
+v5 → v7: 9 セル集計 → 3 カテゴリ集計（PointApplication.category を pivot キーに使う）。
 """
 
 from sqlalchemy import select
 from sqlalchemy.engine import Engine
 
-from app.models import ActivityGenre, PointApplication, User
+from app.models import PointApplication, User
 from app.schemas.cascade import PointsInput
-
-# ════════════════════════════════════════════════════════════
-# 集計：因果ストーリー画面から呼ばれる
-# ════════════════════════════════════════════════════════════
-
-# activity_genre.name → PointsInput field のマッピング
-GENRE_TO_FIELD: dict[str, str] = {
-    "日常×社会貢献": "daily_social",
-    "日常×安心安全": "daily_safety",
-    "日常×未来共創": "daily_future",
-    "越境×社会貢献": "cross_social",
-    "越境×安心安全": "cross_safety",
-    "越境×未来共創": "cross_future",
-    "創造×社会貢献": "creative_social",
-    "創造×安心安全": "creative_safety",
-    "創造×未来共創": "creative_future",
-}
+from app.services.point_calc import CATEGORIES
 
 
 def aggregate_approved_points(
@@ -39,56 +22,32 @@ def aggregate_approved_points(
     statuses: list[str],
     org_id: str | None = None,
 ) -> PointsInput:
+    """承認済 (or 指定ステータス) の申請を category 別に合計し、PointsInput で返す。
+
+    final_point が未設定の旧 row は points 列で代替（マイグレーション以前のデータ向け）。
+    """
     if not statuses:
         return PointsInput()
 
-    stmt = (
-        select(ActivityGenre.name, PointApplication.points)
-        .join(ActivityGenre, ActivityGenre.id == PointApplication.activity_genre_id)
-        .where(PointApplication.status.in_(statuses))
-    )
+    stmt = select(
+        PointApplication.category,
+        PointApplication.final_point,
+        PointApplication.points,
+    ).where(PointApplication.status.in_(statuses))
     if org_id is not None:
         stmt = stmt.join(User, User.id == PointApplication.applicant_user_id).where(
             User.org_id == org_id
         )
 
-    totals: dict[str, int] = {
-        f: 0 for f in (
-            "daily_social", "daily_safety", "daily_future",
-            "cross_social", "cross_safety", "cross_future",
-            "creative_social", "creative_safety", "creative_future",
-        )
-    }
+    totals: dict[str, float] = {c: 0.0 for c in CATEGORIES}
 
     with engine.connect() as conn:
-        for genre_name, points in conn.execute(stmt).all():
-            field = GENRE_TO_FIELD.get(genre_name)
-            if field:
-                totals[field] += int(points or 0)
+        for category, final_point, points in conn.execute(stmt).all():
+            if category not in totals:
+                continue
+            if final_point is not None:
+                totals[category] += float(final_point)
+            elif points is not None:
+                totals[category] += float(points)
 
     return PointsInput(**totals)
-
-
-# ════════════════════════════════════════════════════════════
-# 以下、ポイント申請担当者が実装する関数（スタブ）
-# ════════════════════════════════════════════════════════════
-
-# def create_application(...) -> PointApplication:
-#     """新規ポイント申請を作成。"""
-#     pass
-
-# def submit_application(...) -> PointApplication:
-#     """下書きを提出する（status: 下書き → 提出済）。"""
-#     pass
-
-# def approve_application(...) -> PointApplication:
-#     """申請を承認する（status: 提出済 → 承認済）。承認時通知も発火。"""
-#     pass
-
-# def reject_application(...) -> PointApplication:
-#     """申請を却下する。"""
-#     pass
-
-# def list_applications_by_user(...) -> list[PointApplication]:
-#     """指定ユーザーの申請一覧。"""
-#     pass

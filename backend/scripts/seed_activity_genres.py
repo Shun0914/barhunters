@@ -1,10 +1,11 @@
-"""活動ジャンルの3x3マスターデータをシード（idempotent）
+"""活動ジャンルの 2 × 3 = 6 マスターデータをシード（idempotent）。
 
-3x3 = 9ジャンル（日常/越境/創造 × 社会貢献/安心安全/未来共創）を
-activity_genres テーブルに投入する。
+v7 (5/14 合意): 9 ジャンル → 6 ジャンルに削減
+  - 日常 / 創造 × 社会貢献 / 安心安全 / 未来共創
+  - 「越境×〜」は廃止（マイグレーション c83e1f4a2d09 で既存 row も削除済み）
 
-既存のジャンル名と一致する行があれば更新、無ければ INSERT。
-idempotent（複数回実行しても安全）。
+default_points は新スキーマでは参照しない（base_point は level から導出）が、
+旧クライアント互換のため代表値（daily=1 / creative=5）を残す。
 
 実行方法:
     cd backend
@@ -19,17 +20,20 @@ from app.models import ActivityGenre
 from app.settings import get_settings
 
 # (name, default_points, sort_order)
-# 5/10 チームMTG で合意した3x3マスターデータ
+# v7 — 5/14 チーム合意の 2×3 マスタ
 GENRES: list[tuple[str, int, int]] = [
     ("日常×社会貢献", 1, 1),
     ("日常×安心安全", 1, 2),
     ("日常×未来共創", 1, 3),
-    ("越境×社会貢献", 3, 4),
-    ("越境×安心安全", 3, 5),
-    ("越境×未来共創", 3, 6),
-    ("創造×社会貢献", 5, 7),
-    ("創造×安心安全", 5, 8),
-    ("創造×未来共創", 5, 9),
+    ("創造×社会貢献", 5, 4),
+    ("創造×安心安全", 5, 5),
+    ("創造×未来共創", 5, 6),
+]
+
+LEGACY_NAMES_TO_DEACTIVATE: list[str] = [
+    "越境×社会貢献",
+    "越境×安心安全",
+    "越境×未来共創",
 ]
 
 
@@ -60,9 +64,23 @@ def seed() -> None:
                     )
                 )
                 inserted += 1
+
+        # 既に残っている越境×〜 row を非アクティブ化（マイグレーション後の保険）
+        deactivated = 0
+        for legacy in LEGACY_NAMES_TO_DEACTIVATE:
+            row = session.scalar(
+                select(ActivityGenre).where(ActivityGenre.name == legacy)
+            )
+            if row is not None and row.is_active:
+                row.is_active = False
+                deactivated += 1
+
         session.commit()
 
-    print(f"✓ Seeded activity genres: inserted={inserted}, updated={updated}")
+    print(
+        f"✓ Seeded activity genres: inserted={inserted}, updated={updated}, "
+        f"legacy_deactivated={deactivated}"
+    )
 
 
 if __name__ == "__main__":

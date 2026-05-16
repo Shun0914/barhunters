@@ -1,15 +1,15 @@
-"""計算エンジン v5：9セル → 7風土 → 4 KPI → 中間層 → 売上効果
+"""計算エンジン v7：3カテゴリ → 7風土 → 4 KPI → 中間層 → 売上効果
 
-v4 → v5 変更点：
-- 入力を 5フィールド → 9セル（3アクション × 3カテゴリ）
-- 9セル × 7風土 接続行列（M9_7）
-- 7風土 × 4 KPI 接続行列（M7_4）
-- 各KPIごとに均等配分（6,000P）でキャリブ済の scale を保持
-- 売上キャリブは日常重視配分で6,000P=売上+6億円になるよう調整
+v5 → v7 変更点：
+- 入力を 9セル → 3カテゴリに集約（social/safety/future）
+- 9セル × 7風土 接続行列 M9_7 を 3カテゴリ × 7風土 M3_7 に平均化（option A）
+- KPI_SCALE は維持（6,000P 投入時に 2026目標達成の感度）
+- 6,000P を「3カテゴリに 2,000P ずつ」入れた場合、旧 9セルに 666P ずつ入れたときと
+  数学的に等価（M3_7 が平均で、3 倍された P に 1/3 の係数を掛けるため打ち消し合う）
 
 カスケード:
-  9セル → 7風土 → 4個3層KPI → 中間層13個 → 売上ドライバー → 売上効果（メイン）
-                                                            → ROIC/ROE（参考）
+  3カテゴリ → 7風土 → 4個3層KPI → 中間層13個 → 売上ドライバー → 売上効果（メイン）
+                                                                → ROIC/ROE（参考）
 """
 
 from datetime import datetime
@@ -64,7 +64,7 @@ HUDO_NAMES = {
     "kenkou": "健康で安心な職場環境",
 }
 
-# M9_7[cell][hudo] = 係数
+# M9_7[cell][hudo] = 係数（旧 v5 接続行列、M3_7 の派生元として保持）
 M9_7: dict[str, dict[str, float]] = {
     "daily_social": {"shinri": 0.3, "chosen": 0.2, "shokumu": 0.5},
     "daily_safety": {"shinri": 0.3, "shokumu": 0.3, "kenkou": 0.4},
@@ -76,6 +76,28 @@ M9_7: dict[str, dict[str, float]] = {
     "creative_safety": {"shinri": 0.2, "chosen": 0.5, "gakushu": 0.3},
     "creative_future": {"chosen": 0.5, "jiritsu": 0.2, "gakushu": 0.3},
 }
+
+CATEGORIES: tuple[str, ...] = ("social", "safety", "future")
+
+
+def _derive_m3_7() -> dict[str, dict[str, float]]:
+    """M9_7 を 3 カテゴリに平均集約。
+    M3_7[cat][hudo] = mean_level(M9_7[f"{level}_{cat}"][hudo])。
+    cat 毎に 3 セル（daily/cross/creative）の係数を単純平均する（option A）。
+    """
+    out: dict[str, dict[str, float]] = {}
+    for cat in CATEGORIES:
+        agg: dict[str, float] = {h: 0.0 for h in HUDOS}
+        for level in ("daily", "cross", "creative"):
+            cell = f"{level}_{cat}"
+            for hudo, w in M9_7[cell].items():
+                agg[hudo] += w
+        out[cat] = {h: round(w / 3.0, 6) for h, w in agg.items() if w > 0}
+    return out
+
+
+# M3_7[category][hudo] = 係数（v7 — M9_7 の平均集約）
+M3_7: dict[str, dict[str, float]] = _derive_m3_7()
 
 # M7_4[hudo][kpi] = 係数
 M7_4: dict[str, dict[str, float]] = {
@@ -315,17 +337,20 @@ class CascadeResult:
 
 
 def _calc_layer3(points: PointsInput) -> dict[str, KpiResult]:
-    """9セル × M9_7 × M7_4 × scale → 4個3層KPI改善量"""
-    out = {}
+    """3カテゴリ × M3_7 × M7_4 × scale → 4個3層KPI改善量。
+
+    旧 9 セル時代との互換: 同じ 6,000P 投入なら M3_7 が M9_7 の平均なので結果は等価。
+    """
+    out: dict[str, KpiResult] = {}
     p_dict = points.as_dict()
 
     for kpi_id in ["eng", "challenge", "transform", "retention"]:
         improvement = 0.0
-        for cell, hudo_w in M9_7.items():
-            p = p_dict.get(cell, 0)
+        for cat, hudo_w in M3_7.items():
+            p = float(p_dict.get(cat, 0))
             if p == 0:
                 continue
-            # raw_coef_for_kpi = sum_h(M9_7[cell, h] * M7_4[h, kpi])
+            # raw_coef_for_kpi = sum_h(M3_7[cat, h] * M7_4[h, kpi])
             raw_coef = sum(hw * M7_4[h][kpi_id] for h, hw in hudo_w.items())
             improvement += (p / 100) * raw_coef * KPI_SCALE[kpi_id]
 
@@ -435,16 +460,16 @@ def _build_yearly(roic_delta: float, roe_delta: float) -> list[YearlyResult]:
 
 def _build_connections() -> list[Edge]:
     edges = []
-    # 9セル → 7風土
-    for cell, hudo_w in M9_7.items():
+    # 3カテゴリ → 7風土（M9_7 を平均集約した M3_7）
+    for cat, hudo_w in M3_7.items():
         for h, w in hudo_w.items():
             edges.append(
                 Edge(
-                    from_id=cell,
+                    from_id=cat,
                     to_id=h,
                     coefficient=w,
                     reliability="★",
-                    citation="接続行列9×7（仮）",
+                    citation="接続行列3×7（M9_7 平均、仮）",
                 )
             )
     # 7風土 → 4 KPI

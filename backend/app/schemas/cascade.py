@@ -1,9 +1,9 @@
-"""因果ストーリー API のリクエスト・レスポンス型（v5）。
+"""因果ストーリー API のリクエスト・レスポンス型（v7）。
 
-v5 変更点：
-- PointsInput を 5フィールド → 9フィールド（3アクション × 3カテゴリ）
-- FinancialSummary に sales_effect_m / sales_effect_oku を追加
-- メイン出力は売上効果。ROIC/ROEは参考値。
+v7 変更点：
+- PointsInput を 9セル × 3アクション × 3カテゴリ → 3 カテゴリ集約に変更
+  （申請は 2値（daily/creative）× 3カテゴリだが、cascade 上流は category のみに集約）
+- 数値は Decimal/float 対応（1pt 単位の細かい変化を表現するため）
 """
 
 from typing import Literal
@@ -14,46 +14,24 @@ Reliability = Literal["★★★", "★★", "★"]
 
 
 class PointsInput(BaseModel):
-    """9セル ポイント入力（3アクション × 3カテゴリ）。"""
+    """3カテゴリ ポイント入力。
 
-    # 日常の一歩（1点 × N回）
-    daily_social: int = Field(default=0, description="日常×社会貢献")
-    daily_safety: int = Field(default=0, description="日常×安心安全")
-    daily_future: int = Field(default=0, description="日常×未来共創")
-    # 越境の一歩（3点 × N回）
-    cross_social: int = Field(default=0, description="越境×社会貢献")
-    cross_safety: int = Field(default=0, description="越境×安心安全")
-    cross_future: int = Field(default=0, description="越境×未来共創")
-    # 創造の一歩（5点 × N回）
-    creative_social: int = Field(default=0, description="創造×社会貢献")
-    creative_safety: int = Field(default=0, description="創造×安心安全")
-    creative_future: int = Field(default=0, description="創造×未来共創")
+    値は「その部署（または全社）で蓄積された総ポイント（final_point の合計）」を表す。
+    """
+
+    social: float = Field(default=0.0, description="社会貢献カテゴリの累積ポイント")
+    safety: float = Field(default=0.0, description="安心安全カテゴリの累積ポイント")
+    future: float = Field(default=0.0, description="未来共創カテゴリの累積ポイント")
 
     @property
-    def total(self) -> int:
-        return (
-            self.daily_social
-            + self.daily_safety
-            + self.daily_future
-            + self.cross_social
-            + self.cross_safety
-            + self.cross_future
-            + self.creative_social
-            + self.creative_safety
-            + self.creative_future
-        )
+    def total(self) -> float:
+        return self.social + self.safety + self.future
 
-    def as_dict(self) -> dict[str, int]:
+    def as_dict(self) -> dict[str, float]:
         return {
-            "daily_social": self.daily_social,
-            "daily_safety": self.daily_safety,
-            "daily_future": self.daily_future,
-            "cross_social": self.cross_social,
-            "cross_safety": self.cross_safety,
-            "cross_future": self.cross_future,
-            "creative_social": self.creative_social,
-            "creative_safety": self.creative_safety,
-            "creative_future": self.creative_future,
+            "social": self.social,
+            "safety": self.safety,
+            "future": self.future,
         }
 
 
@@ -97,14 +75,9 @@ class YearlyResult(BaseModel):
 
 
 class FinancialSummary(BaseModel):
-    """画面下部のサマリ（v5: 売上効果メイン）"""
-
-    # v5 メイン
-    sales_effect_m: float  # 売上効果（百万円）
-    sales_effect_oku: float  # 売上効果（億円）
-    sales_target_oku: float = 6.0  # 目標6億円
-
-    # 参考値
+    sales_effect_m: float
+    sales_effect_oku: float
+    sales_target_oku: float = 6.0
     roic_current: float
     roic_delta: float
     roic_target: float
@@ -115,7 +88,7 @@ class FinancialSummary(BaseModel):
 
 class CascadeResponse(BaseModel):
     points: PointsInput
-    points_total: int
+    points_total: float
     cards: list[CardData]
     connections: list[Edge]
     summary: FinancialSummary

@@ -233,7 +233,7 @@ def aggregate_points_summary(
         or 0
     )
 
-    return {"total": int(total), "annual_target": annual_target}
+    return {"total": float(total), "annual_target": annual_target}
 
 
 # ════════════════════════════════════════════════════════════
@@ -281,10 +281,10 @@ def aggregate_my_points_by_genre(
             "activity_genre_id": int(gid),
             "activity_genre_name": str(gname),
             "sort_order": int(sort_order),
-            "points": int(pts),
+            "points": float(pts),
         }
         for gid, gname, sort_order, pts in rows_raw
-        if int(pts) != 0
+        if float(pts) != 0.0
     ]
     total = sum(r["points"] for r in rows)
     return {"rows": rows, "total_points": total}
@@ -329,8 +329,8 @@ def aggregate_org_member_points_by_genre(
     )
     out: list[dict] = []
     for uid, uname, gid, gname, sort_order, pts in session.execute(stmt).all():
-        p = int(pts)
-        if p == 0:
+        p = float(pts)
+        if p == 0.0:
             continue
         out.append(
             {

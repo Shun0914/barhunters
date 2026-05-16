@@ -78,12 +78,17 @@ def main() -> None:
         approver_2 = _pick("課長")
         approver_3 = _pick("部長")
 
-        # 「挑戦」ジャンルを使用
+        # v7 サンプル: creative × future（5P × 1.0 = 5P 一般社員）
+        from app.services.point_calc import compute_final_point, derived_genre_name
+
+        level, category = "creative", "future"
+        derived = derived_genre_name(level, category)
         genre = session.scalars(
-            select(ActivityGenre).where(ActivityGenre.name == "挑戦").limit(1)
+            select(ActivityGenre).where(ActivityGenre.name == derived).limit(1)
         ).first()
         if genre is None:
-            raise RuntimeError("ActivityGenre name='挑戦' が見つかりません")
+            raise RuntimeError(f"ActivityGenre name={derived!r} が見つかりません")
+        final_point = compute_final_point(level, applicant.role)
 
         # 採番カウンタから application_number を取得
         counter = session.get(ApplicationNumberCounter, 1)
@@ -101,8 +106,11 @@ def main() -> None:
             application_number=number,
             applicant_user_id=applicant.id,
             title=SAMPLE_TITLE,
+            level=level,
+            category=category,
+            final_point=final_point,
+            points=final_point,
             activity_genre_id=genre.id,
-            points=genre.default_points,
             description=(
                 "全社の業務改善提案発表会で、人材戦略部の生産性向上プロジェクトの"
                 "取り組みについて 15 分間の発表を行いました。"

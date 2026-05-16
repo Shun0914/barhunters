@@ -1,8 +1,9 @@
 """PointApplication — spec.md §4.2。"""
 
 from datetime import datetime
+from decimal import Decimal
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String, Text, func  # noqa: F401
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
@@ -17,10 +18,23 @@ class PointApplication(Base):
         String(36), ForeignKey("users.id", ondelete="RESTRICT"), nullable=False
     )
     title: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    # 旧 9 ジャンル → 新 6 ジャンル（{level}_{category}）への移行後も、
+    # dashboard / mypage のジャンル別内訳で pivot キーとして使うため残す。
     activity_genre_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("activity_genres.id", ondelete="RESTRICT"), nullable=True
     )
-    points: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # 2値ポイント体系（v7）— ベースポイントの算出元。
+    #   level    : "daily" (0.1P) / "creative" (5P)
+    #   category : "social" / "safety" / "future"
+    # 既存ジャンル名「{日常|越境|創造}×{社会貢献|安心安全|未来共創}」から派生。
+    # 越境 row はマイグレーション時に削除する方針。
+    level: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    category: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    # 役職傾斜（管理職=3.0x / 一般=1.0x）適用後の最終ポイント。
+    final_point: Mapped[Decimal | None] = mapped_column(Numeric(10, 2), nullable=True)
+    # 旧 points 列は dashboard / mypage が pivot サムに使うので、新規申請でも
+    # final_point と同じ値を Numeric 形式で保持する（daily 0.1P を欠落させないため）。
+    points: Mapped[Decimal | None] = mapped_column(Numeric(10, 2), nullable=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     approver_1_user_id: Mapped[str | None] = mapped_column(
         String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True

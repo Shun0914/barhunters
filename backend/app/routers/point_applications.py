@@ -1,8 +1,9 @@
-"""ポイント申請エンドポイント。spec §5.1 — 下書き作成・更新・申請送信・一覧。"""
+"""ポイント申請エンドポイント。spec §5.1 + v7 2値ポイント体系。"""
 
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from decimal import Decimal
 from typing import Literal
 from uuid import uuid4
 
@@ -29,6 +30,13 @@ from app.services.applications import (
     enrich_applications,
 )
 from app.services.notifications import create_notification
+from app.services.point_calc import (
+    CATEGORIES,
+    LEVELS,
+    compute_final_point,
+    derived_genre_name,
+    parse_legacy_genre_name,
+)
 
 router = APIRouter(prefix="/api/point-applications", tags=["point-applications"])
 
@@ -58,14 +66,16 @@ def _validate_draft_payload(payload: PointApplicationDraftIn) -> dict[str, str]:
 
 
 def _validate_submit(application: PointApplication) -> dict[str, str]:
-    """申請送信時のサーバ側バリデーション（spec §2.7 / IN-09）。"""
+    """申請送信時のサーバ側バリデーション（spec §2.7 / IN-09 + v7）。"""
     errors: dict[str, str] = {}
     if not application.title:
         errors["title"] = "タイトルは必須です"
     elif len(application.title) > TITLE_MAX:
         errors["title"] = f"タイトルは {TITLE_MAX} 文字以内で入力してください"
-    if application.activity_genre_id is None:
-        errors["activity_genre_id"] = "活動ジャンルは必須です"
+    if application.level not in LEVELS:
+        errors["level"] = "活動レベル（日常 / 創造）は必須です"
+    if application.category not in CATEGORIES:
+        errors["category"] = "カテゴリ（社会貢献 / 安心安全 / 未来共創）は必須です"
     if not application.description:
         errors["description"] = "活動内容は必須です"
     elif len(application.description) > DESCRIPTION_MAX:
@@ -99,13 +109,16 @@ def create_draft(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> PointApplicationOut:
-    points = _resolve_points(db, payload.activity_genre_id, payload.points)
+    fields = _resolve_application_fields(db, payload, current_user)
     application = PointApplication(
         id=str(uuid4()),
         applicant_user_id=current_user.id,
         title=payload.title,
-        activity_genre_id=payload.activity_genre_id,
-        points=points,
+        level=fields["level"],
+        category=fields["category"],
+        final_point=fields["final_point"],
+        points=fields["points"],
+        activity_genre_id=fields["activity_genre_id"],
         description=payload.description,
         approver_1_user_id=payload.approver_1_user_id,
         approver_2_user_id=payload.approver_2_user_id,
@@ -201,13 +214,17 @@ def update_draft(
             detail="下書き状態の申請のみ更新できます",
         )
 
+    fields = _resolve_application_fields(db, payload, current_user)
     application.title = payload.title
-    application.activity_genre_id = payload.activity_genre_id
+    application.level = fields["level"]
+    application.category = fields["category"]
+    application.final_point = fields["final_point"]
+    application.points = fields["points"]
+    application.activity_genre_id = fields["activity_genre_id"]
     application.description = payload.description
     application.approver_1_user_id = payload.approver_1_user_id
     application.approver_2_user_id = payload.approver_2_user_id
     application.approver_3_user_id = payload.approver_3_user_id
-    application.points = _resolve_points(db, payload.activity_genre_id, payload.points)
 
     db.commit()
     db.refresh(application)
@@ -308,10 +325,14 @@ def resubmit_application(
 
     # 編集内容があれば反映（承認者は変更しない — spec §2.5）
     if payload is not None:
+        fields = _resolve_application_fields(db, payload, current_user)
         application.title = payload.title
-        application.activity_genre_id = payload.activity_genre_id
+        application.level = fields["level"]
+        application.category = fields["category"]
+        application.final_point = fields["final_point"]
+        application.points = fields["points"]
+        application.activity_genre_id = fields["activity_genre_id"]
         application.description = payload.description
-        application.points = _resolve_points(db, payload.activity_genre_id, payload.points)
 
     # 必須項目バリデーション（再申請時も submit と同じ条件）
     errors = _validate_submit(application)
@@ -379,20 +400,51 @@ def withdraw_application(
     return enrich_application(application, db)
 
 
-def _resolve_points(
+def _resolve_application_fields(
     db: Session,
-    activity_genre_id: int | None,
-    override: int | None = None,
-) -> int | None:
-    """payload に points が明示されていればそれを採用し、無ければ genre の default_points を返す。"""
-    if override is not None:
-        return override
-    if activity_genre_id is None:
-        return None
-    genre = db.get(ActivityGenre, activity_genre_id)
-    if genre is None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"detail": {"activity_genre_id": "存在しない活動ジャンルです"}},
-        )
-    return genre.default_points
+    payload: PointApplicationDraftIn,
+    user: User,
+) -> dict[str, object]:
+    """payload + 申請者から永続化フィールドを組み立てる（v7 2値ポイント体系）。
+
+    優先順位:
+      1. payload.level + payload.category（新クライアント） → activity_genre_id を導出
+      2. payload.activity_genre_id のみ（旧クライアント）   → genre.name から逆引き
+      3. どちらも無い場合は level/category = None（下書き保存は許容、submit で弾く）
+    final_point / points は role_multiplier を掛けて算出する。
+    """
+    level = payload.level
+    category = payload.category
+    activity_genre_id = payload.activity_genre_id
+
+    if (level is None or category is None) and activity_genre_id is not None:
+        genre = db.get(ActivityGenre, activity_genre_id)
+        if genre is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={"detail": {"activity_genre_id": "存在しない活動ジャンルです"}},
+            )
+        legacy_level, legacy_category = parse_legacy_genre_name(genre.name)
+        level = level or legacy_level
+        category = category or legacy_category
+
+    if activity_genre_id is None and level and category:
+        derived = derived_genre_name(level, category)
+        if derived is not None:
+            genre = db.scalar(select(ActivityGenre).where(ActivityGenre.name == derived))
+            if genre is not None:
+                activity_genre_id = genre.id
+
+    if level and category:
+        final_point: Decimal | None = compute_final_point(level, user.role)
+    else:
+        final_point = None
+
+    return {
+        "level": level,
+        "category": category,
+        "activity_genre_id": activity_genre_id,
+        "final_point": final_point,
+        # dashboard / mypage の pivot で final_point と同じ Numeric 値を使う。
+        "points": final_point,
+    }
