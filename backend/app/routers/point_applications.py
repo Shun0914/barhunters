@@ -18,6 +18,7 @@ from app.models import (
     PointApplication,
     User,
 )
+from app.query_order import submitted_at_desc_nulls_last
 from app.routers.users import APPROVAL_ROUTE_BY_ROLE
 from app.schemas.point_application import (
     PointApplicationDraftIn,
@@ -158,8 +159,10 @@ def list_my_applications(
         stmt = stmt.order_by(PointApplication.updated_at.desc())
     else:
         stmt = stmt.order_by(
-            PointApplication.submitted_at.desc().nulls_last(),
-            PointApplication.updated_at.desc(),
+            *submitted_at_desc_nulls_last(
+                PointApplication.submitted_at,
+                PointApplication.updated_at.desc(),
+            )
         )
     stmt = stmt.limit(limit).offset(offset)
     apps = list(db.scalars(stmt))

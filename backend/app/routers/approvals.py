@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session, aliased
 from app.auth import get_current_user
 from app.db import get_db
 from app.models import ActivityGenre, PointApplication, User
+from app.query_order import submitted_at_desc_nulls_last
 from app.schemas.master import UserBriefOut
 from app.schemas.point_application import PointApplicationOut
 from app.services.applications import (
@@ -171,10 +172,12 @@ def list_approvals(
             )
         )
 
-    # spec.md §3.7 — 新しい順
+    # spec.md §3.7 — 新しい順（MySQL 互換: NULLS LAST は使わない）
     stmt = stmt.order_by(
-        PointApplication.submitted_at.desc().nulls_last(),
-        PointApplication.created_at.desc(),
+        *submitted_at_desc_nulls_last(
+            PointApplication.submitted_at,
+            PointApplication.created_at.desc(),
+        )
     )
 
     if post_filter is None:
