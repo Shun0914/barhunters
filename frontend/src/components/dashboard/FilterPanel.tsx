@@ -152,6 +152,17 @@ export function FilterPanel({ filter, onChange, className }: Props) {
 
   const clearAllFilters = () => onChange({ ...filter, ...EMPTY_FILTER_FIELDS });
 
+  // 「🌐 全社で見る」: 全カテゴリのチェックボックスを全選択状態にする。
+  // 集計結果は空配列（未選択）と同じ「全件対象」だが、UI 上は全 ON が見える。
+  const selectAllFilters = () =>
+    onChange({
+      ...filter,
+      companies: COMPANIES.map((c) => c.key),
+      hqs: [...HQ_KEYS],
+      departments: [...allDepartments],
+      roles: [...ROLES],
+    });
+
   return (
     <aside
       className={cn(
@@ -163,17 +174,17 @@ export function FilterPanel({ filter, onChange, className }: Props) {
       <div className="flex flex-col gap-1.5">
         <button
           type="button"
-          onClick={clearAllFilters}
+          onClick={selectAllFilters}
           className="rounded border border-black/10 bg-white px-2 py-1.5 text-[12px] font-medium text-ink-primary hover:bg-brand-bg-light hover:text-brand-primary"
         >
-          🌐 全社で見る
+          全社で見る
         </button>
         <button
           type="button"
           onClick={clearAllFilters}
           className="rounded border border-black/10 bg-white px-2 py-1.5 text-[12px] font-medium text-ink-secondary hover:bg-brand-bg-light hover:text-brand-primary"
         >
-          🗑️ フィルタをクリア
+          フィルタをクリア
         </button>
       </div>
 
