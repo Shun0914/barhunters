@@ -12,6 +12,8 @@ FastAPI で実装する API サーバーです。
 - **ローカル既定**: `DATABASE_URL` のデフォルトは **SQLite**（リポジトリ内の `backend/local.db` にファイルが作成されます）。追加インストール不要でスプリント1の疎通・最小スキーマ検証に使えます。
 - **本番・共有環境**: Azure 上のマネージド DB 等へ移行する想定です。論理スキーマ・エンティティの正は [docs/requirements/04_データ要件.md](../docs/requirements/04_データ要件.md)。製品選定・接続文字列の運用は [docs/requirements/05_アーキテクチャ.md](../docs/requirements/05_アーキテクチャ.md) およびインフラ決定後のドキュメントに従います。
 - **接続文字列の例**: PostgreSQL 等に切り替える場合は `.env` の `DATABASE_URL` を差し替え、`sqlalchemy` が解釈できる URL 形式にしてください。
+- **Azure 本番で MySQL / PostgreSQL を使う場合**: ドライバを入れるため **`pip install -e ".[mysql]"`** または **`pip install -e ".[postgres]"`**（[docs/setup/azure_deployment.md](../docs/setup/azure_deployment.md)）。
+- **GitHub Actions / App Service（Oryx）**: ルートではなく **`requirements.txt`** を参照するビルド向けに、同フォルダの [requirements.txt](requirements.txt) を置いています（ローカルは引き続き `pyproject.toml` でよい）。
 
 ## セットアップ
 

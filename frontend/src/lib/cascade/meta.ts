@@ -46,7 +46,8 @@ export const COMPANY_EFFECT_IDS = [
   "transform",
 ] as const;
 
-// 列4: 事業実績・外部評価（9項目）— ENG主導 → 定着主導 → 挑戦/変革主導 → 横断
+// 列4: 事業実績・外部評価（10項目）— ENG主導 → 定着主導 → 挑戦/変革主導 → 横断
+// v6: poc を region に統合し、presenteeism / absenteeism を追加
 export const MID_IDS = [
   "safety_zero",
   "safety_brand",
@@ -55,7 +56,8 @@ export const MID_IDS = [
   "recruit",
   "esg",
   "region",
-  "poc",
+  "presenteeism",
+  "absenteeism",
   "co2",
 ] as const;
 
@@ -305,16 +307,17 @@ export const INDICATOR_META: Record<string, IndicatorMeta> = {
   region: {
     description: {
       measures:
-        "地域社会との共創プロジェクト（自治体・住民・地元企業との協働事業）の年間実施件数",
-      measurement: "地域貢献活動・包括連携協定・地域課題解決事業の実施件数を集計",
+        "地域社会との共創プロジェクト（自治体・住民・地元企業・スタートアップ等との協働事業・PoC を含む）の年間実施件数",
+      measurement:
+        "地域貢献活動・包括連携協定・地域課題解決事業・社外パートナーとの共創PoC の実施件数を集計（v6: 旧 PoC 指標を統合）",
       targetRationale:
         "ACT2027 では 2027年度に 15件を目標。中間マイルストーンとして 2026年度末で 10件を案分目標に設定。" +
         REFINE_NOTE +
         " /* TODO: 中期計画との整合確認 */",
     },
-    target: 10,
+    target: 15,
     unit: "件",
-    baselineCurrent: 5,
+    baselineCurrent: 10,
   },
   esg: {
     description: {
@@ -329,19 +332,31 @@ export const INDICATOR_META: Record<string, IndicatorMeta> = {
     qualitativeCurrent: "主要指数組入実績あり",
     qualitativeTarget: "主要ESG指数組入維持",
   },
-  poc: {
+  presenteeism: {
     description: {
       measures:
-        "社外パートナー（スタートアップ・大学・他社）との共創型実証実験の年間実施数",
+        "出社しているが心身の不調により本来の能力を発揮できていない状態の少なさ（発揮度=100%-損失率）",
       measurement:
-        "共創プロジェクト管理台帳に登録されたPoC実施件数 /* TODO: カウント対象の定義確認 */",
+        "WHO-HPQ や東大1項目版を用いた自己申告サーベイで「100%発揮度」を集計。経産省「健康経営度調査」準拠 /* TODO: 西部ガスの実測方法確認 */",
       targetRationale:
-        "現在 5件（推定）→ 2026年度末 10件を中間目標。新規事業創出の前段階としてのPoC量を確保し、革新的事業開発のリードタイムを短縮。" +
+        "現在 80% → 2027年度末 85% を中間目標。経産省の調査で日本企業平均は84.4%、SAP事例では発揮度1pt改善で営業利益+1%。" +
         REFINE_NOTE,
     },
-    target: 10,
-    unit: "件",
-    baselineCurrent: 5,
+    target: 85,
+    unit: "%",
+  },
+  absenteeism: {
+    description: {
+      measures:
+        "心身の不調による年間欠勤日数（一人当たり）。少ないほど健康度が高い",
+      measurement:
+        "従業員一人当たりの病欠・心身不調による休業日数の年間合計。ISO30414 の人的資本開示項目に準拠",
+      targetRationale:
+        "現在 1.70日/年 → 2027年度末 1.50日/年 を目標。日本平均は約2日/年、健康経営優良法人ホワイト500の上位企業水準。" +
+        REFINE_NOTE,
+    },
+    target: 1.5,
+    unit: "日",
   },
   co2: {
     description: {

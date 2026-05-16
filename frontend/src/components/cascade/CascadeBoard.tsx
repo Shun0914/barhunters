@@ -1,9 +1,8 @@
 "use client";
 
-import { Info } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { simulateCascade } from "@/lib/cascade/client";
+import { fetchAggregatedPoints, simulateCascade } from "@/lib/cascade/client";
 import {
   CELL_LABEL,
   COMPANY_EFFECT_IDS,
@@ -31,12 +30,15 @@ import { IndicatorDetailModal } from "./IndicatorDetailModal";
 import { InputGrid } from "./InputGrid";
 import { PlaceholderCard } from "./PlaceholderCard";
 
-const TABS = [
-  { key: "all", label: "すべて" },
-  { key: "challenge", label: "挑戦の指標" },
-  { key: "safety", label: "安心・安全" },
+// スコープトグル（全社 / 自部署）。タブによる指標フィルタは廃止。
+const SCOPE_OPTIONS = [
+  { key: "company", label: "全社" },
+  { key: "department", label: "自部署" },
 ] as const;
-type TabKey = (typeof TABS)[number]["key"];
+type ScopeKey = (typeof SCOPE_OPTIONS)[number]["key"];
+
+// TODO: ユーザー API（/api/me 等）から取得する想定。デモ用にハードコード。
+const USER_DEPT_LABEL = "営業本部・福岡リビング営業部";
 
 const HUDO_LABEL_DEFAULT: Record<string, string> = {
   sales_effect: "売上効果",
@@ -87,11 +89,27 @@ function CascadeBoardInner() {
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const [tab, setTab] = useState<TabKey>("all");
+  const [scope, setScope] = useState<ScopeKey>("company");
   const [detailId, setDetailId] = useState<string | null>(null);
 
   // ホバー > クリック の優先度で「現在の焦点」を決める
   const activeId = hoveredId ?? selected;
+
+  // scope 切替（および初回マウント）で、DB集計済みポイントを取得して初期値に反映する。
+  // 取得後は既存の simulate フローが points 変化を検知して再計算する。
+  useEffect(() => {
+    const ctrl = new AbortController();
+    fetchAggregatedPoints(scope, ctrl.signal)
+      .then((data) => {
+        setPoints(data);
+      })
+      .catch((e: unknown) => {
+        if (e instanceof DOMException && e.name === "AbortError") return;
+        // スコープ切替に失敗してもページ全体は壊さない（エラーは画面下部の simulate エラー欄を流用）。
+        setError(e instanceof Error ? e.message : String(e));
+      });
+    return () => ctrl.abort();
+  }, [scope]);
 
   // 初回 + 入力変更時に simulate を叩く（デバウンス）
   const abortRef = useRef<AbortController | null>(null);
@@ -234,18 +252,6 @@ function CascadeBoardInner() {
     );
   };
 
-  // タブに合ったカードのみ表示するフィルタ
-  const visibleByTab = useCallback(
-    (calcId: string): boolean => {
-      if (tab === "all") return true;
-      const c = cardByCalcId.get(calcId);
-      // CardData.tab_key は単一文字列だが、calculator.py では tabs に複数候補がある。
-      // ここでは tab_key を含む（または all を含む）で判定する素朴なルール。
-      return c?.tab_key === tab || c?.tab_key === "all";
-    },
-    [tab, cardByCalcId],
-  );
-
   const cardOf = (id: string): CardData | undefined => cardByCalcId.get(id);
 
   const total = data?.points_total ?? 0;
@@ -267,25 +273,25 @@ function CascadeBoardInner() {
 
   return (
     <div className="flex flex-col gap-2">
-      {/* ヘッダー + タブ + サマリー（1行に圧縮） */}
+      {/* ヘッダー + スコープトグル + サマリー（1行に圧縮） */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-ink-secondary/20 pb-1.5">
         <h1 className="text-[18px] font-semibold tracking-tight text-ink-primary">
           因果ストーリー
         </h1>
         <div className="flex gap-4 text-[13px]">
-          {TABS.map((t) => (
+          {SCOPE_OPTIONS.map((s) => (
             <button
-              key={t.key}
+              key={s.key}
               type="button"
-              onClick={() => setTab(t.key)}
+              onClick={() => setScope(s.key)}
               className={cn(
                 "-mb-1.5 border-b-2 pb-1.5 transition-colors",
-                tab === t.key
+                scope === s.key
                   ? "border-brand-primary font-semibold text-ink-primary"
                   : "border-transparent text-ink-secondary hover:text-ink-primary",
               )}
             >
-              {t.label}
+              {s.key === "department" ? USER_DEPT_LABEL : s.label}
             </button>
           ))}
         </div>
@@ -324,25 +330,6 @@ function CascadeBoardInner() {
         {error ? (
           <span className="w-full text-[11px] text-status-ng-fg">⚠ {error}</span>
         ) : null}
-      </div>
-
-      {/* 逆算ロジック説明 */}
-      <div className="flex items-start gap-1.5 rounded-md border-l-2 border-brand-primary bg-brand-bg-light px-2.5 py-1 text-[13px] leading-snug text-ink-secondary">
-        <Info className="mt-px h-3.5 w-3.5 shrink-0 text-brand-primary" aria-hidden />
-        <span>
-          売上目標 <strong className="text-brand-primary">+6.0億円</strong>{" "}
-          を達成するために必要な人的資本投資ポイント
-          <strong className="text-brand-primary">（6,000P）</strong>
-          からの逆算で各指標の目標値を算出しています。
-          <span className="block">
-            各指標間の係数は文献値（柳モデル・人的資本可視化指針）に基づく仮置き。運用しながら実データを蓄積し、
-            <strong className="text-brand-primary">2030年を目処</strong>
-            に精緻化を進めます。
-          </span>
-          <span className="text-ink-secondary">
-            各カードの 🔍 アイコンで詳細を表示。
-          </span>
-        </span>
       </div>
 
       {/* 5列グリッド + 矢印オーバーレイ */}
@@ -388,7 +375,7 @@ function CascadeBoardInner() {
 
         {/* 列3: 会社への効果（KPI 4個） */}
         <Column title="会社への効果 (KPI)" tone="leading">
-          {COMPANY_EFFECT_IDS.filter((id) => visibleByTab(id)).map((id) => {
+          {COMPANY_EFFECT_IDS.map((id) => {
             const c = cardOf(id);
             const d = displayOf(id);
             return c ? (
@@ -421,7 +408,7 @@ function CascadeBoardInner() {
 
         {/* 列4: 事業実績・外部評価（中間9項目） */}
         <Column title="事業実績・外部評価" tone="bridge">
-          {MID_IDS.filter((id) => visibleByTab(id)).map((id) => {
+          {MID_IDS.map((id) => {
             const c = cardOf(id);
             const d = displayOf(id);
             return c ? (

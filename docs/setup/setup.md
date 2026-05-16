@@ -129,7 +129,7 @@ npm install
 npm run dev
 ```
 
-ブラウザで `http://localhost:3000` を開き、ページ内に `GET /api/hello` の JSON が表示されれば、サーバー側フェッチによる疎通は成功しています（トップはサーバーコンポーネントで API を呼び出しています）。
+ブラウザで `http://localhost:3000` を開くと **`/dashboard` にリダイレクト**されます。API 疎通はバックエンドの `/health` や各画面から確認してください。
 
 その他の npm スクリプト: `npm run build` / `npm run lint` / `npm run format`
 
@@ -156,6 +156,7 @@ npm run dev
 
 - [GitHub 開発ワークフロー](./github_workflow.md)
 - [開発プランニング（3 スプリント）](../planning/開発プランニング_3スプリント.md)
+- [Azure デプロイ（検証／本番）](./azure_deployment.md) — ポータル・コンソール中心の作業手順
 
 ---
 

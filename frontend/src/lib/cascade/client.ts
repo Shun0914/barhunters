@@ -1,5 +1,7 @@
-import { getApiBaseUrl } from "@/lib/api";
+import { apiFetch, getApiBaseUrl } from "@/lib/api";
 import type { CascadeResponse, PointsInput } from "./types";
+
+export type CascadeScope = "company" | "department";
 
 export async function simulateCascade(
   points: PointsInput,
@@ -18,4 +20,14 @@ export async function simulateCascade(
     throw new Error(`POST /api/cascade/simulate ${res.status}: ${body || res.statusText}`);
   }
   return (await res.json()) as CascadeResponse;
+}
+
+export async function fetchAggregatedPoints(
+  scope: CascadeScope,
+  signal?: AbortSignal,
+): Promise<PointsInput> {
+  return apiFetch<PointsInput>(`/api/cascade/aggregated-points?scope=${scope}`, {
+    method: "GET",
+    signal,
+  });
 }

@@ -15,6 +15,8 @@ class PointApplicationDraftIn(BaseModel):
 
     title: str | None = Field(default=None, max_length=50)
     activity_genre_id: int | None = None
+    # 明示的に指定された場合は default_points より優先する（申請者の手動調整を許容）。
+    points: int | None = Field(default=None, ge=0)
     description: str | None = Field(default=None, max_length=500)
     approver_1_user_id: str | None = None
     approver_2_user_id: str | None = None

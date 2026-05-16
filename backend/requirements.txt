@@ -1,0 +1,9 @@
+# Azure App Service / GitHub Actions（Oryx）用。
+# ローカル開発は引き続き pyproject.toml + pip install -e ".[dev]" でよい。
+fastapi>=0.115
+uvicorn[standard]>=0.32
+pydantic-settings>=2.6
+sqlalchemy>=2.0
+pymysql>=1.1
+cryptography>=41.0.0
+alembic>=1.14

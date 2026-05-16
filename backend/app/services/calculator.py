@@ -25,17 +25,27 @@ OP_INCOME_M = 10_593
 TAX_RATE = 0.325
 EQUITY_M = 85_909
 DEBT_M = 196_967
+NET_INCOME_M = 5_400  # 純利益（FY2025 実績）
 
 NOPAT_M = OP_INCOME_M * (1 - TAX_RATE)
 INVESTED_CAP = EQUITY_M + DEBT_M
-ROIC_CURRENT = NOPAT_M / INVESTED_CAP
-ROE_CURRENT = NOPAT_M / EQUITY_M
-LEVERAGE = INVESTED_CAP / EQUITY_M
 
-ROIC_TARGET_2027 = 0.023
-ROE_TARGET_2027 = 0.080
+# ROIC: NOPAT / 投下資本（標準定義）
+ROIC_CURRENT = NOPAT_M / INVESTED_CAP   # ≒ 2.53%
 
-# v5: 売上効果メイン目標
+# ROE: Net Income / Equity（標準定義、NOPAT ではない）
+ROE_CURRENT = NET_INCOME_M / EQUITY_M   # ≒ 6.3%
+
+LEVERAGE = INVESTED_CAP / EQUITY_M       # ≒ 3.29
+
+# ACT2027 公式目標
+ROIC_TARGET_2027 = 0.023  # 2.3%
+ROE_TARGET_2027 = 0.080   # 8.0%
+
+# 営業利益率（売上→NOPAT 換算用）
+OP_MARGIN = OP_INCOME_M / REVENUE_M     # ≒ 4.16%
+
+# 売上効果メイン目標
 SALES_TARGET_M = 600
 SALES_TARGET_OKU = 6.0
 
@@ -105,16 +115,33 @@ LAYER3_META: dict[str, tuple[Any, ...]] = {
 # 中間層メタ情報
 # ════════════════════════════════════════════════════════════
 MID_META: dict[str, tuple[Any, ...]] = {
-    # サーベイ由来9個
+    # サーベイ由来10個（v6: poc を region に統合し、プレゼン/アブセンを追加）
     "safety_zero": ("保安事故ゼロ継続", "件", 0, 0, ["all", "safety"], "★★", "重大事故ゼロ継続"),
-    "poc": ("共創PoC件数", "件", 10, 15, ["all", "challenge"], "★★", "TOMOSHIBI連動"),
     "co2": ("CO2削減貢献量", "万t", 60, 87, ["all"], "★", "Scope 1+2"),
     "jcsi": ("JCSI", "年連続", 4, 5, ["all"], "★★★", "Fornell 2006"),
     "ltv": ("顧客LTV", "千円/戸", 240, 280, ["all"], "★★★", "Gupta&Lehmann"),
-    "region": ("地域共創力", "件", 10, 15, ["all"], "★★★", "Ikuta&Fujii 2025"),
+    "region": ("地域共創力", "件", 10, 15, ["all"], "★★★", "Ikuta&Fujii 2025（PoC を統合）"),
     "esg": ("ESG評価", "指数", 3, 5, ["all"], "★★★", "Wilberg 2025"),
     "recruit": ("採用・定着力", "%", 95.8, 98.0, ["all", "safety"], "★★", "Li et al.2022"),
     "safety_brand": ("保安ブランド", "件", 0, 0, ["all", "safety"], "★★★", "柳・今野2024"),
+    "presenteeism": (
+        "プレゼンティーイズム",
+        "%",
+        80.0,
+        85.0,
+        ["all", "safety"],
+        "★★",
+        "発揮度。経産省・SAP事例",
+    ),
+    "absenteeism": (
+        "アブセンティーイズム",
+        "日",
+        1.70,
+        1.50,
+        ["all", "safety"],
+        "★★",
+        "年間欠勤日数。ISO30414準拠",
+    ),
     # 実カウント型（v5: 仮係数で計算するが、図では「点線関連」として表現）
     "dx_core": ("DXコア人財数", "名", 200, 650, ["all", "challenge"], "★★", "ACT2027目標"),
     "reskill": ("リスキル実践者数", "名", 43, 2000, ["all", "challenge"], "★", "ACT2027目標"),
@@ -127,9 +154,6 @@ MID_META: dict[str, tuple[Any, ...]] = {
 LAYER3_TO_MID: list[tuple[str, str, float, str, str]] = [
     ("eng", "safety_zero", 0.30, "★★", "Gallup 2020"),
     ("retention", "safety_zero", 0.10, "★", "仮置き"),
-    ("eng", "poc", 0.10, "★", "仮置き"),
-    ("challenge", "poc", 0.20, "★", "仮置き"),
-    ("transform", "poc", 0.25, "★", "仮置き"),
     ("transform", "co2", 0.15, "★", "仮置き"),
     ("eng", "jcsi", 0.08, "★★★", "Gallup × Fornell"),
     ("retention", "jcsi", 0.08, "★★★", "Park&Shaw × Fornell"),
@@ -144,6 +168,12 @@ LAYER3_TO_MID: list[tuple[str, str, float, str, str]] = [
     ("retention", "recruit", 0.30, "★★★", "Li et al.2022"),
     ("eng", "safety_brand", 0.12, "★★★", "Gallup × 柳・今野"),
     ("retention", "safety_brand", 0.04, "★", "仮置き"),
+    # v6: プレゼンティーイズム経路（ENG・定着が主因）
+    ("eng", "presenteeism", 0.20, "★★", "Gallup × SAP事例（健康文化指数→営業利益）"),
+    ("retention", "presenteeism", 0.10, "★", "仮置き"),
+    # v6: アブセンティーイズム経路（定着率が主因）
+    ("retention", "absenteeism", 0.30, "★★", "ISO30414準拠"),
+    ("eng", "absenteeism", 0.10, "★", "仮置き"),
 ]
 
 # 3層→実カウント（点線関連、係数は仮置き）
@@ -160,22 +190,25 @@ LAYER3_TO_MID_COUNT: list[tuple[str, str, float, str, str]] = [
 # ════════════════════════════════════════════════════════════
 MID_TO_FIN: dict[str, tuple[float, float, float]] = {
     "safety_zero": (0.015, 0.012, 0.074),
-    "poc": (0.036, 0.008, 0.028),
     "renewable_mid": (0.035, 0.015, 0.075),
     "co2": (0.009, 0.004, 0.058),
     "jcsi": (0.035, 0.025, 0.025),
     "ltv": (0.030, 0.010, 0.040),
-    "region": (0.063, 0.014, 0.049),
+    # v6: PoC を統合した分、地域共創力の重みを微増
+    "region": (0.080, 0.020, 0.060),
     "esg": (0.230, 0.100, 0.130),
     "recruit": (0.060, 0.120, 0.140),
     "safety_brand": (0.020, 0.030, 0.120),
+    # v6: プレゼンティーイズム — 3,500人 × 75万損失/年 = 26億/年 → 5%改善で 1.3億/年（売上換算 0.5%）
+    "presenteeism": (0.030, 0.080, 0.000),
+    # v6: アブセンティーイズム — 欠勤・代替要員費の直接削減
+    "absenteeism": (0.005, 0.040, 0.000),
     "dx_core": (0.020, 0.040, 0.030),
     "reskill": (0.040, 0.070, 0.050),
 }
 
 FIN_RELIABILITY: dict[str, str] = {
     "safety_zero": "★★",
-    "poc": "★",
     "renewable_mid": "★★★",
     "co2": "★",
     "jcsi": "★★★",
@@ -184,6 +217,8 @@ FIN_RELIABILITY: dict[str, str] = {
     "esg": "★★★",
     "recruit": "★★★",
     "safety_brand": "★★★",
+    "presenteeism": "★★",
+    "absenteeism": "★★",
     "dx_core": "★",
     "reskill": "★",
 }
@@ -194,9 +229,8 @@ FIN_RELIABILITY: dict[str, str] = {
 # v5：日常重視配分で 6,000P → 売上+6億円
 SALES_CALIBRATION = 0.01815
 
-# 参考値（ROIC/ROE）
-ROE_CALIBRATION = 0.024
-ROIC_CALIBRATION = ROE_CALIBRATION / LEVERAGE
+# v6: ROIC/ROE は売上効果から OP_MARGIN × (1-TAX_RATE) で NOPAT に換算し、
+#      投下資本/自己資本で除して理論的に求める。proxy 係数は撤廃。
 
 
 # ════════════════════════════════════════════════════════════
@@ -318,10 +352,9 @@ def _calc_layer3(points: PointsInput) -> dict[str, KpiResult]:
 def _calc_mid(layer3: dict[str, KpiResult]) -> dict[str, KpiResult]:
     """3層 × LAYER3_TO_MID = 中間層13個（達成率）"""
     boosts = {}
-    # サーベイ由来9個
+    # サーベイ由来10個（v6: poc を region に統合し、プレゼン/アブセンを追加）
     survey_ids = {
         "safety_zero",
-        "poc",
         "co2",
         "jcsi",
         "ltv",
@@ -329,6 +362,8 @@ def _calc_mid(layer3: dict[str, KpiResult]) -> dict[str, KpiResult]:
         "esg",
         "recruit",
         "safety_brand",
+        "presenteeism",
+        "absenteeism",
     }
     for mid_id in survey_ids:
         boosts[mid_id] = 0.0
@@ -359,7 +394,7 @@ def _calc_mid(layer3: dict[str, KpiResult]) -> dict[str, KpiResult]:
 def _calc_financial(
     mid: dict[str, KpiResult],
 ) -> tuple[dict[str, float], float, float, float, float]:
-    """中間層 → 財務ドライバー → 売上効果 + ROIC/ROE"""
+    """中間層 → 売上効果 → NOPAT → ΔROIC/ΔROE（v6: 理論チェーン）"""
     revenue = cost = capital = 0.0
     for mid_id, node in mid.items():
         if mid_id not in MID_TO_FIN:
@@ -371,14 +406,15 @@ def _calc_financial(
 
     drivers = {"revenue": revenue, "cost": cost, "capital": capital}
 
-    # メイン：売上効果
+    # メイン：売上効果（既存ロジック維持）
     sales_effect_m = revenue * REVENUE_M * SALES_CALIBRATION
     sales_effect_oku = sales_effect_m / 100
 
-    # 参考：ROIC/ROE
-    fin_total = revenue + cost + capital
-    roic_delta = fin_total * ROIC_CALIBRATION
-    roe_delta = roic_delta * LEVERAGE
+    # v6: ROIC/ROE は売上効果から理論的に導出
+    # 売上 → 営業利益 → NOPAT → ΔROIC/ΔROE
+    nopat_increase_m = sales_effect_m * OP_MARGIN * (1 - TAX_RATE)
+    roic_delta = nopat_increase_m / INVESTED_CAP
+    roe_delta = nopat_increase_m / EQUITY_M
 
     return drivers, sales_effect_m, sales_effect_oku, roic_delta, roe_delta
 
@@ -453,24 +489,24 @@ def _build_connections() -> list[Edge]:
             citation="売上キャリブ（仮置き）",
         )
     )
-    # 参考：財務ドライバー → ROIC/ROE
-    for driver in ("revenue", "cost", "capital"):
-        edges.append(
-            Edge(
-                from_id=driver,
-                to_id="roic",
-                coefficient=ROIC_CALIBRATION,
-                reliability="★",
-                citation="ROICキャリブ（参考）",
-            )
+    # v6: 売上効果 → ROIC（NOPAT/投下資本で理論的に算出）
+    edges.append(
+        Edge(
+            from_id="sales_effect",
+            to_id="roic",
+            coefficient=OP_MARGIN * (1 - TAX_RATE) / INVESTED_CAP * REVENUE_M,
+            reliability="★★★",
+            citation="ΔROIC = ΔSales × OP_MARGIN × (1-TaxRate) / 投下資本",
         )
+    )
+    # v6: ROIC → ROE は概念的に残すが、式の上では使ってない（NOPAT/Equity で直接計算）
     edges.append(
         Edge(
             from_id="roic",
             to_id="roe",
             coefficient=LEVERAGE,
             reliability="★★★",
-            citation="レバレッジ（FY2025）",
+            citation="参考：ROE = ROIC × レバレッジの関係（v6 では NOPAT/Equity で直接計算）",
         )
     )
     return edges

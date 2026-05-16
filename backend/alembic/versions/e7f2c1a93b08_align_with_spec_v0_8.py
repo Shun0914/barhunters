@@ -19,12 +19,24 @@ from typing import Sequence, Union
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy import inspect
 
 
 revision: str = "e7f2c1a93b08"
 down_revision: Union[str, None] = "d4e8f0a2b6c1"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
+
+
+def _mysql_drop_foreign_key_on_column(table: str, column: str) -> None:
+    """MySQL は FK 付きカラムを DROP できない。batch 外で先に FK だけ落とす（名前はサーバー自動生成のため inspect）。"""
+    bind = op.get_bind()
+    if bind.dialect.name != "mysql":
+        return
+    for fk in inspect(bind).get_foreign_keys(table):
+        if fk["constrained_columns"] == [column]:
+            op.drop_constraint(fk["name"], table, type_="foreignkey")
+            return
 
 
 def upgrade() -> None:
@@ -67,8 +79,14 @@ def upgrade() -> None:
         )
 
     # 4) notifications: body_summary → body にリネーム、sender_user_id 追加
+    # MySQL は CHANGE/MODIFY に既存型の明示が必須（SQLite の batch とは要件が異なる）
     with op.batch_alter_table("notifications") as batch:
-        batch.alter_column("body_summary", new_column_name="body")
+        batch.alter_column(
+            "body_summary",
+            existing_type=sa.Text(),
+            existing_nullable=False,
+            new_column_name="body",
+        )
         batch.add_column(sa.Column("sender_user_id", sa.String(length=36), nullable=True))
         batch.create_foreign_key(
             "fk_notifications_sender_user_id_users",
@@ -79,6 +97,7 @@ def upgrade() -> None:
         )
 
     # 5) point_applications: 単一 approver_user_id を 1/2/3 に分割し、ステータス管理列を追加
+    _mysql_drop_foreign_key_on_column("point_applications", "approver_user_id")
     with op.batch_alter_table("point_applications") as batch:
         batch.add_column(sa.Column("application_number", sa.String(length=6), nullable=True))
         batch.create_unique_constraint(
@@ -147,6 +166,13 @@ def downgrade() -> None:
         batch.drop_column("approver_2_user_id")
         batch.drop_column("approver_1_user_id")
         batch.add_column(sa.Column("approver_user_id", sa.String(length=36), nullable=True))
+        batch.create_foreign_key(
+            "fk_point_applications_approver_user_id_users",
+            "users",
+            ["approver_user_id"],
+            ["id"],
+            ondelete="SET NULL",
+        )
         batch.alter_column("description", existing_type=sa.Text(), nullable=False)
         batch.alter_column("points", existing_type=sa.Integer(), nullable=False)
         batch.alter_column("activity_genre_id", existing_type=sa.Integer(), nullable=False)
@@ -157,7 +183,12 @@ def downgrade() -> None:
     with op.batch_alter_table("notifications") as batch:
         batch.drop_constraint("fk_notifications_sender_user_id_users", type_="foreignkey")
         batch.drop_column("sender_user_id")
-        batch.alter_column("body", new_column_name="body_summary")
+        batch.alter_column(
+            "body",
+            existing_type=sa.Text(),
+            existing_nullable=False,
+            new_column_name="body_summary",
+        )
 
     with op.batch_alter_table("activity_genres") as batch:
         batch.drop_column("is_active")
