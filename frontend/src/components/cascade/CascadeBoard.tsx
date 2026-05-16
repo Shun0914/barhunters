@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { fetchAggregatedPoints, simulateCascade } from "@/lib/cascade/client";
 import {
-  CELL_LABEL,
   COMPANY_EFFECT_IDS,
   FINANCE_IDS,
   HUDO_LIST,
@@ -12,11 +11,12 @@ import {
   MID_IDS,
 } from "@/lib/cascade/meta";
 import {
-  CELL_KEYS,
+  CATEGORY_KEYS,
+  CATEGORY_LABEL,
   ZERO_POINTS,
   type CardData,
   type CascadeResponse,
-  type CellKey,
+  type CategoryKey,
   type Edge,
   type PointsInput,
   type Reliability,
@@ -63,10 +63,10 @@ const COMPANY_EFFECT_SET = new Set<string>(COMPANY_EFFECT_IDS);
 const MID_SET = new Set<string>(MID_IDS);
 const FINANCE_SET = new Set<string>(FINANCE_IDS);
 const HUDO_SET = new Set<string>(HUDO_LIST.map((h) => h.id));
-const CELL_SET = new Set<string>(CELL_KEYS);
+const CATEGORY_SET = new Set<string>(CATEGORY_KEYS);
 
 function categoryLabelOf(id: string): string | null {
-  if (CELL_SET.has(id)) return "みんなの活動";
+  if (CATEGORY_SET.has(id)) return "みんなの活動";
   if (HUDO_SET.has(id)) return "風土・組織文化";
   if (COMPANY_EFFECT_SET.has(id)) return "会社への効果 (KPI)";
   if (MID_SET.has(id)) return "事業実績・外部評価";
@@ -145,7 +145,7 @@ function CascadeBoardInner() {
   // INDICATOR_META に target/unit が定義されている場合は backend より優先する。
   const cardMeta = useMemo(() => {
     const m = new Map<string, CardMeta>();
-    for (const k of CELL_KEYS) m.set(k, { label: CELL_LABEL[k] });
+    for (const k of CATEGORY_KEYS) m.set(k, { label: CATEGORY_LABEL[k] });
     for (const h of HUDO_LIST) m.set(h.id, { label: h.label, description: h.desc });
     data?.cards.forEach((c) => {
       if (!c.calc_id) return;
@@ -216,7 +216,7 @@ function CascadeBoardInner() {
     return out;
   }, [activeId, adjacency]);
 
-  const handleInput = useCallback((key: CellKey, value: number) => {
+  const handleInput = useCallback((key: CategoryKey, value: number) => {
     setPoints((prev) => {
       if (prev[key] === value) return prev;
       return { ...prev, [key]: value };
@@ -246,9 +246,9 @@ function CascadeBoardInner() {
 
   const handleReset = () => setPoints(ZERO_POINTS);
   const handleSample = () => {
-    // 1セルあたり 666P → 合計 6,000P で目標達成のキャリブ
+    // 1カテゴリあたり 2,000P → 合計 6,000P で目標達成のキャリブ
     setPoints(
-      CELL_KEYS.reduce((acc, k) => ({ ...acc, [k]: 666 }), {} as PointsInput),
+      CATEGORY_KEYS.reduce((acc, k) => ({ ...acc, [k]: 2000 }), {} as PointsInput),
     );
   };
 

@@ -58,12 +58,20 @@ export type PointApplicationStatus =
   | "approved"
   | "returned";
 
+export type LevelKey = "daily" | "creative";
+export type CategoryKey = "social" | "safety" | "future";
+
 export type PointApplication = {
   id: string;
   application_number: string | null;
   applicant_user_id: string;
   applicant_name: string | null;
   title: string;
+  // v7 2値ポイント体系
+  level: LevelKey | null;
+  category: CategoryKey | null;
+  final_point: number | null;
+  // dashboard / mypage のジャンル別内訳で pivot に使う（サーバが {level}_{category} から自動付与）
   activity_genre_id: number | null;
   activity_genre_name: string | null;
   points: number | null;
@@ -110,9 +118,12 @@ export type NotificationTab = "all" | "unread";
 
 export type PointApplicationDraftIn = {
   title?: string | null;
+  // v7: level + category がサーバ側の唯一の真。base_point は level で決まり、
+  // 役職傾斜を掛けた final_point をサーバが算出する。
+  level?: LevelKey | null;
+  category?: CategoryKey | null;
+  // 旧クライアント互換のため activity_genre_id も受理する（任意）。
   activity_genre_id?: number | null;
-  // 明示的に指定された場合は default_points より優先する。
-  points?: number | null;
   description?: string | null;
   approver_1_user_id?: string | null;
   approver_2_user_id?: string | null;
