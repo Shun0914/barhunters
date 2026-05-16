@@ -44,9 +44,10 @@ const TITLE_MAX = 50;
 const DESCRIPTION_MAX = 500;
 
 // 5/14 合意の 2 値ポイント体系。
-const LEVEL_OPTIONS: { value: LevelKey; label: string; base: string }[] = [
-  { value: "daily", label: "日常 — 24日に1回、誰でも参加できる行動", base: "0.1P" },
-  { value: "creative", label: "創造 — 年数回、新しい価値創出の挑戦", base: "5P" },
+// ポイント数（0.1P / 5P）は UI に出さず、サーバ側で base_point に変換する。
+const LEVEL_OPTIONS: { value: LevelKey; label: string }[] = [
+  { value: "daily", label: "日常の挑戦" },
+  { value: "creative", label: "創造の挑戦" },
 ];
 
 const CATEGORY_OPTIONS: { value: CategoryKey; label: string; desc: string }[] = [
@@ -320,7 +321,7 @@ export function PointApplicationForm() {
                 <option value="">レベルを選択</option>
                 {LEVEL_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>
-                    {o.base}  {o.label}
+                    {o.label}
                   </option>
                 ))}
               </select>
@@ -330,9 +331,6 @@ export function PointApplicationForm() {
               >
                 ▼
               </span>
-            </div>
-            <div className="mt-1 text-xs text-[#64748b]">
-              役職傾斜（管理職 ×3.0 / それ以外 ×1.0）はサーバ側で自動付与されます。
             </div>
             {errors.level && (
               <div className="mt-1 text-xs text-red-500">{errors.level}</div>
