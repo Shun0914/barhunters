@@ -70,16 +70,21 @@ export function OneOnOneCard({ data }: Props) {
             })}
           </svg>
 
-          {/* 右: 凡例 */}
-          <ul className="flex flex-1 flex-col gap-0.5 text-[11px] text-ink-primary">
+          {/* 右: 凡例（flex-1 でラベルが伸びて数字がカード端に離れるのを避け、桁揃え用に列を固定） */}
+          <ul className="flex min-w-0 flex-1 flex-col gap-0.5 text-[11px] text-ink-primary">
             {bars.map((bar) => (
-              <li key={bar.key} className="flex items-center gap-2">
+              <li
+                key={bar.key}
+                className="grid grid-cols-[auto_minmax(0,1fr)_2.25rem] items-center gap-x-2"
+              >
                 <span
-                  className="inline-block h-2 w-2 rounded-full"
+                  className="inline-block h-2 w-2 shrink-0 rounded-full"
                   style={{ background: bar.color }}
                 />
-                <span className="flex-1">{bar.label}</span>
-                <span className="font-semibold tabular-nums">{bar.value}</span>
+                <span className="min-w-0 truncate">{bar.label}</span>
+                <span className="text-right font-semibold tabular-nums">
+                  {bar.value}
+                </span>
               </li>
             ))}
           </ul>
