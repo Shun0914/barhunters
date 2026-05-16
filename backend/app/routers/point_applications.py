@@ -228,12 +228,12 @@ def submit_application(
             detail="下書き状態の申請のみ送信できます",
         )
 
-    # 申請者の役職から段数を確定（部門長は段数 0 = 申請不可、Q-01 確定）
+    # 申請者の役職から段数を確定（部長は段数 0 = 申請不可、Q-01 確定）
     total_steps = len(APPROVAL_ROUTE_BY_ROLE.get(current_user.role or "", []))
     if total_steps == 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"detail": {"_global": "現在、部門長の方の申請は受け付けていません"}},
+            detail={"detail": {"_global": "現在、部長の方の申請は受け付けていません"}},
         )
     application.approval_total_steps = total_steps
 

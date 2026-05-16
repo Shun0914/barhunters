@@ -14,12 +14,12 @@ from app.schemas.master import ApprovalRouteOut, UserBriefOut
 router = APIRouter(prefix="/api/users", tags=["users"])
 
 # spec §2.5 — 申請者の役職から N 階層上の役職列を返す。
-# 部門長は申請不可（Q-01 確定）→ 段数 0、候補なし。
+# 部長は申請不可（Q-01 確定）→ 段数 0、候補なし。
 APPROVAL_ROUTE_BY_ROLE: dict[str, list[str]] = {
-    "一般職員": ["係長", "課長", "部門長"],
-    "係長": ["課長", "部門長"],
-    "課長": ["部門長"],
-    "部門長": [],
+    "一般社員": ["係長", "課長", "部長"],
+    "係長": ["課長", "部長"],
+    "課長": ["部長"],
+    "部長": [],
 }
 
 

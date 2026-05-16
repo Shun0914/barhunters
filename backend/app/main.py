@@ -8,6 +8,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.db import dispose_engine, get_engine
 from app.routers import (
     approvals,
+    dashboard,
     masters,
     notifications,
     point_applications,
@@ -45,6 +46,7 @@ def create_app() -> FastAPI:
     app.include_router(approvals.router)
     app.include_router(notifications.router)
     app.include_router(cascade_router.router)
+    app.include_router(dashboard.router)
 
     @app.get("/health")
     def health() -> dict[str, str]:

@@ -2,7 +2,7 @@
 """未読通知のサンプルを追加投入する。
 
 S-06 の青ドット表示や、ベルバッジの未読カウント確認用。
-全ロール（申太郎・係長・課長・部門長）に対してそれぞれ数件作成し、
+全ロール（申太郎・係長・課長・部長）に対してそれぞれ数件作成し、
 ログイン中ユーザーを切り替えても未読が見えるようにする。
 
 冪等性: タグ `[seed_unread]` を title 末尾に含むレコードが既にあれば何もしない。
@@ -50,9 +50,9 @@ def main() -> None:
         applicant = session.get(User, DEV_DEFAULT_USER_ID)
         kakaricho = session.scalars(select(User).where(User.role == "係長").limit(1)).first()
         kacho = session.scalars(select(User).where(User.role == "課長").limit(1)).first()
-        bumoncho = session.scalars(select(User).where(User.role == "部門長").limit(1)).first()
+        bumoncho = session.scalars(select(User).where(User.role == "部長").limit(1)).first()
         if not all([applicant, kakaricho, kacho, bumoncho]):
-            print("ユーザー（申太郎/係長/課長/部門長）が揃っていません。")
+            print("ユーザー（申太郎/係長/課長/部長）が揃っていません。")
             return
 
         # 関連付ける既存の申請（最新の番号付き）
@@ -146,7 +146,7 @@ def main() -> None:
                     "ポイント承認画面より内容をご確認ください。"
                 ),
             ),
-            # 部門長宛
+            # 部長宛
             (
                 bumoncho,
                 kacho,
