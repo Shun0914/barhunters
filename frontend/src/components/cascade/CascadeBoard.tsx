@@ -272,20 +272,20 @@ function CascadeBoardInner() {
   const detailIndicatorMeta = detailId ? (INDICATOR_META[detailId] ?? null) : null;
 
   return (
-    <div className="flex flex-col gap-2">
-      {/* ヘッダー + スコープトグル + サマリー（1行に圧縮） */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-ink-secondary/20 pb-1.5">
-        <h1 className="text-[18px] font-semibold tracking-tight text-ink-primary">
+    <div className="flex flex-col gap-1">
+      {/* ヘッダー + スコープトグル + サマリー */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 border-b border-ink-secondary/20 pb-1">
+        <h1 className="text-[16px] font-semibold tracking-tight text-ink-primary">
           因果ストーリー
         </h1>
-        <div className="flex gap-4 text-[13px]">
+        <div className="flex gap-3 text-[12px]">
           {SCOPE_OPTIONS.map((s) => (
             <button
               key={s.key}
               type="button"
               onClick={() => setScope(s.key)}
               className={cn(
-                "-mb-1.5 border-b-2 pb-1.5 transition-colors",
+                "-mb-1 border-b-2 pb-1 transition-colors",
                 scope === s.key
                   ? "border-brand-primary font-semibold text-ink-primary"
                   : "border-transparent text-ink-secondary hover:text-ink-primary",
@@ -295,7 +295,7 @@ function CascadeBoardInner() {
             </button>
           ))}
         </div>
-        <div className="ml-auto flex items-center gap-2 text-[13px] text-ink-secondary">
+        <div className="ml-auto flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] text-ink-secondary">
           <span className="font-semibold text-ink-primary">合計</span>
           <span className="tabular-nums text-ink-primary">
             {total.toLocaleString()} pt
@@ -308,14 +308,14 @@ function CascadeBoardInner() {
           <button
             type="button"
             onClick={handleSample}
-            className="ml-2 rounded-md border border-ink-secondary/30 bg-card px-2 py-0.5 text-ink-primary hover:bg-brand-bg-light"
+            className="ml-2 rounded border border-ink-secondary/30 bg-card px-1.5 py-px text-[11px] text-ink-primary hover:bg-brand-bg-light"
           >
             目標値プリセット
           </button>
           <button
             type="button"
             onClick={handleReset}
-            className="rounded-md border border-ink-secondary/30 bg-card px-2 py-0.5 text-ink-primary hover:bg-brand-bg-light"
+            className="rounded border border-ink-secondary/30 bg-card px-1.5 py-px text-[11px] text-ink-primary hover:bg-brand-bg-light"
           >
             リセット
           </button>
@@ -504,7 +504,7 @@ function CascadeGrid({
   return (
     <div
       ref={containerRef}
-      className="relative grid grid-cols-1 gap-6 lg:grid-cols-[1.1fr_0.9fr_1fr_1fr_1fr]"
+      className="relative grid grid-cols-1 gap-3 lg:grid-cols-[1.05fr_0.85fr_0.92fr_0.92fr_0.92fr]"
     >
       {children}
       <ArrowOverlay edges={connections} activeId={activeId} />
@@ -536,19 +536,19 @@ function Column({
   return (
     <section
       className={cn(
-        "flex min-w-0 flex-col gap-1.5 rounded-xl border p-1.5",
+        "flex min-w-0 flex-col gap-1 rounded-lg border px-1 py-1",
         toneClass,
       )}
     >
-      <header className="flex items-baseline gap-2 px-1">
-        <h2 className="text-[15px] font-normal leading-none tracking-normal text-ink-primary">
+      <header className="flex items-baseline gap-1.5 px-0.5">
+        <h2 className="text-[12px] font-medium leading-none tracking-normal text-ink-primary">
           {title}
         </h2>
         {subtitle ? (
           <span className="text-[11px] text-ink-secondary">{subtitle}</span>
         ) : null}
       </header>
-      <div className="flex flex-col gap-1.5">{children}</div>
+      <div className="flex flex-col gap-1">{children}</div>
     </section>
   );
 }
