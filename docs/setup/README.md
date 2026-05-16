@@ -7,6 +7,7 @@
 | [setup.md](./setup.md) | リポジトリのクローン、モック閲覧、`frontend/`・`backend/` 追加後のローカル開発（想定） |
 | [azure_deployment.md](./azure_deployment.md) | **Azure へのデプロイ**（ポータル・Cloud Shell・App Service を前提とした手順。CI/CD は任意） |
 | [github_workflow.md](./github_workflow.md) | Issue → ブランチ → PR → レビュー → マージの基本手順 |
+| [**ai_agent_github_workflow.md**](./ai_agent_github_workflow.md) | **AI／エージェント向け**：**`git` + MCP（`user-github`）** を正とした運用、`main` 取り込みの正規ルート、やってはいけないパターン |
 | [testing_workflow.md](./testing_workflow.md) | E2E／結合テストの親チケット運用（テストケース置き場は今後 `docs/testing/`） |
 
 **レポート**: [docs/reports/](../reports/)（デプロイ事例・障害メモ。例: [2026-05-10 Azure API](../reports/2026-05-10_azure_api_deployment_report.md)）
