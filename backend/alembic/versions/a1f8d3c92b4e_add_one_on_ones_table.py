@@ -28,7 +28,7 @@ def upgrade() -> None:
         sa.Column(
             "recorder_id",
             sa.String(length=36),
-            sa.ForeignKey("users.id", ondelete="CASCADE"),
+            sa.ForeignKey("users.id", ondelete="RESTRICT"),
             nullable=False,
         ),
         sa.Column("partner_role", sa.String(length=32), nullable=False),

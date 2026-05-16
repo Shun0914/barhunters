@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import text
+from sqlalchemy import func, select, table, text
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.db import dispose_engine, get_engine
@@ -73,15 +73,16 @@ def create_app() -> FastAPI:
                     text("SELECT version_num FROM alembic_version LIMIT 1")
                 ).scalar_one_or_none()
                 counts: dict[str, int] = {}
-                for table in (
+                for tbl in (
                     "users",
                     "activity_genres",
                     "indicators",
                     "point_applications",
                     "notifications",
                 ):
-                    q = text(f'SELECT COUNT(*) FROM "{table}"')
-                    counts[table] = int(conn.execute(q).scalar() or 0)
+                    t = table(tbl)
+                    q = select(func.count()).select_from(t)
+                    counts[tbl] = int(conn.execute(q).scalar_one())
                 return {"alembic_version": version, "tables": counts}
         except SQLAlchemyError as e:
             return {

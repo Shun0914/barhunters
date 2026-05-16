@@ -23,7 +23,7 @@ class OneOnOne(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     recorder_id: Mapped[str] = mapped_column(
         String(36),
-        ForeignKey("users.id", ondelete="CASCADE"),
+        ForeignKey("users.id", ondelete="RESTRICT"),
         nullable=False,
         index=True,
     )

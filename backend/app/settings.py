@@ -8,6 +8,8 @@ class Settings(BaseSettings):
 
     ALLOW_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000"
     DATABASE_URL: str = "sqlite:///./local.db"
+    # Azure Database for MySQL 等（TLS 必須）で CA ファイルを明示する場合（未設定なら OS 既定の trust store）
+    MYSQL_SSL_CA: str | None = None
     # MVP は他チーム提供のダミーセッションを前提（spec §5.0 / Q-50）。
     # 未設定なら DB の先頭ユーザーを current user として返す。`X-Dev-User-Id` ヘッダで上書き可。
     DEV_DEFAULT_USER_ID: str | None = None
@@ -16,7 +18,7 @@ class Settings(BaseSettings):
     # 04_データ要件.md §2.2 で実装で確定とされている値の暫定。
     # 例: "承認済"  → 承認済のみ集計
     #     "提出済,承認済" → 申請中以降を全部含める
-    POINT_AGGREGATE_STATUSES: str = "承認済"
+    POINT_AGGREGATE_STATUSES: str = "approved"
 
     @property
     def origin_list(self) -> list[str]:

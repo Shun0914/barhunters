@@ -16,7 +16,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_user
@@ -25,6 +25,13 @@ from app.models import User
 from app.services import dashboard_service
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
+
+
+def _validated_fy(fy: str) -> str:
+    try:
+        return dashboard_service.normalize_fy(fy)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 def _parse_csv(value: str | None) -> list[str]:
@@ -44,6 +51,7 @@ def get_active_rate(
     db: Session = Depends(get_db),
     _user: User = Depends(get_current_user),
 ) -> dict:
+    fy = _validated_fy(fy)
     dept_list = _parse_csv(departments)
     org_ids = dashboard_service.resolve_org_ids(db, departments=dept_list)
     return dashboard_service.aggregate_active_rate(db, org_ids, fy, month)
@@ -60,6 +68,7 @@ def get_one_on_one(
     db: Session = Depends(get_db),
     _user: User = Depends(get_current_user),
 ) -> dict:
+    fy = _validated_fy(fy)
     dept_list = _parse_csv(departments)
     org_ids = dashboard_service.resolve_org_ids(db, departments=dept_list)
     return dashboard_service.aggregate_one_on_one(db, org_ids, fy, month)
@@ -76,6 +85,7 @@ def get_points_summary(
     db: Session = Depends(get_db),
     _user: User = Depends(get_current_user),
 ) -> dict:
+    fy = _validated_fy(fy)
     dept_list = _parse_csv(departments)
     org_ids = dashboard_service.resolve_org_ids(db, departments=dept_list)
     dept_name = dept_list[0] if len(dept_list) == 1 else None

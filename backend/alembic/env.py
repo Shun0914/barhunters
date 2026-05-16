@@ -3,8 +3,7 @@
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy import engine_from_config, pool
-
+from app.db import make_migration_engine
 from app.models import Base
 from app.settings import get_settings
 
@@ -34,13 +33,8 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
-    configuration = config.get_section(config.config_ini_section) or {}
-    configuration["sqlalchemy.url"] = get_url()
-    connectable = engine_from_config(
-        configuration,
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
-    )
+    settings = get_settings()
+    connectable = make_migration_engine(settings.DATABASE_URL, settings.MYSQL_SSL_CA)
 
     with connectable.connect() as connection:
         context.configure(

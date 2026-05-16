@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import {
@@ -24,6 +24,7 @@ import type {
 type FormState = {
   title: string;
   activityGenreId: number | "";
+  points: number | null;
   description: string;
   approver1: string;
   approver2: string;
@@ -33,6 +34,7 @@ type FormState = {
 const EMPTY_FORM: FormState = {
   title: "",
   activityGenreId: "",
+  points: null,
   description: "",
   approver1: "",
   approver2: "",
@@ -46,6 +48,7 @@ function formStateFromApplication(app: PointApplication): FormState {
   return {
     title: app.title ?? "",
     activityGenreId: app.activity_genre_id ?? "",
+    points: app.points ?? null,
     description: app.description ?? "",
     approver1: app.approver_1_user_id ?? "",
     approver2: app.approver_2_user_id ?? "",
@@ -58,6 +61,7 @@ function payloadFromFormState(form: FormState): PointApplicationDraftIn {
     title: form.title || null,
     activity_genre_id:
       form.activityGenreId === "" ? null : Number(form.activityGenreId),
+    points: form.points,
     description: form.description || null,
     approver_1_user_id: form.approver1 || null,
     approver_2_user_id: form.approver2 || null,
@@ -107,12 +111,23 @@ export function PointApplicationForm() {
     };
   }, []);
 
-  // ポイント数の自動算出（ジャンル変更時、spec.md §2.3）
-  const points = useMemo<number | null>(() => {
-    if (form.activityGenreId === "") return null;
-    const id = Number(form.activityGenreId);
-    return genres.find((g) => g.id === id)?.default_points ?? null;
-  }, [form.activityGenreId, genres]);
+  // 活動ジャンル変更時にポイント数を自動入力する（spec.md §2.3）。
+  // setForm を useEffect で呼ぶとカスケード再レンダーになるため、
+  // ジャンル select の onChange 内で activityGenreId と points を同時に更新する。
+  // ユーザーはポイント入力欄で手動で上書きできる。
+  function handleGenreChange(rawValue: string) {
+    if (rawValue === "") {
+      setForm((s) => ({ ...s, activityGenreId: "", points: null }));
+      return;
+    }
+    const id = Number(rawValue);
+    const genre = genres.find((g) => g.id === id);
+    setForm((s) => ({
+      ...s,
+      activityGenreId: id,
+      points: genre?.default_points ?? s.points,
+    }));
+  }
 
   const totalSteps = route?.approval_total_steps ?? 0;
 
@@ -317,13 +332,7 @@ export function PointApplicationForm() {
               <select
                 id="activityGenreId"
                 value={form.activityGenreId}
-                onChange={(e) =>
-                  setForm((s) => ({
-                    ...s,
-                    activityGenreId:
-                      e.target.value === "" ? "" : Number(e.target.value),
-                  }))
-                }
+                onChange={(e) => handleGenreChange(e.target.value)}
                 className={`w-full appearance-none rounded border border-slate-300 bg-white px-3 py-2 pr-9 text-sm focus:border-[#0178C8] focus:outline-none ${
                   form.activityGenreId === "" ? "text-slate-300" : "text-[#334155]"
                 }`}
@@ -349,7 +358,7 @@ export function PointApplicationForm() {
             )}
           </div>
 
-          {/* ポイント数（読み取り専用） */}
+          {/* ポイント数（ジャンル選択で自動入力、手動編集可） */}
           <div>
             <label
               className="mb-1.5 block text-sm font-bold text-[#334155]"
@@ -361,10 +370,18 @@ export function PointApplicationForm() {
               {/* Figma 1:161 — 154px 固定幅 */}
               <input
                 id="points"
-                type="text"
-                value={points === null ? "" : String(points)}
-                readOnly
-                className="w-full cursor-not-allowed rounded border border-slate-300 bg-white px-3 py-2 pr-8 text-sm text-[#334155]"
+                type="number"
+                min={0}
+                inputMode="numeric"
+                value={form.points === null ? "" : String(form.points)}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setForm((s) => ({
+                    ...s,
+                    points: v === "" ? null : Math.max(0, Number(v)),
+                  }));
+                }}
+                className="w-full rounded border border-slate-300 bg-white px-3 py-2 pr-8 text-sm text-[#334155] focus:border-[#0178C8] focus:outline-none"
               />
               <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-[#64748b]">
                 P
