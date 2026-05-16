@@ -78,7 +78,7 @@ function ReliabilityStars({ reliability }: { reliability: Reliability }) {
   const filled = reliability.length;
   const empty = 3 - filled;
   return (
-    <span className="text-[12px] leading-none text-brand-accent">
+    <span className="text-[10px] leading-none text-brand-accent">
       {"★".repeat(filled)}
       {"☆".repeat(empty)}
     </span>
@@ -131,7 +131,7 @@ export function IndicatorCard({
       className={cn(
         "group relative w-full rounded-lg border border-transparent bg-card text-left shadow-sm transition-all duration-150",
         "hover:shadow-md",
-        isMain ? "p-3" : "p-2",
+        isMain ? "p-2" : "p-1.5",
         isMain && "border-brand-primary/40 bg-brand-bg-light",
         inChain && "ring-2 ring-brand-primary ring-offset-1 bg-brand-bg-light",
         dimmed && "opacity-40",
@@ -140,7 +140,7 @@ export function IndicatorCard({
       <div className="flex items-start justify-between gap-1.5">
         <span
           className={cn(
-            "truncate text-[13px] font-medium leading-tight",
+            "truncate text-[12px] font-medium leading-tight",
             isMain ? "text-brand-primary" : "text-ink-primary",
           )}
         >
@@ -167,7 +167,7 @@ export function IndicatorCard({
             }}
             className="inline-flex cursor-pointer items-center rounded p-0.5 text-ink-secondary hover:bg-brand-bg-light hover:text-ink-primary"
           >
-            <Search className="h-3.5 w-3.5" />
+            <Search className="h-3 w-3" />
           </span>
         </div>
       </div>
@@ -177,7 +177,7 @@ export function IndicatorCard({
           <div
             className={cn(
               "leading-tight text-ink-primary",
-              isMain ? "text-base" : "text-[12px]",
+              isMain ? "text-[13px]" : "text-[11px]",
             )}
           >
             {qualitativeCurrent ? (
@@ -193,13 +193,13 @@ export function IndicatorCard({
             <div
               className={cn(
                 "font-bold tabular-nums leading-tight",
-                isMain ? "text-2xl text-brand-primary" : "text-[18px] text-ink-primary",
+                isMain ? "text-xl text-brand-primary" : "text-[15px] text-ink-primary",
               )}
             >
               <span className="transition-all duration-300 ease-out">
                 {formatNum(value, unit)}
               </span>
-              <span className="mx-1.5 text-sm font-normal text-ink-secondary">
+              <span className="mx-1 text-xs font-normal text-ink-secondary">
                 →
               </span>
               <span>{formatNum(target, unit)}</span>
@@ -207,14 +207,14 @@ export function IndicatorCard({
             {delta !== null && delta !== 0 ? (
               <div
                 className={cn(
-                  "mt-0.5 text-[11px] tabular-nums",
+                  "mt-0 text-[10px] tabular-nums",
                   delta > 0 ? "text-status-ok-fg" : "text-status-ng-fg",
                 )}
               >
                 {deltaText(delta, unit)}
               </div>
             ) : delta === 0 ? (
-              <div className="mt-0.5 text-[11px] tabular-nums text-ink-secondary">
+              <div className="mt-0 text-[10px] tabular-nums text-ink-secondary">
                 目標達成
               </div>
             ) : null}
@@ -224,7 +224,7 @@ export function IndicatorCard({
             <div
               className={cn(
                 "font-bold tabular-nums leading-tight",
-                isMain ? "text-2xl text-brand-primary" : "text-[18px] text-ink-primary",
+                isMain ? "text-xl text-brand-primary" : "text-[15px] text-ink-primary",
               )}
             >
               {formatNum(target, unit)}
@@ -239,16 +239,16 @@ export function IndicatorCard({
             </span>
           </div>
         ) : description ? (
-          <div className="line-clamp-2 text-[11px] leading-snug text-ink-secondary">
+          <div className="line-clamp-1 text-[10px] leading-snug text-ink-secondary">
             {description}
           </div>
         ) : (
-          <div className="text-base text-ink-secondary">—</div>
+          <div className="text-sm text-ink-secondary">—</div>
         )}
       </div>
 
       {isMain && description ? (
-        <div className="mt-1 line-clamp-2 text-[10px] text-ink-secondary">
+        <div className="mt-0.5 line-clamp-1 text-[9px] text-ink-secondary">
           {description}
         </div>
       ) : null}

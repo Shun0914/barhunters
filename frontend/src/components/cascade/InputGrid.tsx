@@ -37,7 +37,7 @@ export function InputGrid({
   onHoverLeave,
 }: Props) {
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-1">
       {CELL_KEYS.map((key) => {
         const isActive = activeId === key;
         const inChain = isActive || highlighted.has(key);
@@ -95,7 +95,7 @@ function CellButton({
       onFocus={() => onHoverEnter(cellKey)}
       onBlur={onHoverLeave}
       className={cn(
-        "group relative rounded-lg border border-transparent bg-card p-2 text-left shadow-sm transition-all duration-150",
+        "group relative rounded-lg border border-transparent bg-card p-1.5 text-left shadow-sm transition-all duration-150",
         "hover:shadow-md",
         (isSelected || isHighlighted) &&
           "ring-2 ring-brand-primary ring-offset-1 bg-brand-bg-light",
@@ -106,8 +106,8 @@ function CellButton({
         className={cn("absolute left-0 top-0 h-full w-1 rounded-l-lg", CAT_DOT[cat])}
         aria-hidden
       />
-      <div className="flex items-center gap-2 pl-2">
-        <span className="flex-1 truncate text-[13px] font-medium text-ink-primary">
+      <div className="flex items-center gap-1.5 pl-1.5">
+        <span className="flex-1 truncate text-[12px] font-medium text-ink-primary">
           {CELL_LABEL[cellKey]}
         </span>
         <Input
@@ -118,9 +118,9 @@ function CellButton({
           placeholder="0"
           onClick={(e) => e.stopPropagation()}
           onChange={(e) => onChange(cellKey, Math.max(0, Number(e.target.value) || 0))}
-          className="h-7 w-20 px-1.5 text-right text-sm font-bold tabular-nums focus-visible:ring-brand-primary"
+          className="h-6 w-[4.5rem] px-1 text-right text-xs font-bold tabular-nums focus-visible:ring-brand-primary"
         />
-        <span className="text-[11px] font-semibold text-ink-secondary">pt</span>
+        <span className="text-[10px] font-semibold text-ink-secondary">pt</span>
       </div>
     </button>
   );
