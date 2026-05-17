@@ -10,7 +10,31 @@ const ANNUAL_TARGET = 6000;
 
 const ALL_HQS: Headquarters[] = ["CORPORATE", "ENERGY", "SUPPLY", "SALES"];
 
+const ZERO_DATA: DashboardData = {
+  activeRate: 0,
+  activeRateMoM: 0,
+  activeRateVsCompany: null,
+  oneOnOneTotal: 0,
+  oneOnOneBreakdown: {
+    seniorToLead: 0,
+    leadToChief: 0,
+    chiefToGeneral: 0,
+    leadToGeneral: 0,
+  },
+  matrix: {
+    daily: { social: 0, safety: 0, future: 0 },
+    cross: { social: 0, safety: 0, future: 0 },
+    creative: { social: 0, safety: 0, future: 0 },
+  },
+  totalPoints: 0,
+  annualTarget: ANNUAL_TARGET,
+};
+
 export function computeDashboardData(filter: DashboardFilter): DashboardData {
+  // クリアモード（「フィルタをクリア」押下後）は全数値 0 で表示する。
+  if (filter.isClearedMode) {
+    return ZERO_DATA;
+  }
   // 「空配列 = フィルタなし」のロジックで、会社・本部の絞り込み範囲から
   // 候補となる部署総数を計算する。
   const includesHd =

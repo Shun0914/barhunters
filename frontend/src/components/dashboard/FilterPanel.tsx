@@ -48,7 +48,8 @@ function toggleValue<T>(arr: readonly T[], value: T): T[] {
  * Excel フィルタ風の折りたたみ式プルダウン。
  * - ヘッダーをクリックで展開/折りたたみ
  * - 展開時は「全選択」「全解除」+ チェックボックスリスト
- * - 選択状態バッジ: 未選択 or 全選択 → 「全件対象」、部分選択 → 「N/M選択中」
+ * - 選択状態バッジ: クリアモード → 「0 件対象」、未選択 or 全選択 → 「全件対象」、
+ *   部分選択 → 「N/M選択中」
  */
 function FilterDropdown<T extends string>({
   label,
@@ -56,20 +57,27 @@ function FilterDropdown<T extends string>({
   selected,
   onSelectionChange,
   getLabel,
+  isClearedMode,
 }: {
   label: string;
   options: readonly T[];
   selected: readonly T[];
   onSelectionChange: (next: T[]) => void;
   getLabel: (value: T) => string;
+  isClearedMode: boolean;
 }) {
   const [open, setOpen] = useState(false);
 
   const total = options.length;
   const count = selected.length;
-  // 「未選択 = 全件対象」「全選択 = 結果的に全件対象」を同じバッジで表現する。
+  // バッジ表示 3 状態: クリアモード → 0 件対象、それ以外で 0 or 全選択 → 全件対象、部分選択 → N/M
   const isAllOrNone = count === 0 || count === total;
-  const badge = isAllOrNone ? "全件対象" : `${count}/${total} 選択中`;
+  const isNeutralBadge = isClearedMode || isAllOrNone;
+  const badge = isClearedMode
+    ? "0 件対象"
+    : isAllOrNone
+      ? "全件対象"
+      : `${count}/${total} 選択中`;
 
   const toggleOne = (value: T) => onSelectionChange(toggleValue(selected, value));
   const selectAll = () => onSelectionChange([...options]);
@@ -92,7 +100,7 @@ function FilterDropdown<T extends string>({
         <span
           className={cn(
             "rounded-full px-1.5 py-0.5 text-[10px] font-medium",
-            isAllOrNone
+            isNeutralBadge
               ? "bg-black/5 text-ink-secondary"
               : "bg-brand-primary/10 text-brand-primary",
           )}
@@ -150,18 +158,42 @@ export function FilterPanel({ filter, onChange, className }: Props) {
     ]),
   );
 
-  const clearAllFilters = () => onChange({ ...filter, ...EMPTY_FILTER_FIELDS });
+  // クリアモード or 全カテゴリ空 → 次に何か選択されたら「初回選択」として扱う。
+  const allCategoriesEmpty =
+    filter.companies.length === 0 &&
+    filter.hqs.length === 0 &&
+    filter.departments.length === 0 &&
+    filter.roles.length === 0;
+  const isFirstSelectionPending = filter.isClearedMode || allCategoriesEmpty;
 
-  // 「🌐 全社で見る」: 全カテゴリのチェックボックスを全選択状態にする。
-  // 集計結果は空配列（未選択）と同じ「全件対象」だが、UI 上は全 ON が見える。
-  const selectAllFilters = () =>
-    onChange({
-      ...filter,
-      companies: COMPANIES.map((c) => c.key),
-      hqs: [...HQ_KEYS],
-      departments: [...allDepartments],
-      roles: [...ROLES],
-    });
+  // 「全社で見る」: 全フィルタを空（=全件対象）に戻し、クリアモードを解除。
+  const handleShowAll = () =>
+    onChange({ ...filter, ...EMPTY_FILTER_FIELDS, isClearedMode: false });
+
+  // 「フィルタをクリア」: 全フィルタを空にし、クリアモード ON（全数値 0 表示）。
+  const handleClearFilter = () =>
+    onChange({ ...filter, ...EMPTY_FILTER_FIELDS, isClearedMode: true });
+
+  /**
+   * カテゴリ選択ハンドラ生成。
+   * 「初回選択」（クリアモード or 全カテゴリ空）から何か選択した瞬間、
+   * 他カテゴリを空にリセットし、クリアモードを解除する。
+   * すでに何か選択中の状態では当該カテゴリのみ更新（他カテゴリは維持）。
+   */
+  const onCategoryChange = <K extends keyof typeof EMPTY_FILTER_FIELDS>(
+    key: K,
+  ) => (next: (typeof EMPTY_FILTER_FIELDS)[K]) => {
+    if (isFirstSelectionPending && next.length > 0) {
+      onChange({
+        ...filter,
+        ...EMPTY_FILTER_FIELDS,
+        [key]: next,
+        isClearedMode: false,
+      });
+    } else {
+      onChange({ ...filter, [key]: next });
+    }
+  };
 
   return (
     <aside
@@ -174,14 +206,14 @@ export function FilterPanel({ filter, onChange, className }: Props) {
       <div className="flex flex-col gap-1.5">
         <button
           type="button"
-          onClick={selectAllFilters}
+          onClick={handleShowAll}
           className="rounded border border-black/10 bg-white px-2 py-1.5 text-[12px] font-medium text-ink-primary hover:bg-brand-bg-light hover:text-brand-primary"
         >
           全社で見る
         </button>
         <button
           type="button"
-          onClick={clearAllFilters}
+          onClick={handleClearFilter}
           className="rounded border border-black/10 bg-white px-2 py-1.5 text-[12px] font-medium text-ink-secondary hover:bg-brand-bg-light hover:text-brand-primary"
         >
           フィルタをクリア
@@ -243,32 +275,36 @@ export function FilterPanel({ filter, onChange, className }: Props) {
         label="会社"
         options={COMPANIES.map((c) => c.key) as Company[]}
         selected={filter.companies}
-        onSelectionChange={(companies) => onChange({ ...filter, companies })}
+        onSelectionChange={onCategoryChange("companies")}
         getLabel={(key) => COMPANIES.find((c) => c.key === key)?.label ?? key}
+        isClearedMode={filter.isClearedMode}
       />
 
       <FilterDropdown
         label="本部"
         options={HQ_KEYS}
         selected={filter.hqs}
-        onSelectionChange={(hqs) => onChange({ ...filter, hqs })}
+        onSelectionChange={onCategoryChange("hqs")}
         getLabel={(key) => SAIBU_HQ[key].label}
+        isClearedMode={filter.isClearedMode}
       />
 
       <FilterDropdown
         label="部署"
         options={allDepartments}
         selected={filter.departments}
-        onSelectionChange={(departments) => onChange({ ...filter, departments })}
+        onSelectionChange={onCategoryChange("departments")}
         getLabel={(name) => name}
+        isClearedMode={filter.isClearedMode}
       />
 
       <FilterDropdown
         label="役職"
         options={ROLES}
         selected={filter.roles}
-        onSelectionChange={(roles) => onChange({ ...filter, roles })}
+        onSelectionChange={onCategoryChange("roles")}
         getLabel={(name) => name}
+        isClearedMode={filter.isClearedMode}
       />
     </aside>
   );

@@ -20,14 +20,15 @@ function isManagerLikeRole(role: string | null | undefined): boolean {
 
 export function DashboardPageClient() {
   const [filter, setFilter] = useState<DashboardFilter>({
-    // 起動時は全フィルタ空 = 全社合算で表示する。
-    // クイックボタン「全社で見る」「フィルタをクリア」と同義状態。
+    // 起動時は全フィルタ空 = 全社合算で表示する（isClearedMode=false で「全件対象」）。
+    // 「フィルタをクリア」を押すと isClearedMode=true となり、全数値 0 表示に切り替わる。
     companies: [],
     hqs: [],
     departments: [],
     roles: [],
     fiscalYear: "FY2026",
     month: 5,
+    isClearedMode: false,
   });
 
   const [me, setMe] = useState<UserBrief | null>(null);

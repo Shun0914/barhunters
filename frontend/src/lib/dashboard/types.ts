@@ -20,6 +20,12 @@ export interface DashboardFilter {
   /** 期間フィルター（PR-A では UI のみ・データ非連動）。 */
   fiscalYear: FiscalYear;
   month: Month;
+  /**
+   * クリアモード。true のとき全ダッシュボード数値を 0 で表示する。
+   * 「フィルタをクリア」ボタンで true、「全社で見る」やカテゴリ初回選択で false に戻す。
+   * 4 カテゴリすべて空配列でも false（=「全件対象」表示）と「0 件対象」を区別する。
+   */
+  isClearedMode: boolean;
 }
 
 export interface DashboardData {
