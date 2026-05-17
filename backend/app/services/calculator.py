@@ -667,3 +667,52 @@ def calculate(points: PointsInput) -> CascadeResult:
         yearly=yearly,
         connections=connections,
     )
+
+
+# ════════════════════════════════════════════════════════════
+# v2.5 仕様準拠・5/17 議論結果反映：年次推移計算
+# ════════════════════════════════════════════════════════════
+
+
+def calculate_yearly_progression(
+    points: int = 6000,
+    start_year: int = 2025,
+    full_effect_years: int = 5,
+    end_year: int = 2030,
+) -> dict[int, dict[str, float]]:
+    """線形補完で各年次の効果（売上 / コスト / 資本 / ROIC / ROE）を返す。
+
+    フル効果は与えた points を 3 カテゴリに均等配分（points/3 ずつ）して
+    既存 calculate() で求める。各年次の効果は
+    progression_ratio = (year - start_year + 1) / full_effect_years
+    に full_effect を掛けた線形補完。
+
+    Args:
+        points: 投入ポイント総数（3 カテゴリ均等配分）
+        start_year: 効果立ち上げ初年度
+        full_effect_years: フル効果到達までの年数（progression_ratio = 1.0 になる年）
+        end_year: 出力範囲の最終年度（フル効果年を超えても線形外挿する）
+
+    Returns:
+        {year: {roic_pt, roe_pt, sales_oku, cost_oku, capital_oku, manifestation_rate}}
+        - *_pt は %ポイント単位（例: 0.196 = +0.196pt）
+        - *_oku は億円単位
+        - manifestation_rate は 0.20 = 20% 発現
+    """
+    per_cat = points / 3
+    full = calculate(PointsInput(social=per_cat, safety=per_cat, future=per_cat))
+    full_roic_pt = full.roic_delta * 100
+    full_roe_pt = full.roe_delta * 100
+
+    out: dict[int, dict[str, float]] = {}
+    for year in range(start_year, end_year + 1):
+        ratio = (year - start_year + 1) / full_effect_years
+        out[year] = {
+            "roic_pt": full_roic_pt * ratio,
+            "roe_pt": full_roe_pt * ratio,
+            "sales_oku": full.sales_effect_oku * ratio,
+            "cost_oku": full.cost_savings_oku * ratio,
+            "capital_oku": full.capital_savings_oku * ratio,
+            "manifestation_rate": ratio,
+        }
+    return out
