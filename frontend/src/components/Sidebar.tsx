@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 import { DevUserSwitcher } from "@/components/DevUserSwitcher";
 import { ICONS } from "@/components/icons";
 import { NotificationBell } from "@/components/NotificationBell";
-import { APP_NAME } from "@/lib/appBranding";
+import { APP_LOGO_PATH, APP_NAME } from "@/lib/appBranding";
 import { apiFetch, setDevUserId } from "@/lib/api";
 import { logout } from "@/lib/api/auth";
 import type { UserBrief } from "@/lib/api/types";
@@ -113,8 +113,8 @@ export function Sidebar() {
       <div className="flex h-20 shrink-0 items-center gap-2 px-3">
         <div className="relative h-10 w-12 shrink-0">
           <Image
-            src="/seibugas-logo.png"
-            alt="西部ガスホールディングス"
+            src={APP_LOGO_PATH}
+            alt={APP_NAME}
             fill
             sizes="48px"
             className="object-contain"
