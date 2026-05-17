@@ -1,9 +1,9 @@
 """認証: Cookie JWT セッション + 開発用ヘッダ切替（Issue #16）。
 
 current user の解決順:
-1. HttpOnly Cookie の JWT（`sub` = users.id）
-2. ALLOW_DEV_AUTH_HEADER が true のときのみ `X-Dev-User-Id`
-3. ALLOW_DEV_AUTH_HEADER が true のときのみ `DEV_DEFAULT_USER_ID`
+1. ALLOW_DEV_AUTH_HEADER が true かつ `X-Dev-User-Id` あり → そのユーザー（デモ切替）
+2. HttpOnly Cookie の JWT（`sub` = users.id）
+3. ALLOW_DEV_AUTH_HEADER が true かつ `DEV_DEFAULT_USER_ID` あり
 4. いずれも無効 → HTTP 401
 """
 
@@ -34,17 +34,17 @@ def get_current_user(
     settings: Settings = Depends(get_settings),
     x_dev_user_id: str | None = Header(default=None, alias="X-Dev-User-Id"),
 ) -> User:
+    if settings.ALLOW_DEV_AUTH_HEADER and x_dev_user_id:
+        return _user_from_id(db, x_dev_user_id)
+
     token = request.cookies.get(settings.SESSION_COOKIE_NAME)
     if token:
         user_id = decode_session_token(token, settings)
         if user_id:
             return _user_from_id(db, user_id)
 
-    if settings.ALLOW_DEV_AUTH_HEADER:
-        if x_dev_user_id:
-            return _user_from_id(db, x_dev_user_id)
-        if settings.DEV_DEFAULT_USER_ID:
-            return _user_from_id(db, settings.DEV_DEFAULT_USER_ID)
+    if settings.ALLOW_DEV_AUTH_HEADER and settings.DEV_DEFAULT_USER_ID:
+        return _user_from_id(db, settings.DEV_DEFAULT_USER_ID)
 
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
