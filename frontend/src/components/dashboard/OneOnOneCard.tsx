@@ -8,10 +8,10 @@ type SegmentKey = keyof DashboardData["oneOnOneBreakdown"];
 
 // 4 色 blue ramp（濃 → 薄）。棒と凡例で共通。
 const BARS: { key: SegmentKey; label: string; color: string }[] = [
-  { key: "seniorToLead",   label: "部長↔課長", color: "#185FA5" },
-  { key: "leadToChief",    label: "課長↔係長", color: "#3D86C7" },
+  { key: "seniorToLead", label: "部長↔課長", color: "#185FA5" },
+  { key: "leadToChief", label: "課長↔係長", color: "#3D86C7" },
   { key: "chiefToGeneral", label: "係長↔一般", color: "#6FA9DD" },
-  { key: "leadToGeneral",  label: "課長↔一般", color: "#A3CAE9" },
+  { key: "leadToGeneral", label: "課長↔一般", color: "#A3CAE9" },
 ];
 
 // SVG viewBox（縦軸ラベルなし・X軸ラベルなし、値テキスト + バーのみで縦を詰める）。
@@ -22,7 +22,11 @@ const BAR_AREA_BOTTOM = 72;
 const BAR_AREA_HEIGHT = BAR_AREA_BOTTOM - BAR_AREA_TOP;
 const BAR_WIDTH = 14;
 const SLOT_WIDTH = 22;
-const GROUP_X0 = (VB_W - SLOT_WIDTH * BARS.length) / 2 + (SLOT_WIDTH - BAR_WIDTH) / 2;
+const GROUP_X0 =
+  (VB_W - SLOT_WIDTH * BARS.length) / 2 + (SLOT_WIDTH - BAR_WIDTH) / 2;
+
+/** 棒グラフの表示幅（px）。凡例は w-fit のためグラフ側を大きくしてカード内バランスを取る。 */
+const CHART_WIDTH_PX = 220;
 
 export function OneOnOneCard({ data }: Props) {
   const bars = BARS.map((b) => ({ ...b, value: data.oneOnOneBreakdown[b.key] }));
@@ -33,12 +37,13 @@ export function OneOnOneCard({ data }: Props) {
       <h2 className="text-[14px] font-semibold text-ink-primary">1on1 実施状況</h2>
 
       <div className="flex flex-1 flex-col justify-center gap-3">
-        <div className="flex items-center gap-3">
-          {/* 左: 縦棒グラフ（X軸ラベル無し） */}
+        <div className="flex items-end justify-center gap-4">
+          {/* 左: 縦棒グラフ（幅を拡大して凡例とのバランスを改善） */}
           <svg
             viewBox={`0 0 ${VB_W} ${VB_H}`}
             className="shrink-0"
-            style={{ width: 160 }}
+            style={{ width: CHART_WIDTH_PX, height: "auto" }}
+            aria-hidden
           >
             {bars.map((bar, i) => {
               const h = (bar.value / maxValue) * BAR_AREA_HEIGHT;
@@ -70,19 +75,17 @@ export function OneOnOneCard({ data }: Props) {
             })}
           </svg>
 
-          {/* 右: 凡例（flex-1 でラベルが伸びて数字がカード端に離れるのを避け、桁揃え用に列を固定） */}
-          <ul className="flex min-w-0 flex-1 flex-col gap-0.5 text-[11px] text-ink-primary">
+          {/* 右: 凡例（flex-1 禁止・行幅は内容にフィット） */}
+          <ul className="flex w-max shrink-0 flex-col gap-1 pb-1 text-[11px] text-ink-primary">
             {bars.map((bar) => (
-              <li
-                key={bar.key}
-                className="grid grid-cols-[auto_minmax(0,1fr)_2.25rem] items-center gap-x-2"
-              >
+              <li key={bar.key} className="flex items-center gap-2">
                 <span
                   className="inline-block h-2 w-2 shrink-0 rounded-full"
                   style={{ background: bar.color }}
+                  aria-hidden
                 />
-                <span className="min-w-0 truncate">{bar.label}</span>
-                <span className="text-right font-semibold tabular-nums">
+                <span className="whitespace-nowrap">{bar.label}</span>
+                <span className="min-w-[1.25rem] text-right font-semibold tabular-nums">
                   {bar.value}
                 </span>
               </li>
@@ -92,7 +95,7 @@ export function OneOnOneCard({ data }: Props) {
 
         <div className="text-center text-[12px] text-ink-secondary">
           合計{" "}
-          <span className="text-[16px] font-bold text-ink-primary tabular-nums">
+          <span className="text-[16px] font-bold tabular-nums text-ink-primary">
             {data.oneOnOneTotal}
           </span>{" "}
           件
