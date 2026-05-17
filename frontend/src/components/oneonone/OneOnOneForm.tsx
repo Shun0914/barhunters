@@ -93,7 +93,7 @@ export function OneOnOneForm() {
       <div className="flex-1 overflow-auto bg-white px-8 py-6">
         <form
           onSubmit={handleSubmit}
-          className="max-w-md space-y-4 rounded-[5px] border border-slate-200 bg-[#ecf5fa] p-5 shadow-sm"
+          className="w-full space-y-4 rounded-[5px] border border-slate-200 bg-[#ecf5fa] p-5 shadow-sm"
         >
           <div>
             <label
@@ -108,7 +108,7 @@ export function OneOnOneForm() {
               value={conductedAt}
               onChange={(e) => setConductedAt(e.target.value)}
               required
-              className="w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm text-[#334155] focus:border-[#0178C8] focus:outline-none"
+              className="w-full max-w-xs rounded border border-slate-300 bg-white px-3 py-2 text-sm text-[#334155] focus:border-[#0178C8] focus:outline-none"
             />
           </div>
 
@@ -125,7 +125,7 @@ export function OneOnOneForm() {
               onChange={(e) => setPartnerRole(e.target.value)}
               required
               disabled={rolesLoading || submitting}
-              className="w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm text-[#334155] focus:border-[#0178C8] focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-50"
+              className="w-full max-w-xs rounded border border-slate-300 bg-white px-3 py-2 text-sm text-[#334155] focus:border-[#0178C8] focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-50"
             >
               {rolesLoading ? (
                 <option value="">読み込み中…</option>
@@ -153,9 +153,9 @@ export function OneOnOneForm() {
               id="note"
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              rows={4}
+              rows={8}
               placeholder="話した内容、所感など"
-              className="w-full resize-none rounded border border-slate-300 bg-white px-3 py-2 text-sm text-[#334155] focus:border-[#0178C8] focus:outline-none"
+              className="w-full resize-y rounded border border-slate-300 bg-white px-3 py-2 text-sm text-[#334155] focus:border-[#0178C8] focus:outline-none"
             />
           </div>
 
