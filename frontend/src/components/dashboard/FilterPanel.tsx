@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import { cn } from "@/lib/utils";
 import { ALL_DEPARTMENTS, createFullFilter } from "@/lib/dashboard/filterDefaults";
-import { ROLES, SAIBU_HQ } from "@/lib/dashboard/org";
+import { HD_DEPARTMENTS, ROLES, SAIBU_HQ } from "@/lib/dashboard/org";
 import type {
   Company,
   DashboardFilter,
@@ -43,6 +43,23 @@ function toggleValue<T>(arr: readonly T[], value: T): T[] {
   if (set.has(value)) set.delete(value);
   else set.add(value);
   return Array.from(set);
+}
+
+// 会社・本部から到達可能な部署集合を求める。
+// HD は HD_DEPARTMENTS、SAIBU は選択中の本部の depts を辿る。
+// 例: 会社=[SAIBU]、本部=[ENERGY] → ENERGY 配下の部署のみ
+function computeReachableDepts(
+  companies: readonly Company[],
+  hqs: readonly Headquarters[],
+): Set<string> {
+  const set = new Set<string>();
+  if (companies.includes("HD")) {
+    HD_DEPARTMENTS.forEach((d) => set.add(d));
+  }
+  if (companies.includes("SAIBU")) {
+    hqs.forEach((h) => SAIBU_HQ[h].departments.forEach((d) => set.add(d)));
+  }
+  return set;
 }
 
 /**
@@ -170,6 +187,37 @@ export function FilterPanel({ filter, onChange, className }: Props) {
     });
   };
 
+  // 会社変更: チェックを外した会社（HD or SAIBU）に紐づく本部・部署を連動削除。
+  // SAIBU を外すと、本部 4 つすべてが選択から外れ、SAIBU 配下の部署も消える。
+  // HD を外すと、HD 専属の部署のみ消える（SAIBU 側で重複する部署は SAIBU が残れば維持）。
+  const handleCompaniesChange = (next: Company[]) => {
+    const nextHqs = next.includes("SAIBU") ? filter.hqs : [];
+    const reachable = computeReachableDepts(next, nextHqs);
+    const nextDepartments = filter.departments.filter((d) => reachable.has(d));
+    const exitClearedMode = filter.isClearedMode && next.length > 0;
+    onChange({
+      ...filter,
+      companies: next,
+      hqs: nextHqs,
+      departments: nextDepartments,
+      ...(exitClearedMode ? { isClearedMode: false } : {}),
+    });
+  };
+
+  // 本部変更: チェックを外した本部の部署を選択から消す。
+  // ただし HD など別経路で到達可能な部署（同名重複）は保持する。
+  const handleHqsChange = (next: Headquarters[]) => {
+    const reachable = computeReachableDepts(filter.companies, next);
+    const nextDepartments = filter.departments.filter((d) => reachable.has(d));
+    const exitClearedMode = filter.isClearedMode && next.length > 0;
+    onChange({
+      ...filter,
+      hqs: next,
+      departments: nextDepartments,
+      ...(exitClearedMode ? { isClearedMode: false } : {}),
+    });
+  };
+
   return (
     <aside
       className={cn(
@@ -250,7 +298,7 @@ export function FilterPanel({ filter, onChange, className }: Props) {
         label="会社"
         options={COMPANIES.map((c) => c.key) as Company[]}
         selected={filter.companies}
-        onSelectionChange={onCategoryChange("companies")}
+        onSelectionChange={handleCompaniesChange}
         getLabel={(key) => COMPANIES.find((c) => c.key === key)?.label ?? key}
       />
 
@@ -258,7 +306,7 @@ export function FilterPanel({ filter, onChange, className }: Props) {
         label="本部"
         options={HQ_KEYS}
         selected={filter.hqs}
-        onSelectionChange={onCategoryChange("hqs")}
+        onSelectionChange={handleHqsChange}
         getLabel={(key) => SAIBU_HQ[key].label}
       />
 
