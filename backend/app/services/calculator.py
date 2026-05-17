@@ -213,24 +213,25 @@ LAYER3_TO_MID_COUNT: list[tuple[str, str, float, str, str]] = [
 
 # ════════════════════════════════════════════════════════════
 # 中間層 → 財務 行列  (revenue, cost, capital)
+# v2.6 道 2: NotebookLM 39 係数（% 単位、文献値ベース）に置き換え。
+# 各値は「100% 達成時のフル発現効果（売上比 / 投下資本比、5-7 年後）」。
+# 旧 v7 の無次元重みは EXCEL_*_FACTOR で逆算スケールしていたが、
+# 道 2 では FACTOR を撤廃し PERIOD_RATIO（=1/3）で時間軸を統一する。
 # ════════════════════════════════════════════════════════════
 MID_TO_FIN: dict[str, tuple[float, float, float]] = {
-    "safety_zero": (0.015, 0.012, 0.074),
-    "renewable_mid": (0.035, 0.015, 0.075),
-    "co2": (0.009, 0.004, 0.058),
-    "jcsi": (0.035, 0.025, 0.025),
-    "ltv": (0.030, 0.010, 0.040),
-    # v6: PoC を統合した分、地域共創力の重みを微増
-    "region": (0.080, 0.020, 0.060),
-    "esg": (0.230, 0.100, 0.130),
-    "recruit": (0.060, 0.120, 0.140),
-    "safety_brand": (0.020, 0.030, 0.120),
-    # v6: プレゼンティーイズム — 3,500人 × 75万損失/年 = 26億/年 → 5%改善で 1.3億/年（売上換算 0.5%）
-    "presenteeism": (0.030, 0.080, 0.000),
-    # v6: アブセンティーイズム — 欠勤・代替要員費の直接削減
-    "absenteeism": (0.005, 0.040, 0.000),
-    "dx_core": (0.020, 0.040, 0.030),
-    "reskill": (0.040, 0.070, 0.050),
+    "safety_zero":  (0.0005, 0.0010, 0.0005),  # 保安事故ゼロ
+    "renewable_mid":(0.0050, 0.0010, 0.0020),  # 再エネ取扱量
+    "co2":          (0.0030, 0.0015, 0.0020),  # CO2削減
+    "jcsi":         (0.0080, 0.0020, 0.0010),  # JCSI
+    "ltv":          (0.0120, 0.0030, 0.0015),  # 顧客LTV
+    "region":       (0.0025, 0.0005, 0.0030),  # 地域共創
+    "esg":          (0.0010, 0.0010, 0.0040),  # ESG評価
+    "recruit":      (0.0020, 0.0035, 0.0020),  # 採用・定着力
+    "safety_brand": (0.0040, 0.0010, 0.0010),  # 保安ブランド
+    "presenteeism": (0.0070, 0.0030, 0.0025),  # プレゼンティーイズム
+    "absenteeism":  (0.0005, 0.0015, 0.0005),  # アブセンティーイズム
+    "dx_core":      (0.0080, 0.0060, 0.0040),  # DXコア人材数
+    "reskill":      (0.0045, 0.0025, 0.0030),  # リスキル実践者数
 }
 
 FIN_RELIABILITY: dict[str, str] = {
@@ -250,29 +251,12 @@ FIN_RELIABILITY: dict[str, str] = {
 }
 
 # ════════════════════════════════════════════════════════════
-# Excel ベース校正係数（v7）
+# v2.6 道 2: 期間内発現率（NotebookLM 文献値の時間軸補正）
 # ════════════════════════════════════════════════════════════
-# 6,000P 投入時の cascade 出力（revenue, cost, capital ドライバー）を、
-# Excel Sheet 10「財務ドライバー寄与率」と整合させるための変換係数。
-# 出典: 西部ガス_計算ロジック_ポイント.xlsx Sheet 10
-#
-# Excel 値（6,000P 投入時）:
-#   売上効果       : +9.7  億円 (revenue 寄与  0.384% × 2,544 億)
-#   コスト削減     : +5.4  億円 (cost    寄与  0.214% × 2,544 億)
-#   資本効率化     : +59.4 億円 (capital 寄与  2.10%  × 2,829 億)
-#
-# 実装の cascade 出力（6,000P 投入時、2025-05-16 計測）:
-#   revenue: 0.1294
-#   cost   : 0.1495
-#   capital: 0.1712
-#
-# 校正ファクタ = Excel 値 / (driver × ベース)
-#   EXCEL_REVENUE_FACTOR = 970 M / (0.1294 × 254,442 M) = 0.02948
-#   EXCEL_COST_FACTOR    = 540 M / (0.1495 × 254,442 M) = 0.01420
-#   EXCEL_CAPITAL_FACTOR = 5,940 M / (0.1712 × 282,876 M) = 0.12264
-EXCEL_REVENUE_FACTOR = 0.02948
-EXCEL_COST_FACTOR = 0.01420
-EXCEL_CAPITAL_FACTOR = 0.12264
+# NotebookLM 39 係数は 5-7 年後のフル発現効果を表す（柳モデル文献の時間軸）。
+# ACT2027 3 年計画期間 + 保守係数で線形按分し、全ドライバー共通の発現率として
+# 1/3 を適用する（旧 v7 の EXCEL_*_FACTOR 逆算は完全撤廃）。
+PERIOD_RATIO = 1.0 / 3.0
 
 
 # ════════════════════════════════════════════════════════════
@@ -447,11 +431,13 @@ def _calc_mid(layer3: dict[str, KpiResult]) -> dict[str, KpiResult]:
 def _calc_financial(
     mid: dict[str, KpiResult],
 ) -> tuple[dict[str, float], float, float, float, float, float, float, float, float]:
-    """中間層 → 売上効果 / コスト削減 / 資本効率化 → ΔROIC / ΔROE（v7: Excel 整合）
+    """中間層 → 売上効果 / コスト削減 / 資本効率化 → ΔROIC / ΔROE（v2.6 道 2: NotebookLM 直接適用）
 
-    - 売上効果       = revenue × REVENUE_M × EXCEL_REVENUE_FACTOR
-    - コスト削減     = cost    × REVENUE_M × EXCEL_COST_FACTOR
-    - 資本効率化     = capital × INVESTED_CAP × EXCEL_CAPITAL_FACTOR
+    - revenue_pct / cost_pct / capital_pct は NotebookLM 39 係数（% 単位、文献値）
+      × 中間層 achievement の累積（→ ベース比のフラクションになる）
+    - 売上効果       = revenue_pct × PERIOD_RATIO × REVENUE_M
+    - コスト削減     = cost_pct    × PERIOD_RATIO × REVENUE_M
+    - 資本効率化     = capital_pct × PERIOD_RATIO × INVESTED_CAP
     - ROIC_new       = (NOPAT + 売上NOPAT寄与 + コストNOPAT寄与) / (INVESTED_CAP - 資本効率改善)
         ・売上NOPAT寄与 = sales_effect_m × OP_MARGIN × (1 - TAX_RATE)
         ・コストNOPAT寄与 = cost_savings_m × (1 - TAX_RATE)
@@ -468,12 +454,12 @@ def _calc_financial(
 
     drivers = {"revenue": revenue, "cost": cost, "capital": capital}
 
-    # 3 経路の財務効果（Excel Sheet 10 整合）
-    sales_effect_m = revenue * REVENUE_M * EXCEL_REVENUE_FACTOR
+    # v2.6 道 2: NotebookLM 文献値 × cascade × 期間内発現率
+    sales_effect_m = revenue * PERIOD_RATIO * REVENUE_M
     sales_effect_oku = sales_effect_m / 100
-    cost_savings_m = cost * REVENUE_M * EXCEL_COST_FACTOR
+    cost_savings_m = cost * PERIOD_RATIO * REVENUE_M
     cost_savings_oku = cost_savings_m / 100
-    capital_savings_m = capital * INVESTED_CAP * EXCEL_CAPITAL_FACTOR
+    capital_savings_m = capital * PERIOD_RATIO * INVESTED_CAP
     capital_savings_oku = capital_savings_m / 100
 
     # ROIC: 売上 → NOPAT, コスト → NOPAT, 資本効率 → 投下資本減
@@ -562,33 +548,34 @@ def _build_connections() -> list[Edge]:
             edges.append(Edge(from_id=mid_id, to_id="cost", coefficient=cc, reliability=rel))
         if kc > 0.01:
             edges.append(Edge(from_id=mid_id, to_id="capital", coefficient=kc, reliability=rel))
-    # v7: 売上ドライバー → 売上効果 / コスト → コスト削減 / 資本 → 資本効率化
-    # 係数は Excel ベースの校正ファクタ × 該当ベース（売上 or 投下資本）。
+    # v2.6 道 2: 売上ドライバー → 売上効果 / コスト → コスト削減 / 資本 → 資本効率化
+    # 係数 = PERIOD_RATIO × 該当ベース / 100（億円換算）。
+    # NotebookLM 文献値はすでに MID_TO_FIN に含まれているため、ここでは時間軸補正のみ。
     edges.append(
         Edge(
             from_id="revenue",
             to_id="sales_effect",
-            coefficient=EXCEL_REVENUE_FACTOR * REVENUE_M / 100,
+            coefficient=PERIOD_RATIO * REVENUE_M / 100,
             reliability="★★",
-            citation="Excel Sheet 10: 売上効果 = revenue × 売上 × 0.02948",
+            citation="NotebookLM 39係数 × cascade × 期間内発現率1/3",
         )
     )
     edges.append(
         Edge(
             from_id="cost",
             to_id="cost_savings",
-            coefficient=EXCEL_COST_FACTOR * REVENUE_M / 100,
+            coefficient=PERIOD_RATIO * REVENUE_M / 100,
             reliability="★★",
-            citation="Excel Sheet 10: コスト削減 = cost × 売上 × 0.01420",
+            citation="NotebookLM 39係数 × cascade × 期間内発現率1/3",
         )
     )
     edges.append(
         Edge(
             from_id="capital",
             to_id="capital_savings",
-            coefficient=EXCEL_CAPITAL_FACTOR * INVESTED_CAP / 100,
+            coefficient=PERIOD_RATIO * INVESTED_CAP / 100,
             reliability="★★",
-            citation="Excel Sheet 10: 資本効率化 = capital × 投下資本 × 0.12264",
+            citation="NotebookLM 39係数 × cascade × 期間内発現率1/3",
         )
     )
     # v7: 売上効果 → ROIC（NOPAT 寄与）
