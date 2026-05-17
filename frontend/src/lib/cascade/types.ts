@@ -53,6 +53,8 @@ export interface Edge {
   coefficient: number;
   reliability: Reliability;
   citation: string;
+  /** 描画スタイル。"solid" は実線、"dashed" は点線。 */
+  style: "solid" | "dashed";
 }
 
 export interface YearlyResult {
@@ -83,6 +85,11 @@ export interface CascadeResponse {
   summary: FinancialSummary;
   yearly: YearlyResult[];
   updated_at: string;
+  /**
+   * 第3層 KPI ホバー時にハイライト対象とする中間層 ID（係数降順 上位 5）。
+   * connections は上位 3 のみ線あり。4-5 位は線なしハイライトだけ。
+   */
+  highlights: Record<string, string[]>;
 }
 
 export interface SimulateRequest {

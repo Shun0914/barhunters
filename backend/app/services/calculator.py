@@ -338,6 +338,7 @@ class CascadeResult:
         roe_delta,
         yearly,
         connections,
+        highlights,
     ):
         self.points = points
         self.layer3 = layer3
@@ -353,6 +354,7 @@ class CascadeResult:
         self.roe_delta = roe_delta
         self.yearly = yearly
         self.connections = connections
+        self.highlights = highlights
         self.updated_at = datetime.now().isoformat()
 
 
@@ -515,33 +517,76 @@ def _build_yearly(roic_delta: float, roe_delta: float) -> list[YearlyResult]:
     ]
 
 
-def _build_layer3_to_mid_edges() -> list[Edge]:
-    """3 層 KPI → 中間層の接続線を「各 KPI から上位 4 本 + 全中間層への最低 1 本保証」で構築。
+def _layer3_kpi_to_mid_sorted() -> dict[str, list[tuple[str, float, str, str]]]:
+    """各 3 層 KPI ごとに、紐づく中間層を係数降順でソートして返す内部ヘルパー。
 
-    LAYER3_TO_MID（サーベイ由来）と LAYER3_TO_MID_COUNT（実カウント、点線関連）を統合し、
-    KPI ごとに係数降順で上位 4 本を採用。さらに、どの KPI からも採用されなかった中間層に
-    対しては、最大係数の KPI から 1 本だけ追加する（全中間層が必ず 1 本以上の入力を持つ）。
+    対象は LAYER3_TO_MID（サーベイ由来 10 個）のみ。LAYER3_TO_MID_COUNT は
+    画面の中間層カラムに表示されないため、線・ハイライトのランキングから除外する
+    （cascade 計算では従来通り両方使う）。
+    戻り値: {kpi_id: [(mid_id, coef, reliability, citation), ...] 降順}
     """
-    # {kpi_id: {mid_id: (coef, reliability, citation)}}
     kpi_to_mid: dict[str, dict[str, tuple[float, str, str]]] = {}
-    for from_id, to_id, coef, rel, citation in LAYER3_TO_MID + LAYER3_TO_MID_COUNT:
+    for from_id, to_id, coef, rel, citation in LAYER3_TO_MID:
         kpi_to_mid.setdefault(from_id, {})[to_id] = (coef, rel, citation)
 
-    all_mids: set[str] = set()
-    for d in kpi_to_mid.values():
-        all_mids.update(d.keys())
-
-    edges: list[Edge] = []
-    connected_mids: set[str] = set()
-
-    # Step 1: 各 KPI から上位 4 本
+    out: dict[str, list[tuple[str, float, str, str]]] = {}
     for kpi_id, mid_w in kpi_to_mid.items():
-        sorted_pairs = sorted(
-            ((mid, info) for mid, info in mid_w.items() if info[0] > 0),
-            key=lambda x: x[1][0],
+        out[kpi_id] = sorted(
+            ((mid, w, r, c) for mid, (w, r, c) in mid_w.items() if w > 0),
+            key=lambda x: x[1],
             reverse=True,
         )
-        for mid_id, (w, rel, citation) in sorted_pairs[:4]:
+    return out
+
+
+# 視覚補完: survey 由来だけでは top 5 に届かない KPI に追加表示する中間層 ID。
+# 数値ロジック（LAYER3_TO_MID）には加えず、画面の線・ハイライトだけに反映する。
+# 既存ランキングと重複する mid は実装側で自動的に除外し、ユーザー指定順で末尾に追加する。
+VISUAL_FILLERS: dict[str, list[str]] = {
+    # 挑戦人財（既存: region 0.27, ltv 0.06）— ltv は重複除外 → +3 で合計 5
+    "challenge": ["safety_zero", "jcsi", "ltv", "esg"],
+    # 変革人財（既存: co2 0.15, esg 0.15, region 0.10）— region は重複除外 → +2 で合計 5
+    "transform": ["safety_brand", "ltv"],
+}
+
+# 視覚補完で挿入する edge のダミー係数（ArrowOverlay の MIN_THRESHOLD 0.1 超え）。
+# 既存の最小係数 0.04 より大きくしてランキングを乱さないよう、_top5 では再ソートせず
+# 既存ソート結果の末尾に追加する。
+_FILLER_COEF = 0.5
+
+
+def _layer3_kpi_to_mid_top5() -> dict[str, list[tuple[str, float, str, str]]]:
+    """各 KPI ごとに、視覚表示用の top 5 中間層リストを返す。
+
+    survey 由来の係数降順を先頭に、5 個に届かない KPI は VISUAL_FILLERS の指定で
+    末尾に補充する（補充分は係数 0.5 のダミー、reliability ★）。
+    既存ランキングとの重複は自動除外し、ユーザー指定順を尊重する。
+    """
+    base = _layer3_kpi_to_mid_sorted()
+    out: dict[str, list[tuple[str, float, str, str]]] = {}
+    for kpi_id in set(base.keys()) | set(VISUAL_FILLERS.keys()):
+        ranked = list(base.get(kpi_id, []))
+        existing = {mid for mid, _w, _r, _c in ranked}
+        for filler_mid in VISUAL_FILLERS.get(kpi_id, []):
+            if len(ranked) >= 5:
+                break
+            if filler_mid in existing:
+                continue
+            ranked.append((filler_mid, _FILLER_COEF, "★", "視覚補完（数値ロジック対象外）"))
+            existing.add(filler_mid)
+        out[kpi_id] = ranked[:5]
+    return out
+
+
+def _build_layer3_to_mid_edges() -> list[Edge]:
+    """3 層 KPI → 中間層の接続線。各 KPI から top 5 のうち上位 3 のみ採用。
+
+    1 位は実線、2-3 位は点線。4-5 位は connections に含めず、`highlights` 経由で
+    ホバー時のハイライトだけ表示する（線なし）。
+    """
+    edges: list[Edge] = []
+    for kpi_id, sorted_pairs in _layer3_kpi_to_mid_top5().items():
+        for rank, (mid_id, w, rel, citation) in enumerate(sorted_pairs[:3]):
             edges.append(
                 Edge(
                     from_id=kpi_id,
@@ -549,31 +594,22 @@ def _build_layer3_to_mid_edges() -> list[Edge]:
                     coefficient=w,
                     reliability=rel,
                     citation=citation,
+                    style="solid" if rank == 0 else "dashed",
                 )
             )
-            connected_mids.add(mid_id)
-
-    # Step 2: 未接続中間層に最大重みの KPI から 1 本追加
-    for mid_id in sorted(all_mids - connected_mids):
-        best_kpi: str | None = None
-        best: tuple[float, str, str] = (0.0, "★", "")
-        for kpi_id, mid_w in kpi_to_mid.items():
-            info = mid_w.get(mid_id)
-            if info and info[0] > best[0]:
-                best_kpi = kpi_id
-                best = info
-        if best_kpi is not None and best[0] > 0:
-            edges.append(
-                Edge(
-                    from_id=best_kpi,
-                    to_id=mid_id,
-                    coefficient=best[0],
-                    reliability=best[1],
-                    citation=best[2],
-                )
-            )
-
     return edges
+
+
+def _build_layer3_to_mid_highlights() -> dict[str, list[str]]:
+    """各 3 層 KPI ホバー時にハイライトする中間層 ID（top 5）。
+
+    connections で線が引かれる上位 3 + 線なしハイライトのみの 4-5 位を含む。
+    survey 由来だけで足りない KPI は VISUAL_FILLERS で補充済。
+    """
+    return {
+        kpi_id: [mid for mid, _w, _r, _c in sorted_pairs[:5]]
+        for kpi_id, sorted_pairs in _layer3_kpi_to_mid_top5().items()
+    }
 
 
 def _build_mid_to_fin_edges() -> list[Edge]:
@@ -748,6 +784,7 @@ def calculate(points: PointsInput) -> CascadeResult:
     ) = _calc_financial(mid)
     yearly = _build_yearly(roic_delta, roe_delta)
     connections = _build_connections()
+    highlights = _build_layer3_to_mid_highlights()
     return CascadeResult(
         points=points,
         layer3=layer3,
@@ -763,6 +800,7 @@ def calculate(points: PointsInput) -> CascadeResult:
         roe_delta=roe_delta,
         yearly=yearly,
         connections=connections,
+        highlights=highlights,
     )
 
 

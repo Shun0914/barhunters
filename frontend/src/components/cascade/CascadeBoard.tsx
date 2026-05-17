@@ -238,11 +238,23 @@ function CascadeBoardInner() {
     return m;
   }, [data]);
 
-  // 焦点ノード（hover > click）からのBFSで下流ノードを集める
+  // 焦点ノード（hover > click）からのBFSで下流ノードを集める。
+  // 第3層 KPI を直接ホバーしている場合のみ、線なしの 4-5 位中間層も
+  // ハイライト対象に加える（BFS が線なし中間層から下流へ伸びるよう、
+  // 追加した中間層をキューに積み直す）。
   const highlighted = useMemo(() => {
     if (!activeId) return new Set<string>();
     const out = new Set<string>();
-    const queue = [activeId];
+    const queue: string[] = [activeId];
+    const extra = data?.highlights?.[activeId];
+    if (extra) {
+      for (const id of extra) {
+        if (!out.has(id)) {
+          out.add(id);
+          queue.push(id);
+        }
+      }
+    }
     while (queue.length > 0) {
       const cur = queue.shift()!;
       const next = adjacency.get(cur) ?? [];
@@ -254,7 +266,7 @@ function CascadeBoardInner() {
       }
     }
     return out;
-  }, [activeId, adjacency]);
+  }, [activeId, adjacency, data]);
 
   const handleInput = useCallback((key: CategoryKey, value: number) => {
     setPoints((prev) => {
