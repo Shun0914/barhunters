@@ -297,11 +297,8 @@ function CascadeBoardInner() {
 
   return (
     <div className="flex flex-col gap-1">
-      {/* ヘッダー + スコープトグル + サマリー */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 border-b border-ink-secondary/20 pb-1">
-        <h1 className="text-[16px] font-semibold tracking-tight text-ink-primary">
-          因果ストーリー
-        </h1>
+      {/* スコープトグル + サマリー（ページタイトルは PageHeader） */}
+      <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-0.5 border-b border-ink-secondary/20 pb-2">
         <div className="flex gap-3 text-[12px]">
           {SCOPE_OPTIONS.map((s) => (
             <button
