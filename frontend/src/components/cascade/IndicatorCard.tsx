@@ -42,7 +42,11 @@ export function formatNum(
   unit?: string | null,
 ): string {
   if (v === null || v === undefined || Number.isNaN(v)) return "—";
-  if (unit === "%") return `${v.toFixed(1)}%`;
+  // % は ROIC/ROE のような小さい値（<10%）を 2 桁、それ以外（ENG 59.4% など）を 1 桁で表示。
+  if (unit === "%") {
+    const decimals = Math.abs(v) < 10 ? 2 : 1;
+    return `${v.toFixed(decimals)}%`;
+  }
   if (unit === "スコア") return v.toFixed(2);
   if (unit === "名") return `${Math.round(v).toLocaleString()}名`;
   if (unit === "件") return `${v.toFixed(1)}件`;
@@ -64,7 +68,11 @@ export function deltaText(delta: number, unit?: string | null): string {
   if (delta === 0) return "±0";
   const sign = delta > 0 ? "+" : "−";
   const abs = Math.abs(delta);
-  if (unit === "%") return `${sign}${abs.toFixed(1)}pt`;
+  if (unit === "%") {
+    // ROIC/ROE の +0.176pt のような微小値は 3 桁、それ以外（KPI の +5.6pt 等）は 1 桁。
+    const decimals = abs < 1 ? 3 : 1;
+    return `${sign}${abs.toFixed(decimals)}pt`;
+  }
   if (unit === "スコア") return `${sign}${abs.toFixed(2)}`;
   if (unit === "億円") return `${sign}${abs.toFixed(1)}億円`;
   if (unit === "億kWh") return `${sign}${abs.toFixed(1)}億kWh`;

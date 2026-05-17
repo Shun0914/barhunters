@@ -211,9 +211,7 @@ META: dict = {
             "measurement": "主要事業セグメントの電力販売量（前年同期比）",
             "targetRationale": "ACT2027 で 6.4億kWh → 9.0億kWh（2027年度）を中計目標。インフラ事業の安定性を維持しつつ新規領域の成長を組み込む。" + REFINE,
         },
-        "target": 9.0,
-        "unit": "億kWh",
-        "baselineCurrent": 6.4,
+        "qualitativeTarget": "JCSI/LTV/ESG/地域/PoC",
     },
     "cost": {
         "description": {
@@ -229,9 +227,7 @@ META: dict = {
             "measurement": "2023年度末の政策保有株式残高を100とし、各時点の残高比率で表示",
             "targetRationale": "ACT2027 で 2028年度までに 50%（2023年度比 半減）を目標。中期経営計画の資本効率目標に整合。" + REFINE,
         },
-        "target": 50,
-        "unit": "%",
-        "baselineCurrent": 100,
+        "qualitativeTarget": "ESG/保安ブランド/採用",
     },
     "roic": {
         "description": {
