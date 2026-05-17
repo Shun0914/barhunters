@@ -207,26 +207,39 @@ export function Sidebar() {
         {/* お気に入りセクションは MVP では DOM レベルで非表示（spec.md §1.1） */}
       </nav>
 
-      {/* 左下: ユーザー表示 + 通知ベル（spec.md §1.1 / §1.3） — 開発時はクリックでユーザー切替 */}
-      <div className="flex items-center gap-2 border-t border-slate-200 px-4 py-3">
-        <DevUserSwitcher />
-        <button
-          type="button"
-          onClick={async () => {
-            try {
-              await logout();
-            } catch {
-              // ignore
-            }
-            setDevUserId(null);
-            router.replace("/login");
-          }}
-          className="shrink-0 rounded px-2 py-1 text-[10px] text-slate-600 hover:bg-slate-100"
-          title="ログアウト"
-        >
-          ログアウト
-        </button>
-        <NotificationBell />
+      {/* 左下: ユーザー表示 + 通知ベル（spec.md §1.1 / §1.3） — 開発時はクリックでユーザー切替。
+          長い氏名でも通知バッジがはみ出さないよう、アバター右側で名前と操作群を 2 段に並べる。
+          マイページ導線は本番（switchEnabled=false）でも維持するため bottomSlot 内に統合。 */}
+      <div className="flex items-start border-t border-slate-200 px-4 py-3">
+        <DevUserSwitcher
+          bottomSlot={
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await logout();
+                  } catch {
+                    // ignore
+                  }
+                  setDevUserId(null);
+                  router.replace("/login");
+                }}
+                className="shrink-0 rounded px-2 py-1 text-[10px] text-slate-600 hover:bg-slate-100"
+                title="ログアウト"
+              >
+                ログアウト
+              </button>
+              <NotificationBell />
+              <Link
+                href="/mypage"
+                className="text-[10px] text-[#0178C8] hover:underline"
+              >
+                マイページ
+              </Link>
+            </div>
+          }
+        />
       </div>
     </aside>
   );

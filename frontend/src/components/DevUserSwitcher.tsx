@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { apiFetch, getDevUserId, isDevUserSwitchEnabled, setDevUserId } from "@/lib/api";
 import type { UserBrief } from "@/lib/api/types";
@@ -10,8 +10,17 @@ function initialsOf(name: string): string {
   return name.slice(0, 2);
 }
 
+type Props = {
+  /**
+   * アバターの右側、名前の下に並べる要素（例: ログアウトボタン + 通知ベル）。
+   * 渡すと「アバター | 名前 / bottomSlot」の 2 段レイアウトになり、長い名前でも
+   * 通知バッジがサイドバー外にはみ出さない。
+   */
+  bottomSlot?: ReactNode;
+};
+
 /** 左下: ログインユーザー表示。デモ切替は NEXT_PUBLIC_ALLOW_DEV_USER_SWITCH=true 時のみ。 */
-export function DevUserSwitcher() {
+export function DevUserSwitcher({ bottomSlot }: Props = {}) {
   const switchEnabled = isDevUserSwitchEnabled();
   const [me, setMe] = useState<UserBrief | null>(null);
   const [allUsers, setAllUsers] = useState<UserBrief[]>([]);
@@ -53,33 +62,48 @@ export function DevUserSwitcher() {
       {me ? initialsOf(me.name) : "—"}
     </div>
   );
+  // 2 段レイアウトで折り返しを許容するため truncate を撤廃し break-words を付与。
   const nameEl = (
-    <div className="flex-1 truncate text-sm text-[#334155]">{me?.name ?? "（読み込み中）"}</div>
+    <div className="text-sm text-[#334155] break-words">{me?.name ?? "（読み込み中）"}</div>
   );
 
   if (!switchEnabled) {
     return (
-      <div className="flex flex-1 items-center gap-2 px-1">
+      <div className="flex flex-1 items-start gap-2 px-1">
         {avatar}
-        {nameEl}
-        <Link href="/mypage" className="text-[10px] text-[#0178C8] hover:underline">
-          マイページ
-        </Link>
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          {nameEl}
+          {bottomSlot ? bottomSlot : (
+            <Link href="/mypage" className="text-[10px] text-[#0178C8] hover:underline">
+              マイページ
+            </Link>
+          )}
+        </div>
       </div>
     );
   }
 
   return (
-    <div ref={wrapRef} className="relative flex flex-1 items-center gap-2">
+    <div ref={wrapRef} className="relative flex flex-1 items-start gap-2">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex flex-1 items-center gap-2 rounded px-1 py-1 text-left transition hover:bg-[#ecf5fa]"
+        className="shrink-0 rounded p-0.5 transition hover:bg-[#ecf5fa]"
         title="デモ用ユーザー切替"
       >
         {avatar}
-        {nameEl}
       </button>
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="rounded px-1 py-0.5 text-left transition hover:bg-[#ecf5fa]"
+          title="デモ用ユーザー切替"
+        >
+          {nameEl}
+        </button>
+        {bottomSlot}
+      </div>
 
       {open && (
         <div className="absolute bottom-full left-0 z-10 mb-2 max-h-72 w-[230px] overflow-y-auto rounded border border-slate-200 bg-white shadow-lg">
