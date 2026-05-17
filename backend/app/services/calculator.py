@@ -504,6 +504,117 @@ def _build_yearly(roic_delta: float, roe_delta: float) -> list[YearlyResult]:
     ]
 
 
+def _build_layer3_to_mid_edges() -> list[Edge]:
+    """3 層 KPI → 中間層の接続線を「各 KPI から上位 4 本 + 全中間層への最低 1 本保証」で構築。
+
+    LAYER3_TO_MID（サーベイ由来）と LAYER3_TO_MID_COUNT（実カウント、点線関連）を統合し、
+    KPI ごとに係数降順で上位 4 本を採用。さらに、どの KPI からも採用されなかった中間層に
+    対しては、最大係数の KPI から 1 本だけ追加する（全中間層が必ず 1 本以上の入力を持つ）。
+    """
+    # {kpi_id: {mid_id: (coef, reliability, citation)}}
+    kpi_to_mid: dict[str, dict[str, tuple[float, str, str]]] = {}
+    for from_id, to_id, coef, rel, citation in LAYER3_TO_MID + LAYER3_TO_MID_COUNT:
+        kpi_to_mid.setdefault(from_id, {})[to_id] = (coef, rel, citation)
+
+    all_mids: set[str] = set()
+    for d in kpi_to_mid.values():
+        all_mids.update(d.keys())
+
+    edges: list[Edge] = []
+    connected_mids: set[str] = set()
+
+    # Step 1: 各 KPI から上位 4 本
+    for kpi_id, mid_w in kpi_to_mid.items():
+        sorted_pairs = sorted(
+            ((mid, info) for mid, info in mid_w.items() if info[0] > 0),
+            key=lambda x: x[1][0],
+            reverse=True,
+        )
+        for mid_id, (w, rel, citation) in sorted_pairs[:4]:
+            edges.append(
+                Edge(
+                    from_id=kpi_id,
+                    to_id=mid_id,
+                    coefficient=w,
+                    reliability=rel,
+                    citation=citation,
+                )
+            )
+            connected_mids.add(mid_id)
+
+    # Step 2: 未接続中間層に最大重みの KPI から 1 本追加
+    for mid_id in sorted(all_mids - connected_mids):
+        best_kpi: str | None = None
+        best: tuple[float, str, str] = (0.0, "★", "")
+        for kpi_id, mid_w in kpi_to_mid.items():
+            info = mid_w.get(mid_id)
+            if info and info[0] > best[0]:
+                best_kpi = kpi_id
+                best = info
+        if best_kpi is not None and best[0] > 0:
+            edges.append(
+                Edge(
+                    from_id=best_kpi,
+                    to_id=mid_id,
+                    coefficient=best[0],
+                    reliability=best[1],
+                    citation=best[2],
+                )
+            )
+
+    return edges
+
+
+def _build_mid_to_fin_edges() -> list[Edge]:
+    """中間層 → 財務ドライバー（revenue/cost/capital）。
+
+    上位 4 本 + 最低 1 本保証ルール。
+    各ドライバーに対して MID_TO_FIN の対応係数で降順ソートし上位 4 本を採用。
+    どのドライバーにも採用されなかった中間層は最大寄与ドライバーへ 1 本追加。
+    """
+    drivers = ("revenue", "cost", "capital")
+    edges: list[Edge] = []
+    connected_mids: set[str] = set()
+
+    # Step 1: 各ドライバーへの上位 4 本
+    for idx, driver in enumerate(drivers):
+        mid_to_w = [
+            (mid_id, weights[idx])
+            for mid_id, weights in MID_TO_FIN.items()
+            if weights[idx] > 0
+        ]
+        mid_to_w.sort(key=lambda x: x[1], reverse=True)
+        for mid_id, w in mid_to_w[:4]:
+            edges.append(
+                Edge(
+                    from_id=mid_id,
+                    to_id=driver,
+                    coefficient=w,
+                    reliability=FIN_RELIABILITY.get(mid_id, "★"),
+                    citation="",
+                )
+            )
+            connected_mids.add(mid_id)
+
+    # Step 2: 未接続中間層を最大寄与ドライバーへ
+    for mid_id in sorted(set(MID_TO_FIN.keys()) - connected_mids):
+        weights = MID_TO_FIN[mid_id]
+        max_w = max(weights)
+        if max_w > 0:
+            max_idx = weights.index(max_w)
+            edges.append(
+                Edge(
+                    from_id=mid_id,
+                    to_id=drivers[max_idx],
+                    coefficient=max_w,
+                    reliability=FIN_RELIABILITY.get(mid_id, "★"),
+                    citation="",
+                )
+            )
+
+    return edges
+
+
 def _build_connections() -> list[Edge]:
     edges = []
     # 3カテゴリ → 7風土（M9_7 を平均集約した M3_7）
@@ -531,25 +642,11 @@ def _build_connections() -> list[Edge]:
                         citation="接続行列7×4（仮）",
                     )
                 )
-    # 3層 → 中間層
-    for from_id, to_id, coef, rel, citation in LAYER3_TO_MID:
-        edges.append(
-            Edge(from_id=from_id, to_id=to_id, coefficient=coef, reliability=rel, citation=citation)
-        )
-    # 3層 → 実カウント中間層（点線関連）
-    for from_id, to_id, coef, rel, citation in LAYER3_TO_MID_COUNT:
-        edges.append(
-            Edge(from_id=from_id, to_id=to_id, coefficient=coef, reliability=rel, citation=citation)
-        )
-    # 中間層 → 財務ドライバー
-    for mid_id, (rc, cc, kc) in MID_TO_FIN.items():
-        rel = FIN_RELIABILITY[mid_id]
-        if rc > 0.01:
-            edges.append(Edge(from_id=mid_id, to_id="revenue", coefficient=rc, reliability=rel))
-        if cc > 0.01:
-            edges.append(Edge(from_id=mid_id, to_id="cost", coefficient=cc, reliability=rel))
-        if kc > 0.01:
-            edges.append(Edge(from_id=mid_id, to_id="capital", coefficient=kc, reliability=rel))
+    # 3層 → 中間層: 「各 KPI から上位 4 本 + 全中間層への最低 1 本保証」
+    # （LAYER3_TO_MID と LAYER3_TO_MID_COUNT を統合してから top-N 抽出）
+    edges.extend(_build_layer3_to_mid_edges())
+    # 中間層 → 財務ドライバー: 「各ドライバーへ上位 4 本 + 全中間層からの最低 1 本保証」
+    edges.extend(_build_mid_to_fin_edges())
     # v2.6 道 2: 売上ドライバー → 売上効果 / コスト → コスト削減 / 資本 → 資本効率化
     # 係数 = PERIOD_RATIO × 該当ベース / 100（億円換算）。
     # NotebookLM 文献値はすでに MID_TO_FIN に含まれているため、ここでは時間軸補正のみ。
