@@ -211,6 +211,17 @@ LAYER3_TO_MID_COUNT: list[tuple[str, str, float, str, str]] = [
     ("transform", "reskill", 0.5, "★", "変革人財との関連（仮）"),
     ("eng", "reskill", 0.3, "★", "学習文化からの関連（仮）"),
     ("transform", "renewable_mid", 0.4, "★", "脱炭素人財との関連（仮）"),
+    # v2.6: 挑戦指数 → 実カウント中間層（挑戦文化が DX / リスキル / 新事業を押し上げる）
+    ("challenge", "dx_core", 0.20, "★", "挑戦文化 → DX 推進"),
+    ("challenge", "reskill", 0.10, "★", "挑戦 → 学び直し"),
+    ("challenge", "renewable_mid", 0.08, "★", "挑戦 → 新事業領域"),
+]
+
+# v2.6: 挑戦指数 → サーベイ由来中間層（追加分）。
+# spec の poc (0.15) と 地域共創 (0.12) は v6 で region に統合済のため合算 (0.27) で渡す。
+LAYER3_TO_MID += [
+    ("challenge", "region", 0.27, "★", "PoC + 新規地域取り組み"),
+    ("challenge", "ltv", 0.06, "★", "挑戦 → 顧客接点での新価値創造"),
 ]
 
 # ════════════════════════════════════════════════════════════

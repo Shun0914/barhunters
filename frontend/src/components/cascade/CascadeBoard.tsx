@@ -476,6 +476,10 @@ function CascadeBoardInner() {
             const c = cardOf(id);
             const d = displayOf(id);
             const isMain = id === "sales_effect";
+            // 売上効果カードは current → projected の自動描画ではなく、backend で整形済みの
+            // 「+11.12 億円」一行だけを大きく表示する。
+            const valueDisplayOverride =
+              id === "sales_effect" ? c?.value_display || null : null;
             return c ? (
               <IndicatorCard
                 key={id}
@@ -489,6 +493,7 @@ function CascadeBoardInner() {
                 unit={d.unit}
                 qualitativeCurrent={d.qualitativeCurrent}
                 qualitativeTarget={d.qualitativeTarget}
+                valueDisplayOverride={valueDisplayOverride}
                 description={c.description}
                 reliability={c.reliability}
                 emphasis={isMain ? "main" : "default"}

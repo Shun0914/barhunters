@@ -107,7 +107,7 @@ def _financial_to_cards(
             column_key=ind_sales.column_key if ind_sales else "lagging",
             sort_order=ind_sales.sort_order if ind_sales else 99,
             link_url=ind_sales.link_url if ind_sales else None,
-            value_display=f"+{result.sales_effect_oku:.2f}億円",
+            value_display=f"+{result.sales_effect_oku:.2f} 億円",
             current=0.0,
             target=SALES_TARGET_OKU,
             projected=result.sales_effect_oku,

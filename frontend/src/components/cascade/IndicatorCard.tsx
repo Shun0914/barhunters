@@ -25,6 +25,12 @@ type Props = {
   qualitativeCurrent?: string | null;
   /** 数値で表せない指標の質的な目標値テキスト。 */
   qualitativeTarget?: string | null;
+  /**
+   * 事前整形済み文字列を「見出し」として描画するための上書き値。
+   * 売上効果カード（sales_effect）で「+11.12 億円」だけを大きく見せるために使う。
+   * 設定時は qualitative / numeric の各ブランチをスキップする。
+   */
+  valueDisplayOverride?: string | null;
   emphasis?: "main" | "default";
   selected?: boolean;
   highlighted?: boolean;
@@ -100,6 +106,7 @@ export function IndicatorCard({
   unit,
   qualitativeCurrent,
   qualitativeTarget,
+  valueDisplayOverride,
   emphasis = "default",
   selected,
   highlighted,
@@ -190,7 +197,16 @@ export function IndicatorCard({
       </div>
 
       <div className="mt-0.5">
-        {hasQualitative ? (
+        {valueDisplayOverride ? (
+          <div
+            className={cn(
+              "font-bold tabular-nums leading-tight",
+              isMain ? "text-xl text-brand-primary" : "text-[15px] text-ink-primary",
+            )}
+          >
+            {valueDisplayOverride}
+          </div>
+        ) : hasQualitative ? (
           <div
             className={cn(
               "leading-tight text-ink-primary",
