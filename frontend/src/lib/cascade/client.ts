@@ -2,8 +2,6 @@ import { apiFetch, getApiBaseUrl } from "@/lib/api";
 import type { IndicatorMetaMap } from "./meta";
 import type { CascadeResponse, PointsInput } from "./types";
 
-export type CascadeScope = "company" | "department";
-
 export async function simulateCascade(
   points: PointsInput,
   signal?: AbortSignal,
@@ -41,11 +39,11 @@ export async function fetchIndicatorMeta(
   return (await res.json()) as IndicatorMetaMap;
 }
 
+/** 承認済みポイントの9セル集計（全社固定）。 */
 export async function fetchAggregatedPoints(
-  scope: CascadeScope,
   signal?: AbortSignal,
 ): Promise<PointsInput> {
-  return apiFetch<PointsInput>(`/api/cascade/aggregated-points?scope=${scope}`, {
+  return apiFetch<PointsInput>("/api/cascade/aggregated-points?scope=company", {
     method: "GET",
     signal,
   });

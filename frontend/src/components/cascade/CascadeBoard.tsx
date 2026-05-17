@@ -34,16 +34,6 @@ import { IndicatorDetailModal } from "./IndicatorDetailModal";
 import { InputGrid } from "./InputGrid";
 import { PlaceholderCard } from "./PlaceholderCard";
 
-// スコープトグル（全社 / 自部署）。タブによる指標フィルタは廃止。
-const SCOPE_OPTIONS = [
-  { key: "company", label: "全社" },
-  { key: "department", label: "自部署" },
-] as const;
-type ScopeKey = (typeof SCOPE_OPTIONS)[number]["key"];
-
-// TODO: ユーザー API（/api/me 等）から取得する想定。デモ用にハードコード。
-const USER_DEPT_LABEL = "営業本部・福岡リビング営業部";
-
 const HUDO_LABEL_DEFAULT: Record<string, string> = {
   sales_effect: "売上効果",
   revenue: "売上ドライバー",
@@ -91,11 +81,10 @@ function CascadeBoardInner() {
   const [data, setData] = useState<CascadeResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  /** 初回表示・スコープ切替中はグリッドを出さず、集計→simulate 完了まで待つ */
+  /** 初回表示中はグリッドを出さず、集計→simulate 完了まで待つ */
   const [bootstrapping, setBootstrapping] = useState(true);
   const [selected, setSelected] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const [scope, setScope] = useState<ScopeKey>("company");
   const [detailId, setDetailId] = useState<string | null>(null);
   // 指標メタは backend JSON から取得（Issue #28）。初回 fetch 中は空 map（UI は backend の値だけで動作）。
   const [indicatorMeta, setIndicatorMeta] = useState<IndicatorMetaMap>({});
@@ -114,7 +103,7 @@ function CascadeBoardInner() {
   // ホバー > クリック の優先度で「現在の焦点」を決める
   const activeId = hoveredId ?? selected;
 
-  // 初回・スコープ切替: 集計ポイント取得 → simulate を連続実行（空グリッドを見せない）
+  // 初回: 全社集計ポイント取得 → simulate を連続実行（空グリッドを見せない）
   useEffect(() => {
     const ctrl = new AbortController();
     let cancelled = false;
@@ -125,7 +114,7 @@ function CascadeBoardInner() {
 
     void (async () => {
       try {
-        const aggregated = await fetchAggregatedPoints(scope, ctrl.signal);
+        const aggregated = await fetchAggregatedPoints(ctrl.signal);
         if (cancelled) return;
         setPoints(aggregated);
         const res = await simulateCascade(aggregated, ctrl.signal);
@@ -148,9 +137,9 @@ function CascadeBoardInner() {
       cancelled = true;
       ctrl.abort();
     };
-  }, [scope]);
+  }, []);
 
-  // セル入力・リセット等: points 変更時に simulate（デバウンス）。bootstrap 中は scope 効果に任せる。
+  // セル入力・リセット等: points 変更時に simulate（デバウンス）。bootstrap 中は初回効果に任せる。
   const abortRef = useRef<AbortController | null>(null);
   useEffect(() => {
     if (bootstrapping) return;
@@ -314,26 +303,9 @@ function CascadeBoardInner() {
 
   return (
     <div className="flex flex-col gap-1">
-      {/* スコープトグル + サマリー（ページタイトルは PageHeader） */}
-      <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-0.5 border-b border-ink-secondary/20 pb-2">
-        <div className="flex gap-3 text-[12px]">
-          {SCOPE_OPTIONS.map((s) => (
-            <button
-              key={s.key}
-              type="button"
-              onClick={() => setScope(s.key)}
-              className={cn(
-                "-mb-1 border-b-2 pb-1 transition-colors",
-                scope === s.key
-                  ? "border-brand-primary font-semibold text-ink-primary"
-                  : "border-transparent text-ink-secondary hover:text-ink-primary",
-              )}
-            >
-              {s.key === "department" ? USER_DEPT_LABEL : s.label}
-            </button>
-          ))}
-        </div>
-        <div className="ml-auto flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] text-ink-secondary">
+      {/* サマリー（ページタイトルは PageHeader） */}
+      <div className="mb-2 flex flex-wrap items-center justify-end gap-x-3 gap-y-0.5 border-b border-ink-secondary/20 pb-2">
+        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] text-ink-secondary">
           <span className="font-semibold text-ink-primary">合計</span>
           <span className="tabular-nums text-ink-primary">
             {total.toLocaleString()} pt
