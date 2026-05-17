@@ -4,6 +4,11 @@ export function getApiBaseUrl(): string {
   return raw.replace(/\/$/, "");
 }
 
+/** デモ: ログイン後に左下で別ユーザーとして API を叩く（backend ALLOW_DEV_AUTH_HEADER 要）。 */
+export function isDevUserSwitchEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_ALLOW_DEV_USER_SWITCH === "true";
+}
+
 /** API 共通の HTTP エラー。 */
 export class ApiError extends Error {
   status: number;
@@ -15,12 +20,10 @@ export class ApiError extends Error {
   }
 }
 
-/** 開発用のダミーログインユーザー切替（spec.md §5.0 / Q-50）。
- *  バックエンドの auth.py が `X-Dev-User-Id` を見て current user を解決する。
- *  ブラウザの localStorage にユーザー ID を保存し、毎リクエストでヘッダ付与。 */
 const DEV_USER_STORAGE_KEY = "barhunters:devUserId";
 
 export function getDevUserId(): string | null {
+  if (!isDevUserSwitchEnabled()) return null;
   if (typeof window === "undefined") return null;
   try {
     return window.localStorage.getItem(DEV_USER_STORAGE_KEY);
@@ -30,6 +33,7 @@ export function getDevUserId(): string | null {
 }
 
 export function setDevUserId(id: string | null): void {
+  if (!isDevUserSwitchEnabled()) return;
   if (typeof window === "undefined") return;
   try {
     if (id) {
@@ -51,6 +55,7 @@ export async function apiFetch<T>(
   const devUserId = getDevUserId();
   const res = await fetch(url, {
     cache: "no-store",
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
       ...(devUserId ? { "X-Dev-User-Id": devUserId } : {}),

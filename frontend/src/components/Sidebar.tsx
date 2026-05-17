@@ -2,13 +2,14 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { DevUserSwitcher } from "@/components/DevUserSwitcher";
 import { ICONS } from "@/components/icons";
 import { NotificationBell } from "@/components/NotificationBell";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, setDevUserId } from "@/lib/api";
+import { logout } from "@/lib/api/auth";
 import type { UserBrief } from "@/lib/api/types";
 
 // spec.md §1.1 のサイドナビ構成（MVP は PC 固定幅・常時展開・お気に入り非表示）
@@ -87,6 +88,7 @@ function navLinkClass(active: boolean): string {
 }
 
 export function Sidebar() {
+  const router = useRouter();
   const pathname = usePathname();
   const activeHref = resolveActiveHref(pathname);
   const isActive = (href: string) => href === activeHref;
@@ -217,6 +219,22 @@ export function Sidebar() {
       {/* 左下: ユーザー表示 + 通知ベル（spec.md §1.1 / §1.3） — 開発時はクリックでユーザー切替 */}
       <div className="flex items-center gap-2 border-t border-slate-200 px-4 py-3">
         <DevUserSwitcher />
+        <button
+          type="button"
+          onClick={async () => {
+            try {
+              await logout();
+            } catch {
+              // ignore
+            }
+            setDevUserId(null);
+            router.replace("/login");
+          }}
+          className="shrink-0 rounded px-2 py-1 text-[10px] text-slate-600 hover:bg-slate-100"
+          title="ログアウト"
+        >
+          ログアウト
+        </button>
         <NotificationBell />
       </div>
     </aside>

@@ -58,19 +58,53 @@ def main() -> None:
     session.flush()
 
     # 役職ヒエラルキー: 部長 1 / 課長 1 / 係長 1 / 一般社員 8（frontend 表記に統一）
-    session.add(User(id=str(uuid4()), name="部長 太郎", org_id=org_id, role="部長"))
-    session.add(User(id=str(uuid4()), name="課長 花子", org_id=org_id, role="課長"))
-    session.add(User(id=str(uuid4()), name="係長 次郎", org_id=org_id, role="係長"))
+    # employee_code = デモログイン ID（DEMO_PASSWORD と組み合わせて Issue #16）
+    session.add(
+        User(
+            id=str(uuid4()),
+            name="部長 太郎",
+            org_id=org_id,
+            role="部長",
+            employee_code="MIN-BM-001",
+        )
+    )
+    session.add(
+        User(
+            id=str(uuid4()),
+            name="課長 花子",
+            org_id=org_id,
+            role="課長",
+            employee_code="MIN-KC-001",
+        )
+    )
+    session.add(
+        User(
+            id=str(uuid4()),
+            name="係長 次郎",
+            org_id=org_id,
+            role="係長",
+            employee_code="MIN-KG-001",
+        )
+    )
     session.add(
         User(
             id=DEV_DEFAULT_USER_ID,
             name="一般社員 申太郎",
             org_id=org_id,
             role="一般社員",
+            employee_code="MIN-IP-001",
         )
     )
     for i in range(2, 9):
-        session.add(User(id=str(uuid4()), name=f"一般社員 {i:02d}", org_id=org_id, role="一般社員"))
+        session.add(
+            User(
+                id=str(uuid4()),
+                name=f"一般社員 {i:02d}",
+                org_id=org_id,
+                role="一般社員",
+                employee_code=f"MIN-IP-{i:03d}",
+            )
+        )
 
     # 活動ジャンル（Q-02 暫定値）
     session.add(ActivityGenre(name="挑戦", default_points=10, sort_order=1, is_active=True))
@@ -99,7 +133,9 @@ def main() -> None:
         "Seed OK: organization x1, users x11 (部長/課長/係長/一般社員), "
         "activity_genres x2, indicators x1\n"
         f"  DEV_DEFAULT_USER_ID = {DEV_DEFAULT_USER_ID}\n"
-        f"  → backend/.env に転記してサーバ起動してください。"
+        "  デモログイン例: MIN-BM-001（部長）, MIN-KC-001（課長）, MIN-IP-001（一般）\n"
+        "  パスワード: backend/.env の DEMO_PASSWORD（未設定時は demo）\n"
+        f"  → DEV_DEFAULT_USER_ID を .env に転記する場合は ALLOW_DEV_AUTH_HEADER 利用時のみ。"
     )
 
 

@@ -1,4 +1,5 @@
 from functools import lru_cache
+from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -8,16 +9,21 @@ class Settings(BaseSettings):
 
     ALLOW_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000"
     DATABASE_URL: str = "sqlite:///./local.db"
-    # Azure Database for MySQL 等（TLS 必須）で CA ファイルを明示する場合（未設定なら OS 既定の trust store）
     MYSQL_SSL_CA: str | None = None
-    # MVP は他チーム提供のダミーセッションを前提（spec §5.0 / Q-50）。
-    # 未設定なら DB の先頭ユーザーを current user として返す。`X-Dev-User-Id` ヘッダで上書き可。
+
+    # ── デモ認証（Issue #16）────────────────────────────────────────────
+    DEMO_PASSWORD: str = "demo"
+    JWT_SECRET: str = "dev-change-me-in-production"
+    JWT_EXPIRE_MINUTES: int = 480
+    SESSION_COOKIE_NAME: str = "barhunters_session"
+    SESSION_COOKIE_SECURE: bool = False
+    SESSION_COOKIE_SAMESITE: Literal["lax", "strict", "none"] = "lax"
+    # 開発・デモ: X-Dev-User-Id / DEV_DEFAULT_USER_ID による切替を許可
+    ALLOW_DEV_AUTH_HEADER: bool = True
+
+    # MVP レガシー（ALLOW_DEV_AUTH_HEADER 時のみ auth.py が参照）
     DEV_DEFAULT_USER_ID: str | None = None
 
-    # ── ポイント集計対象のステータス（カンマ区切り） ─────────────────
-    # 04_データ要件.md §2.2 で実装で確定とされている値の暫定。
-    # 例: "承認済"  → 承認済のみ集計
-    #     "提出済,承認済" → 申請中以降を全部含める
     POINT_AGGREGATE_STATUSES: str = "approved"
 
     @property
@@ -27,6 +33,10 @@ class Settings(BaseSettings):
     @property
     def aggregate_statuses(self) -> list[str]:
         return [s.strip() for s in self.POINT_AGGREGATE_STATUSES.split(",") if s.strip()]
+
+    @property
+    def session_cookie_samesite(self) -> Literal["lax", "strict", "none"]:
+        return self.SESSION_COOKIE_SAMESITE
 
 
 @lru_cache

@@ -3,18 +3,16 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
-import { apiFetch, getDevUserId, setDevUserId } from "@/lib/api";
+import { apiFetch, getDevUserId, isDevUserSwitchEnabled, setDevUserId } from "@/lib/api";
 import type { UserBrief } from "@/lib/api/types";
-
-// 開発用のダミーログイン切替（spec.md §5.0 — 本物の認証導入時は削除）。
-// サイドバー左下のアバター + 名前部分をクリックでドロップダウンを開き、
-// 全ユーザーから 1 名を選択 → localStorage に保存 → ページリロードで反映。
 
 function initialsOf(name: string): string {
   return name.slice(0, 2);
 }
 
+/** 左下: ログインユーザー表示。デモ切替は NEXT_PUBLIC_ALLOW_DEV_USER_SWITCH=true 時のみ。 */
 export function DevUserSwitcher() {
+  const switchEnabled = isDevUserSwitchEnabled();
   const [me, setMe] = useState<UserBrief | null>(null);
   const [allUsers, setAllUsers] = useState<UserBrief[]>([]);
   const [open, setOpen] = useState(false);
@@ -27,13 +25,12 @@ export function DevUserSwitcher() {
   }, []);
 
   useEffect(() => {
-    if (!open || allUsers.length > 0) return;
+    if (!switchEnabled || !open || allUsers.length > 0) return;
     apiFetch<UserBrief[]>("/api/users")
       .then(setAllUsers)
       .catch(() => setAllUsers([]));
-  }, [open, allUsers.length]);
+  }, [open, allUsers.length, switchEnabled]);
 
-  // クリックアウトで閉じる
   useEffect(() => {
     if (!open) return;
     function onDocClick(e: MouseEvent) {
@@ -47,11 +44,30 @@ export function DevUserSwitcher() {
 
   function handleSelect(id: string | null) {
     setDevUserId(id);
-    // 単純化: ハードリロードで全クライアントステートをリセット
     window.location.reload();
   }
 
   const currentDevId = getDevUserId();
+  const avatar = (
+    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#0178C8] text-xs font-bold text-white">
+      {me ? initialsOf(me.name) : "—"}
+    </div>
+  );
+  const nameEl = (
+    <div className="flex-1 truncate text-sm text-[#334155]">{me?.name ?? "（読み込み中）"}</div>
+  );
+
+  if (!switchEnabled) {
+    return (
+      <div className="flex flex-1 items-center gap-2 px-1">
+        {avatar}
+        {nameEl}
+        <Link href="/mypage" className="text-[10px] text-[#0178C8] hover:underline">
+          マイページ
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div ref={wrapRef} className="relative flex flex-1 items-center gap-2">
@@ -59,20 +75,16 @@ export function DevUserSwitcher() {
         type="button"
         onClick={() => setOpen((v) => !v)}
         className="flex flex-1 items-center gap-2 rounded px-1 py-1 text-left transition hover:bg-[#ecf5fa]"
-        title="開発用ユーザー切替"
+        title="デモ用ユーザー切替"
       >
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#0178C8] text-xs font-bold text-white">
-          {me ? initialsOf(me.name) : "—"}
-        </div>
-        <div className="flex-1 truncate text-sm text-[#334155]">
-          {me?.name ?? "（読み込み中）"}
-        </div>
+        {avatar}
+        {nameEl}
       </button>
 
       {open && (
         <div className="absolute bottom-full left-0 z-10 mb-2 max-h-72 w-[230px] overflow-y-auto rounded border border-slate-200 bg-white shadow-lg">
           <div className="border-b border-slate-100 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-[#64748b]">
-            開発用 ユーザー切替
+            デモ用 ユーザー切替
           </div>
           <Link
             href="/mypage"
@@ -88,7 +100,7 @@ export function DevUserSwitcher() {
               !currentDevId ? "bg-[#ecf5fa] font-bold text-[#0178C8]" : "text-[#334155]"
             }`}
           >
-            既定（.env の DEV_DEFAULT_USER_ID）
+            ログイン本人（Cookie）
           </button>
           {allUsers.map((u) => {
             const active = currentDevId === u.id;
@@ -105,9 +117,7 @@ export function DevUserSwitcher() {
               >
                 {u.name}
                 {u.role ? (
-                  <span className="ml-1 text-[10px] text-[#64748b]">
-                    ({u.role})
-                  </span>
+                  <span className="ml-1 text-[10px] text-[#64748b]">({u.role})</span>
                 ) : null}
               </button>
             );
