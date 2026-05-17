@@ -45,14 +45,14 @@ ROE_TARGET_2027 = 0.080   # 8.0%
 # 営業利益率（売上→NOPAT 換算用）
 OP_MARGIN = OP_INCOME_M / REVENUE_M     # ≒ 4.16%
 
-# 売上効果メイン目標（v2.6: 道 2 + 60,000P スケール、Phase 1 = 60,000P 投入時のフルポテンシャル）
-SALES_TARGET_M = 1_112
-SALES_TARGET_OKU = 11.12
-# 参考: Phase 別目標 (phase_roadmap.PHASE_TARGETS と整合、v2.6 道 2 採用後)
-#   Phase 1 (60,000P)       : 売上 +11.12 億 / ROIC +0.176pt / ROE +0.58pt
-#   Phase 2 (100,000P)      : 売上 +18.54 億 / ROIC +0.29pt  / ROE +0.97pt
-#   Phase 3 下 (200,000P)   : 売上 +37.07 億 / ROIC +0.59pt  / ROE +1.93pt
-#   Phase 3 上 (250,000P)   : 売上 +46.34 億 / ROIC +0.73pt  / ROE +2.42pt
+# 売上効果メイン目標（v2.6: 道 2 + 60,000P スケール + 挑戦リンク追加後の新基準値）
+SALES_TARGET_M = 1_330
+SALES_TARGET_OKU = 13.30
+# 参考: Phase 別目標 (phase_roadmap.PHASE_TARGETS と整合)
+#   Phase 1 (60,000P)       : 売上 +13.30 億 / ROIC +0.205pt / ROE +0.674pt
+#   Phase 2 (100,000P)      : 売上 +22.16 億 / ROIC +0.34pt  / ROE +1.12pt
+#   Phase 3 下 (200,000P)   : 売上 +44.32 億 / ROIC +0.68pt  / ROE +2.25pt
+#   Phase 3 上 (250,000P)   : 売上 +55.40 億 / ROIC +0.85pt  / ROE +2.81pt
 
 # ════════════════════════════════════════════════════════════
 # シート9：9セル → 7風土 接続行列（v5 合意済）
