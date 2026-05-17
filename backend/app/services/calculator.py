@@ -539,14 +539,53 @@ def _layer3_kpi_to_mid_sorted() -> dict[str, list[tuple[str, float, str, str]]]:
     return out
 
 
+# 視覚補完: survey 由来だけでは top 5 に届かない KPI に追加表示する中間層 ID。
+# 数値ロジック（LAYER3_TO_MID）には加えず、画面の線・ハイライトだけに反映する。
+# 既存ランキングと重複する mid は実装側で自動的に除外し、ユーザー指定順で末尾に追加する。
+VISUAL_FILLERS: dict[str, list[str]] = {
+    # 挑戦人財（既存: region 0.27, ltv 0.06）— ltv は重複除外 → +3 で合計 5
+    "challenge": ["safety_zero", "jcsi", "ltv", "esg"],
+    # 変革人財（既存: co2 0.15, esg 0.15, region 0.10）— region は重複除外 → +2 で合計 5
+    "transform": ["safety_brand", "ltv"],
+}
+
+# 視覚補完で挿入する edge のダミー係数（ArrowOverlay の MIN_THRESHOLD 0.1 超え）。
+# 既存の最小係数 0.04 より大きくしてランキングを乱さないよう、_top5 では再ソートせず
+# 既存ソート結果の末尾に追加する。
+_FILLER_COEF = 0.5
+
+
+def _layer3_kpi_to_mid_top5() -> dict[str, list[tuple[str, float, str, str]]]:
+    """各 KPI ごとに、視覚表示用の top 5 中間層リストを返す。
+
+    survey 由来の係数降順を先頭に、5 個に届かない KPI は VISUAL_FILLERS の指定で
+    末尾に補充する（補充分は係数 0.5 のダミー、reliability ★）。
+    既存ランキングとの重複は自動除外し、ユーザー指定順を尊重する。
+    """
+    base = _layer3_kpi_to_mid_sorted()
+    out: dict[str, list[tuple[str, float, str, str]]] = {}
+    for kpi_id in set(base.keys()) | set(VISUAL_FILLERS.keys()):
+        ranked = list(base.get(kpi_id, []))
+        existing = {mid for mid, _w, _r, _c in ranked}
+        for filler_mid in VISUAL_FILLERS.get(kpi_id, []):
+            if len(ranked) >= 5:
+                break
+            if filler_mid in existing:
+                continue
+            ranked.append((filler_mid, _FILLER_COEF, "★", "視覚補完（数値ロジック対象外）"))
+            existing.add(filler_mid)
+        out[kpi_id] = ranked[:5]
+    return out
+
+
 def _build_layer3_to_mid_edges() -> list[Edge]:
-    """3 層 KPI → 中間層の接続線。各 KPI から係数降順 上位 3 のみ採用。
+    """3 層 KPI → 中間層の接続線。各 KPI から top 5 のうち上位 3 のみ採用。
 
     1 位は実線、2-3 位は点線。4-5 位は connections に含めず、`highlights` 経由で
     ホバー時のハイライトだけ表示する（線なし）。
     """
     edges: list[Edge] = []
-    for kpi_id, sorted_pairs in _layer3_kpi_to_mid_sorted().items():
+    for kpi_id, sorted_pairs in _layer3_kpi_to_mid_top5().items():
         for rank, (mid_id, w, rel, citation) in enumerate(sorted_pairs[:3]):
             edges.append(
                 Edge(
@@ -562,13 +601,14 @@ def _build_layer3_to_mid_edges() -> list[Edge]:
 
 
 def _build_layer3_to_mid_highlights() -> dict[str, list[str]]:
-    """各 3 層 KPI ホバー時にハイライトする中間層 ID（係数降順 上位 5）。
+    """各 3 層 KPI ホバー時にハイライトする中間層 ID（top 5）。
 
     connections で線が引かれる上位 3 + 線なしハイライトのみの 4-5 位を含む。
+    survey 由来だけで足りない KPI は VISUAL_FILLERS で補充済。
     """
     return {
         kpi_id: [mid for mid, _w, _r, _c in sorted_pairs[:5]]
-        for kpi_id, sorted_pairs in _layer3_kpi_to_mid_sorted().items()
+        for kpi_id, sorted_pairs in _layer3_kpi_to_mid_top5().items()
     }
 
 
