@@ -191,23 +191,33 @@ function CascadeBoardInner() {
     return m;
   }, [data, indicatorMeta]);
 
-  // カード表示用：value（現在値）/ target / unit / qualitative を meta + backend から決定。
-  //   value: meta.baselineCurrent（静的）が優先。なければ backend の projected を使う（9セル入力で動的更新）。
+  // カード表示用：current/projected/improvement/target/unit/qualitative を meta + backend から決定。
+  //   current: meta.baselineCurrent（静的）が優先。なければ backend の current。
+  //   projected: backend の projected（P 入力で動的に変わる「達成時」値）。
+  //   improvement: backend の improvement（projected - current 相当）。
   //   target/unit: meta が定義されていれば優先。なければ backend の値。
+  //   value (旧): current が無いカード向けの後方互換フォールバック。
   const displayOf = useCallback(
     (id: string) => {
       const meta = indicatorMeta[id];
       const c = cardByCalcId.get(id);
-      const value =
+      const current =
         meta?.baselineCurrent !== undefined && meta.baselineCurrent !== null
           ? meta.baselineCurrent
-          : (c?.projected ?? null);
+          : (c?.current ?? null);
+      const projected = c?.projected ?? null;
+      const improvement = c?.improvement ?? null;
       const target =
         meta?.target !== undefined && meta.target !== null
           ? meta.target
           : (c?.target ?? null);
       const unit = meta?.unit ?? c?.unit ?? null;
+      // 旧仕様（value → target）にフォールバックする場合は value も用意。
+      const value = current ?? projected ?? null;
       return {
+        current,
+        projected,
+        improvement,
         value,
         target,
         unit,
@@ -398,6 +408,9 @@ function CascadeBoardInner() {
                 key={id}
                 id={id}
                 label={c.label}
+                current={d.current}
+                projected={d.projected}
+                improvement={d.improvement}
                 value={d.value}
                 target={d.target}
                 unit={d.unit}
@@ -431,6 +444,9 @@ function CascadeBoardInner() {
                 key={id}
                 id={id}
                 label={c.label}
+                current={d.current}
+                projected={d.projected}
+                improvement={d.improvement}
                 value={d.value}
                 target={d.target}
                 unit={d.unit}
@@ -465,6 +481,9 @@ function CascadeBoardInner() {
                 key={id}
                 id={id}
                 label={c.label}
+                current={d.current}
+                projected={d.projected}
+                improvement={d.improvement}
                 value={d.value}
                 target={d.target}
                 unit={d.unit}

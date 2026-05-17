@@ -119,13 +119,13 @@ def _financial_to_cards(
         )
     )
 
-    # 売上ドライバー / コスト削減 / 資本効率化 — v7: Excel 整合の 億円 で表示
+    # 売上ドライバー / コスト削減 / 資本効率化 — v2.6: 数値表示は撤廃し、性質的な説明だけ残す
     drivers_meta = [
-        ("revenue", "売上ドライバー", "JCSI/LTV/ESG/地域/PoC", result.sales_effect_oku),
-        ("cost", "コスト削減", "ESG/採用/保安", result.cost_savings_oku),
-        ("capital", "資本効率化", "ESG/保安ブランド/採用", result.capital_savings_oku),
+        ("revenue", "売上ドライバー", "JCSI/LTV/ESG/地域/PoC"),
+        ("cost", "コスト削減", "ESG/採用/保安"),
+        ("capital", "資本効率化", "ESG/保安ブランド/採用"),
     ]
-    for calc_id, default_label, desc, value_oku in drivers_meta:
+    for calc_id, default_label, desc in drivers_meta:
         ind = indicator_map.get(calc_id)
         cards.append(
             CardData(
@@ -136,17 +136,18 @@ def _financial_to_cards(
                 column_key=ind.column_key if ind else "lagging",
                 sort_order=ind.sort_order if ind else 0,
                 link_url=ind.link_url if ind else None,
-                value_display=f"+{value_oku:.2f}億円",
-                current=0.0,
-                target=0.0,
-                projected=value_oku,
-                improvement=value_oku,
+                value_display="",
+                current=None,
+                target=None,
+                projected=None,
+                improvement=None,
                 description=desc,
-                unit="億円",
+                unit=None,
             )
         )
 
-    # ROIC（参考）
+    # ROIC（参考） — v2.6: 表示は「現状 → Phase 1 達成時」（current → projected）
+    roic_projected = ROIC_CURRENT + result.roic_delta
     ind_roic = indicator_map.get("roic")
     cards.append(
         CardData(
@@ -157,18 +158,18 @@ def _financial_to_cards(
             column_key=ind_roic.column_key if ind_roic else "lagging",
             sort_order=ind_roic.sort_order if ind_roic else 100,
             link_url=ind_roic.link_url if ind_roic else None,
-            value_display=f"+{result.roic_delta * 100:.3f}pt",
+            value_display=f"{ROIC_CURRENT * 100:.2f}% → {roic_projected * 100:.2f}%",
             current=ROIC_CURRENT,
             target=ROIC_TARGET_2027,
-            projected=ROIC_CURRENT + result.roic_delta,
+            projected=roic_projected,
             improvement=result.roic_delta,
-            reliability="★",
             description="人的資本単独寄与（ACT2027 目標 +0.2pt の一部）",
             unit="%",
         )
     )
 
-    # ROE（参考）
+    # ROE（参考） — 同様に「現状 → Phase 1 達成時」表示にする
+    roe_projected = ROE_CURRENT + result.roe_delta
     ind_roe = indicator_map.get("roe")
     cards.append(
         CardData(
@@ -179,12 +180,11 @@ def _financial_to_cards(
             column_key=ind_roe.column_key if ind_roe else "lagging",
             sort_order=ind_roe.sort_order if ind_roe else 101,
             link_url=ind_roe.link_url if ind_roe else None,
-            value_display=f"+{result.roe_delta * 100:.3f}pt",
+            value_display=f"{ROE_CURRENT * 100:.2f}% → {roe_projected * 100:.2f}%",
             current=ROE_CURRENT,
             target=ROE_TARGET_2027,
-            projected=ROE_CURRENT + result.roe_delta,
+            projected=roe_projected,
             improvement=result.roe_delta,
-            reliability="★",
             description="人的資本単独寄与（ACT2027 目標 +1.7pt の一部）",
             unit="%",
         )

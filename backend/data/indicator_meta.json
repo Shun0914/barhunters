@@ -92,7 +92,8 @@
     },
     "target": 5,
     "unit": "年連続",
-    "baselineCurrent": 3
+    "baselineCurrent": 3,
+    "qualitativeTarget": "安心安全の根幹"
   },
   "safety_brand": {
     "description": {
@@ -102,7 +103,8 @@
     },
     "target": 5,
     "unit": "年連続",
-    "baselineCurrent": 3
+    "baselineCurrent": 3,
+    "qualitativeTarget": "信頼の証"
   },
   "jcsi": {
     "description": {
@@ -112,7 +114,8 @@
     },
     "target": 6,
     "unit": "年連続第1位",
-    "baselineCurrent": 4
+    "baselineCurrent": 4,
+    "qualitativeTarget": "第1位の継続"
   },
   "ltv": {
     "description": {
@@ -122,7 +125,8 @@
     },
     "target": 73.3,
     "unit": "万件",
-    "baselineCurrent": 60
+    "baselineCurrent": 60,
+    "qualitativeTarget": "関係性の積み上げ"
   },
   "recruit": {
     "description": {
@@ -132,7 +136,8 @@
     },
     "target": 95,
     "unit": "%",
-    "baselineCurrent": 95.8
+    "baselineCurrent": 95.8,
+    "qualitativeTarget": "人財の定着"
   },
   "region": {
     "description": {
@@ -142,7 +147,8 @@
     },
     "target": 15,
     "unit": "件",
-    "baselineCurrent": 10
+    "baselineCurrent": 10,
+    "qualitativeTarget": "地域と歩む価値"
   },
   "esg": {
     "description": {
@@ -151,8 +157,7 @@
       "targetRationale": "現在は主要指数組入実績あり。2027年度も主要ESG指数組入を維持し、投資家のESG重視傾向に対応。 運用データを継続的に蓄積し、5年スパンで再校正予定。"
     },
     "reference": "Wilberg 2025",
-    "qualitativeCurrent": "主要指数組入実績あり",
-    "qualitativeTarget": "主要ESG指数組入維持"
+    "qualitativeTarget": "持続可能性の評価"
   },
   "presenteeism": {
     "description": {
@@ -161,7 +166,8 @@
       "targetRationale": "現在 80% → 2027年度末 85% を中間目標。経産省の調査で日本企業平均は84.4%、SAP事例では発揮度1pt改善で営業利益+1%。 運用データを継続的に蓄積し、5年スパンで再校正予定。"
     },
     "target": 85,
-    "unit": "%"
+    "unit": "%",
+    "qualitativeTarget": "心身の充実"
   },
   "absenteeism": {
     "description": {
@@ -170,7 +176,8 @@
       "targetRationale": "現在 1.70日/年 → 2027年度末 1.50日/年 を目標。日本平均は約2日/年、健康経営優良法人ホワイト500の上位企業水準。 運用データを継続的に蓄積し、5年スパンで再校正予定。"
     },
     "target": 1.5,
-    "unit": "日"
+    "unit": "日",
+    "qualitativeTarget": "健康な職場"
   },
   "co2": {
     "description": {
@@ -180,7 +187,17 @@
     },
     "target": 73.3,
     "unit": "万t",
-    "baselineCurrent": 46
+    "baselineCurrent": 46,
+    "qualitativeTarget": "脱炭素への貢献"
+  },
+  "dx_core": {
+    "qualitativeTarget": "DX人財の厚み"
+  },
+  "reskill": {
+    "qualitativeTarget": "学び続ける組織"
+  },
+  "renewable_mid": {
+    "qualitativeTarget": "再エネへの貢献"
   },
   "sales_effect": {
     "description": {

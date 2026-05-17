@@ -114,12 +114,13 @@ M7_4: dict[str, dict[str, float]] = {
     "kenkou": {"eng": 0.4, "challenge": 0.0, "transform": 0.0, "retention": 0.6},
 }
 
-# 各KPIごとのキャリブscale（均等配分 666.67P/セル × 9セル = 6,000P で 2026目標達成）
+# 各KPIごとのキャリブscale（v2.6: 1P = 1 万円 に単位変更、KPI_SCALE は旧値の 1/10）
+# 60,000P 投入で KPI 100% 達成（旧 6,000P 投入時と同じ効果）。
 KPI_SCALE: dict[str, float] = {
-    "eng": 0.18131,
-    "challenge": 0.01519,
-    "transform": 0.23596,
-    "retention": 0.11707,
+    "eng": 0.018131,
+    "challenge": 0.001519,
+    "transform": 0.023596,
+    "retention": 0.011707,
 }
 
 LAYER3_META: dict[str, tuple[Any, ...]] = {
@@ -662,7 +663,7 @@ def calculate(points: PointsInput) -> CascadeResult:
 
 
 def calculate_yearly_progression(
-    points: int = 6000,
+    points: int = 60000,
     start_year: int = 2025,
     full_effect_years: int = 5,
     end_year: int = 2030,
@@ -673,6 +674,8 @@ def calculate_yearly_progression(
     既存 calculate() で求める。各年次の効果は
     progression_ratio = (year - start_year + 1) / full_effect_years
     に full_effect を掛けた線形補完。
+
+    v2.6: 1P = 1 万円スケール（KPI_SCALE 1/10）に合わせ、デフォルト 60,000P。
 
     Args:
         points: 投入ポイント総数（3 カテゴリ均等配分）

@@ -11,7 +11,13 @@ type Props = {
   id: string;
   label: string;
   description?: string | null;
-  /** 動的な現在値（backend の projected または meta.baselineCurrent から流入）。 */
+  /** 静的な現在値（meta.baselineCurrent or backend の current）。LEFT 側に表示。 */
+  current?: number | null;
+  /** P 入力後の到達値（backend の projected）。RIGHT 側に表示。 */
+  projected?: number | null;
+  /** P 入力による改善幅（current → projected の差分）。0 のとき current のみ表示。 */
+  improvement?: number | null;
+  /** 旧プロップ。current が無いカードのフォールバック用に残す。 */
   value?: number | null;
   target?: number | null;
   unit?: string | null;
@@ -74,21 +80,13 @@ export function deltaText(delta: number, unit?: string | null): string {
   return `${sign}${abs.toFixed(1)}`;
 }
 
-function ReliabilityStars({ reliability }: { reliability: Reliability }) {
-  const filled = reliability.length;
-  const empty = 3 - filled;
-  return (
-    <span className="text-[10px] leading-none text-brand-accent">
-      {"★".repeat(filled)}
-      {"☆".repeat(empty)}
-    </span>
-  );
-}
-
 export function IndicatorCard({
   id,
   label,
   description,
+  current,
+  projected,
+  improvement,
   value,
   target,
   unit,
@@ -98,7 +96,6 @@ export function IndicatorCard({
   selected,
   highlighted,
   dimmed,
-  reliability,
   onClick,
   onHoverEnter,
   onHoverLeave,
@@ -106,7 +103,12 @@ export function IndicatorCard({
 }: Props) {
   const isMain = emphasis === "main";
   const setRef = useRegisterCard(id);
+  // v2.6: current + projected が来ているカードは「現状 → 達成時」を描画。
+  // 後方互換のため、来ていなければ旧 value → target の挙動にフォールバック。
+  const hasCurrentProjected =
+    current !== null && current !== undefined && projected !== null && projected !== undefined;
   const hasNumericProgress =
+    !hasCurrentProjected &&
     value !== null &&
     value !== undefined &&
     target !== null &&
@@ -115,6 +117,14 @@ export function IndicatorCard({
   const hasNumericTarget = target !== null && target !== undefined;
   const isFocused = !!selected;
   const inChain = isFocused || !!highlighted;
+  // 改善幅 0（または projected===current）→ 横棒のみで現状値を強調表示。
+  const effectiveImprovement = improvement ?? (
+    hasCurrentProjected ? (projected as number) - (current as number) : null
+  );
+  const hasImprovement =
+    effectiveImprovement !== null &&
+    effectiveImprovement !== undefined &&
+    Math.abs(effectiveImprovement) > 1e-9;
   const delta = hasNumericProgress ? (target as number) - (value as number) : null;
 
   return (
@@ -147,7 +157,6 @@ export function IndicatorCard({
           {label}
         </span>
         <div className="flex shrink-0 items-center gap-1">
-          {reliability ? <ReliabilityStars reliability={reliability} /> : null}
           <span
             role="button"
             tabIndex={0}
@@ -188,6 +197,43 @@ export function IndicatorCard({
             ) : null}
             <span className="font-semibold">{qualitativeTarget}</span>
           </div>
+        ) : hasCurrentProjected ? (
+          <>
+            <div
+              className={cn(
+                "font-bold tabular-nums leading-tight",
+                isMain ? "text-xl text-brand-primary" : "text-[15px] text-ink-primary",
+              )}
+            >
+              <span className="transition-all duration-300 ease-out">
+                {formatNum(current, unit)}
+              </span>
+              {hasImprovement ? (
+                <>
+                  <span className="mx-1 text-xs font-normal text-ink-secondary">
+                    →
+                  </span>
+                  <span>{formatNum(projected, unit)}</span>
+                </>
+              ) : null}
+            </div>
+            {hasImprovement ? (
+              <div
+                className={cn(
+                  "mt-0 text-[10px] tabular-nums",
+                  (effectiveImprovement as number) > 0
+                    ? "text-status-ok-fg"
+                    : "text-status-ng-fg",
+                )}
+              >
+                {deltaText(effectiveImprovement as number, unit)}
+              </div>
+            ) : (
+              <div className="mt-0 text-[10px] tabular-nums text-ink-secondary">
+                −
+              </div>
+            )}
+          </>
         ) : hasNumericProgress ? (
           <>
             <div
