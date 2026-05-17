@@ -8,6 +8,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.db import dispose_engine, get_engine
 from app.routers import (
     approvals,
+    auth,
     dashboard,
     masters,
     notifications,
@@ -42,6 +43,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    app.include_router(auth.router)
     app.include_router(masters.router)
     app.include_router(users.router)
     app.include_router(point_applications.router)

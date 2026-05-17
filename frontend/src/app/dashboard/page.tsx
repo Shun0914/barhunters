@@ -1,7 +1,7 @@
 import { DashboardPageClient } from "./pageClient";
 
 export const metadata = {
-  title: "ダッシュボード | barhunters",
+  title: "ダッシュボード",
 };
 
 export default function DashboardPage() {

@@ -26,8 +26,11 @@ APPROVAL_ROUTE_BY_ROLE: dict[str, list[str]] = {
 
 
 @router.get("", response_model=list[UserBriefOut])
-def list_users(db: Session = Depends(get_db)) -> list[UserBriefOut]:
-    """開発用: 全ユーザー一覧（dev のユーザー切替 UI で使用）。氏名 50 音順。"""
+def list_users(
+    db: Session = Depends(get_db),
+    _current_user: User = Depends(get_current_user),
+) -> list[UserBriefOut]:
+    """ログイン後: 全ユーザー一覧（デモのユーザー切替 UI で使用）。氏名 50 音順。"""
     users = db.scalars(select(User).order_by(User.name)).all()
     return [UserBriefOut.model_validate(u) for u in users]
 

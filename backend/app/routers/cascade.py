@@ -239,7 +239,9 @@ def _build_response(result: CascadeResult) -> CascadeResponse:
 
 
 @router.get("", response_model=CascadeResponse)
-def get_cascade() -> CascadeResponse:
+def get_cascade(
+    _current_user: User = Depends(get_current_user),
+) -> CascadeResponse:
     """DB集計済 3カテゴリポイントから cascade を計算。"""
     s = get_settings()
     eng = get_engine(s.DATABASE_URL)
@@ -254,8 +256,12 @@ def get_cascade() -> CascadeResponse:
 
 
 @router.post("/simulate", response_model=CascadeResponse)
-def simulate_cascade(req: SimulateRequest) -> CascadeResponse:
+def simulate_cascade(
+    req: SimulateRequest,
+    _current_user: User = Depends(get_current_user),
+) -> CascadeResponse:
     """任意の 3カテゴリポイント値で計算。"""
+
     result = calculate(req.points)
     return _build_response(result)
 
