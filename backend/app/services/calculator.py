@@ -543,8 +543,9 @@ def _layer3_kpi_to_mid_sorted() -> dict[str, list[tuple[str, float, str, str]]]:
 # 数値ロジック（LAYER3_TO_MID）には加えず、画面の線・ハイライトだけに反映する。
 # 既存ランキングと重複する mid は実装側で自動的に除外し、ユーザー指定順で末尾に追加する。
 VISUAL_FILLERS: dict[str, list[str]] = {
-    # 挑戦人財（既存: region 0.27, ltv 0.06）— ltv は重複除外 → +3 で合計 5
-    "challenge": ["safety_zero", "jcsi", "ltv", "esg"],
+    # 挑戦人財（既存: region 0.27, ltv 0.06）— 3 位は ESG評価（点線で接続）。
+    # ltv は重複除外 → 補充は esg/safety_zero/jcsi の順で +3、合計 5
+    "challenge": ["esg", "safety_zero", "jcsi", "ltv"],
     # 変革人財（既存: co2 0.15, esg 0.15, region 0.10）— region は重複除外 → +2 で合計 5
     "transform": ["safety_brand", "ltv"],
 }
