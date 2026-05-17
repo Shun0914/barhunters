@@ -87,6 +87,8 @@ function CascadeBoardInner() {
   const [data, setData] = useState<CascadeResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  /** 初回表示・スコープ切替中はグリッドを出さず、集計→simulate 完了まで待つ */
+  const [bootstrapping, setBootstrapping] = useState(true);
   const [selected, setSelected] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [scope, setScope] = useState<ScopeKey>("company");
@@ -95,25 +97,47 @@ function CascadeBoardInner() {
   // ホバー > クリック の優先度で「現在の焦点」を決める
   const activeId = hoveredId ?? selected;
 
-  // scope 切替（および初回マウント）で、DB集計済みポイントを取得して初期値に反映する。
-  // 取得後は既存の simulate フローが points 変化を検知して再計算する。
+  // 初回・スコープ切替: 集計ポイント取得 → simulate を連続実行（空グリッドを見せない）
   useEffect(() => {
     const ctrl = new AbortController();
-    fetchAggregatedPoints(scope, ctrl.signal)
-      .then((data) => {
-        setPoints(data);
-      })
-      .catch((e: unknown) => {
+    let cancelled = false;
+
+    setBootstrapping(true);
+    setData(null);
+    setLoading(true);
+
+    void (async () => {
+      try {
+        const aggregated = await fetchAggregatedPoints(scope, ctrl.signal);
+        if (cancelled) return;
+        setPoints(aggregated);
+        const res = await simulateCascade(aggregated, ctrl.signal);
+        if (cancelled) return;
+        setData(res);
+        setError(null);
+      } catch (e: unknown) {
+        if (cancelled) return;
         if (e instanceof DOMException && e.name === "AbortError") return;
-        // スコープ切替に失敗してもページ全体は壊さない（エラーは画面下部の simulate エラー欄を流用）。
         setError(e instanceof Error ? e.message : String(e));
-      });
-    return () => ctrl.abort();
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+          setBootstrapping(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      ctrl.abort();
+    };
   }, [scope]);
 
-  // 初回 + 入力変更時に simulate を叩く（デバウンス）
+  // セル入力・リセット等: points 変更時に simulate（デバウンス）。bootstrap 中は scope 効果に任せる。
   const abortRef = useRef<AbortController | null>(null);
   useEffect(() => {
+    if (bootstrapping) return;
+
     const handle = setTimeout(() => {
       abortRef.current?.abort();
       const ctrl = new AbortController();
@@ -131,7 +155,7 @@ function CascadeBoardInner() {
         .finally(() => setLoading(false));
     }, DEBOUNCE_MS);
     return () => clearTimeout(handle);
-  }, [points]);
+  }, [points, bootstrapping]);
 
   const cardByCalcId = useMemo(() => {
     const map = new Map<string, CardData>();
@@ -320,8 +344,8 @@ function CascadeBoardInner() {
             リセット
           </button>
           <span className="text-[11px] text-ink-secondary">
-            {loading
-              ? "計算中…"
+            {bootstrapping || loading
+              ? "読み込み中…"
               : data
                 ? `更新: ${new Date(data.updated_at).toLocaleTimeString()}`
                 : ""}
@@ -332,8 +356,13 @@ function CascadeBoardInner() {
         ) : null}
       </div>
 
-      {/* 5列グリッド + 矢印オーバーレイ */}
-      <CascadeGrid
+      {/* 5列グリッド + 矢印オーバーレイ（初回・スコープ切替はデータ準備完了まで非表示） */}
+      {bootstrapping ? (
+        <div className="flex min-h-[min(70vh,720px)] items-center justify-center rounded-lg border border-dashed border-ink-secondary/25 bg-brand-bg-light/40 text-sm text-ink-secondary">
+          因果ストーリーを読み込んでいます…
+        </div>
+      ) : (
+        <CascadeGrid
         connections={data?.connections ?? []}
         activeId={activeId}
       >
@@ -478,6 +507,7 @@ function CascadeBoardInner() {
           })}
         </Column>
       </CascadeGrid>
+      )}
 
       <IndicatorDetailModal
         detailId={detailId}
