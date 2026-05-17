@@ -1,11 +1,7 @@
-import { CascadeBoard } from "@/components/cascade/CascadeBoard";
+import { CascadePageClient } from "./pageClient";
 
 export const metadata = { title: "因果ストーリー" };
 
 export default function CascadePage() {
-  return (
-    <main className="mx-auto max-w-screen-2xl px-2 py-1">
-      <CascadeBoard />
-    </main>
-  );
+  return <CascadePageClient />;
 }

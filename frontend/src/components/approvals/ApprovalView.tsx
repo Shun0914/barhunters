@@ -179,7 +179,7 @@ export function ApprovalView() {
   }
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full min-h-0 flex-col">
       <PageHeader
         title="ポイント承認"
         inline={
@@ -198,7 +198,7 @@ export function ApprovalView() {
         />
       </PageHeader>
 
-      <div className="flex flex-1 flex-col overflow-hidden bg-white px-8 pb-8 pt-5">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-brand-bg-page px-6 pb-4 pt-2">
         {(error || info) && (
           <div className="mb-3 shrink-0 space-y-2">
             {error && (

@@ -7,6 +7,7 @@
 
 v7 ポイント体系: daily(0.1P)/creative(5P) × social/safety/future + 役職傾斜 (×3.0 課長以上)。
 cascade 上流は category のみに集約。
+
 """
 
 from datetime import datetime
@@ -36,6 +37,7 @@ from app.services.calculator import (
     KpiResult,
     calculate,
 )
+from app.services.indicator_meta_service import load_indicator_meta
 from app.services.points_service import aggregate_approved_points
 from app.settings import get_settings
 
@@ -292,3 +294,11 @@ def get_aggregated_points(
         return aggregate_approved_points(eng, s.aggregate_statuses, org_id=org_id)
     except Exception:
         return PointsInput()
+
+@router.get("/indicator-meta")
+def get_indicator_meta() -> dict:
+    """指標の説明メタを返す（業務オーナーが backend JSON で更新する想定）。
+
+    認証不要。読み取り専用、機密性なし。
+    """
+    return load_indicator_meta()

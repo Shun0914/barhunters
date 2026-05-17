@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 import { DevUserSwitcher } from "@/components/DevUserSwitcher";
 import { ICONS } from "@/components/icons";
 import { NotificationBell } from "@/components/NotificationBell";
-import { APP_NAME } from "@/lib/appBranding";
+import { APP_LOGO_PATH, APP_NAME } from "@/lib/appBranding";
 import { apiFetch, setDevUserId } from "@/lib/api";
 import { logout } from "@/lib/api/auth";
 import type { UserBrief } from "@/lib/api/types";
@@ -21,36 +21,32 @@ function isGeneralEmployeeLikeRole(role: string | null | undefined): boolean {
   return role === "一般社員" || role === "一般職員";
 }
 
-const NAV_GROUPS: { group: string; items: NavItem[] }[] = [
-  {
-    group: "ダッシュボード",
-    items: [
-      { label: "ダッシュボード", href: "/dashboard", icon: ICONS.dashboard },
-      { label: "因果ストーリー", href: "/cascade", icon: ICONS.story },
-    ],
-  },
-  {
-    group: "ポイント申請",
-    items: [
-      { label: "申請フォーム", href: "/applications/new", icon: ICONS.apply },
-      { label: "申請状況", href: "/applications", icon: ICONS.applicationStatus },
-    ],
-  },
+// 上部のグループ見出しなし項目（ダッシュボード/因果ストーリー）
+const TOP_ITEMS: NavItem[] = [
+  { label: "ダッシュボード", href: "/dashboard", icon: ICONS.dashboard },
+  { label: "因果ストーリー", href: "/cascade", icon: ICONS.story },
 ];
 
-const STANDALONE_ITEMS: NavItem[] = [
+// 「ポイント申請」グループに常に並ぶ項目
+const APPLICATION_GROUP_BASE: NavItem[] = [
+  { label: "申請フォーム", href: "/applications/new", icon: ICONS.apply },
+  { label: "申請状況", href: "/applications", icon: ICONS.applicationStatus },
+];
+
+// 「ポイント申請」グループ内で、決裁権限のある役職にだけ出す項目
+const APPLICATION_GROUP_APPROVER: NavItem[] = [
   { label: "ポイント承認", href: "/approvals", icon: ICONS.approve },
 ];
 
-// STANDALONE_ITEMS（ポイント承認）の下に出すグループ。
-const POST_STANDALONE_GROUPS: { group: string; items: NavItem[] }[] = [
-  {
-    group: "1on1",
-    items: [{ label: "1on1実施", href: "/oneonone/new", icon: ICONS.profile }],
-  },
-];
+// 1on1 実施（決裁権限のある役職のみ）— 単独表示、グループ見出しなし
+const ONE_ON_ONE_ITEM: NavItem = {
+  label: "1on1実施",
+  href: "/oneonone/new",
+  icon: ICONS.profile,
+};
 
-const OTHER_ITEMS: NavItem[] = [
+// 全員に出す末尾の単独項目（通知一覧）
+const BOTTOM_ITEMS: NavItem[] = [
   { label: "通知一覧", href: "/notifications", icon: ICONS.bell },
 ];
 
@@ -59,10 +55,11 @@ const OTHER_ITEMS: NavItem[] = [
 // /applications/new（申請フォーム）のみ active になる。
 const ALL_HREFS: string[] = [
   "/mypage",
-  ...NAV_GROUPS.flatMap((g) => g.items.map((i) => i.href)),
-  ...STANDALONE_ITEMS.map((i) => i.href),
-  ...POST_STANDALONE_GROUPS.flatMap((g) => g.items.map((i) => i.href)),
-  ...OTHER_ITEMS.map((i) => i.href),
+  ...TOP_ITEMS.map((i) => i.href),
+  ...APPLICATION_GROUP_BASE.map((i) => i.href),
+  ...APPLICATION_GROUP_APPROVER.map((i) => i.href),
+  ONE_ON_ONE_ITEM.href,
+  ...BOTTOM_ITEMS.map((i) => i.href),
 ];
 
 function resolveActiveHref(pathname: string): string | null {
@@ -102,9 +99,11 @@ export function Sidebar() {
       .then(setMe)
       .catch(() => setMe(null));
   }, []);
-  const standaloneItems = isGeneralEmployeeLikeRole(me?.role) ? [] : STANDALONE_ITEMS;
-  const oneOnOneNavGroups =
-    me != null && isGeneralEmployeeLikeRole(me.role) ? [] : POST_STANDALONE_GROUPS;
+  const isGeneral = isGeneralEmployeeLikeRole(me?.role);
+  const applicationGroupItems = isGeneral
+    ? APPLICATION_GROUP_BASE
+    : [...APPLICATION_GROUP_BASE, ...APPLICATION_GROUP_APPROVER];
+  const showOneOnOne = me != null && !isGeneral;
 
   return (
     /* Figma: サイドバー背景は #faf8f5、幅 250px */
@@ -113,8 +112,8 @@ export function Sidebar() {
       <div className="flex h-20 shrink-0 items-center gap-2 px-3">
         <div className="relative h-10 w-12 shrink-0">
           <Image
-            src="/seibugas-logo.png"
-            alt="西部ガスホールディングス"
+            src={APP_LOGO_PATH}
+            alt={APP_NAME}
             fill
             sizes="48px"
             className="object-contain"
@@ -126,78 +125,30 @@ export function Sidebar() {
 
       {/* ナビ本体 */}
       <nav className="flex-1 overflow-y-auto py-2">
-        {NAV_GROUPS.map((g) => (
-          <div key={g.group} className="mb-2">
-            <div className="px-4 py-1.5 text-[10px] font-medium tracking-wide text-[#334155]">
-              {g.group}
-            </div>
-            <ul>
-              {g.items.map((item) => {
-                const active = isActive(item.href);
-                return (
-                  <li key={item.href}>
-                    <Link href={item.href} className={navLinkClass(active)}>
-                      <span className={active ? "text-[#0178C8]" : "text-[#64748b]"}>
-                        {item.icon}
-                      </span>
-                      <span>{item.label}</span>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        ))}
+        {/* 上部: グループ見出しなしの単独項目（ダッシュボード/因果ストーリー） */}
+        <ul className="mb-2">
+          {TOP_ITEMS.map((item) => {
+            const active = isActive(item.href);
+            return (
+              <li key={item.href}>
+                <Link href={item.href} className={navLinkClass(active)}>
+                  <span className={active ? "text-[#0178C8]" : "text-[#64748b]"}>
+                    {item.icon}
+                  </span>
+                  <span>{item.label}</span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
 
-        {standaloneItems.length > 0 && (
-          <div className="mb-2">
-            <ul>
-              {standaloneItems.map((item) => {
-                const active = isActive(item.href);
-                return (
-                  <li key={item.href}>
-                    <Link href={item.href} className={navLinkClass(active)}>
-                      <span className={active ? "text-[#0178C8]" : "text-[#64748b]"}>
-                        {item.icon}
-                      </span>
-                      <span>{item.label}</span>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        )}
-
-        {oneOnOneNavGroups.map((g) => (
-          <div key={g.group} className="mb-2">
-            <div className="px-4 py-1.5 text-[10px] font-medium tracking-wide text-[#334155]">
-              {g.group}
-            </div>
-            <ul>
-              {g.items.map((item) => {
-                const active = isActive(item.href);
-                return (
-                  <li key={item.href}>
-                    <Link href={item.href} className={navLinkClass(active)}>
-                      <span className={active ? "text-[#0178C8]" : "text-[#64748b]"}>
-                        {item.icon}
-                      </span>
-                      <span>{item.label}</span>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        ))}
-
+        {/* ポイント申請グループ（唯一のグループ見出し） */}
         <div className="mb-2">
           <div className="px-4 py-1.5 text-[10px] font-medium tracking-wide text-[#334155]">
-            その他
+            ポイント申請
           </div>
           <ul>
-            {OTHER_ITEMS.map((item) => {
+            {applicationGroupItems.map((item) => {
               const active = isActive(item.href);
               return (
                 <li key={item.href}>
@@ -212,6 +163,46 @@ export function Sidebar() {
             })}
           </ul>
         </div>
+
+        {/* 1on1 実施（グループ見出しなし、決裁権限のある役職のみ） */}
+        {showOneOnOne && (
+          <ul className="mb-2">
+            <li>
+              <Link
+                href={ONE_ON_ONE_ITEM.href}
+                className={navLinkClass(isActive(ONE_ON_ONE_ITEM.href))}
+              >
+                <span
+                  className={
+                    isActive(ONE_ON_ONE_ITEM.href)
+                      ? "text-[#0178C8]"
+                      : "text-[#64748b]"
+                  }
+                >
+                  {ONE_ON_ONE_ITEM.icon}
+                </span>
+                <span>{ONE_ON_ONE_ITEM.label}</span>
+              </Link>
+            </li>
+          </ul>
+        )}
+
+        {/* 末尾: グループ見出しなしの単独項目（通知一覧） */}
+        <ul className="mb-2">
+          {BOTTOM_ITEMS.map((item) => {
+            const active = isActive(item.href);
+            return (
+              <li key={item.href}>
+                <Link href={item.href} className={navLinkClass(active)}>
+                  <span className={active ? "text-[#0178C8]" : "text-[#64748b]"}>
+                    {item.icon}
+                  </span>
+                  <span>{item.label}</span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
 
         {/* お気に入りセクションは MVP では DOM レベルで非表示（spec.md §1.1） */}
       </nav>

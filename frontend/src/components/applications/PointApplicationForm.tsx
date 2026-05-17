@@ -238,10 +238,13 @@ export function PointApplicationForm() {
   }
 
   return (
-    <div className="flex h-full flex-col">
-      <PageHeader title="ポイント申請フォーム" />
 
-      <div className="flex flex-1 flex-col px-8 pb-8 pt-[37px] overflow-hidden bg-white">
+    /* ページ全体: 上部にヘッダーバー（Figma 1:134 / h-80px bg-#faf8f5）+ 下にフォーム */
+    <div className="flex h-full min-h-0 flex-col">
+      <PageHeader title="ポイント申請フォーム" />
+      {/* フォームカードを内包するスクロール領域（因果ストーリーと同系統のページ背景） */}
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-brand-bg-page px-6 pb-4 pt-2">
+      {/* フォームカード: Figma準拠 bg-[#ecf5fa] / rounded-[5px] */}
       <div className="flex flex-1 flex-col rounded-[5px] border border-slate-200 bg-[#ecf5fa] shadow-sm overflow-hidden">
         <div className="flex items-center justify-between px-8 pt-5 pb-3">
           <div className="text-base font-bold text-[#334155]">ポイント申請フォーム</div>

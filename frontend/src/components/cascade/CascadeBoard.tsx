@@ -2,13 +2,17 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { fetchAggregatedPoints, simulateCascade } from "@/lib/cascade/client";
+import {
+  fetchAggregatedPoints,
+  fetchIndicatorMeta,
+  simulateCascade,
+} from "@/lib/cascade/client";
 import {
   COMPANY_EFFECT_IDS,
   FINANCE_IDS,
   HUDO_LIST,
-  INDICATOR_META,
   MID_IDS,
+  type IndicatorMetaMap,
 } from "@/lib/cascade/meta";
 import {
   CATEGORY_KEYS,
@@ -29,16 +33,6 @@ import { formatNum, IndicatorCard } from "./IndicatorCard";
 import { IndicatorDetailModal } from "./IndicatorDetailModal";
 import { InputGrid } from "./InputGrid";
 import { PlaceholderCard } from "./PlaceholderCard";
-
-// スコープトグル（全社 / 自部署）。タブによる指標フィルタは廃止。
-const SCOPE_OPTIONS = [
-  { key: "company", label: "全社" },
-  { key: "department", label: "自部署" },
-] as const;
-type ScopeKey = (typeof SCOPE_OPTIONS)[number]["key"];
-
-// TODO: ユーザー API（/api/me 等）から取得する想定。デモ用にハードコード。
-const USER_DEPT_LABEL = "営業本部・福岡リビング営業部";
 
 const HUDO_LABEL_DEFAULT: Record<string, string> = {
   sales_effect: "売上効果",
@@ -87,33 +81,69 @@ function CascadeBoardInner() {
   const [data, setData] = useState<CascadeResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  /** 初回表示中はグリッドを出さず、集計→simulate 完了まで待つ */
+  const [bootstrapping, setBootstrapping] = useState(true);
   const [selected, setSelected] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const [scope, setScope] = useState<ScopeKey>("company");
   const [detailId, setDetailId] = useState<string | null>(null);
+  // 指標メタは backend JSON から取得（Issue #28）。初回 fetch 中は空 map（UI は backend の値だけで動作）。
+  const [indicatorMeta, setIndicatorMeta] = useState<IndicatorMetaMap>({});
+
+  useEffect(() => {
+    const ctrl = new AbortController();
+    fetchIndicatorMeta(ctrl.signal)
+      .then(setIndicatorMeta)
+      .catch((e: unknown) => {
+        if (e instanceof DOMException && e.name === "AbortError") return;
+        console.error("fetchIndicatorMeta failed:", e);
+      });
+    return () => ctrl.abort();
+  }, []);
 
   // ホバー > クリック の優先度で「現在の焦点」を決める
   const activeId = hoveredId ?? selected;
 
-  // scope 切替（および初回マウント）で、DB集計済みポイントを取得して初期値に反映する。
-  // 取得後は既存の simulate フローが points 変化を検知して再計算する。
+  // 初回: 全社集計ポイント取得 → simulate を連続実行（空グリッドを見せない）
   useEffect(() => {
     const ctrl = new AbortController();
-    fetchAggregatedPoints(scope, ctrl.signal)
-      .then((data) => {
-        setPoints(data);
-      })
-      .catch((e: unknown) => {
-        if (e instanceof DOMException && e.name === "AbortError") return;
-        // スコープ切替に失敗してもページ全体は壊さない（エラーは画面下部の simulate エラー欄を流用）。
-        setError(e instanceof Error ? e.message : String(e));
-      });
-    return () => ctrl.abort();
-  }, [scope]);
+    let cancelled = false;
 
-  // 初回 + 入力変更時に simulate を叩く（デバウンス）
+    setBootstrapping(true);
+    setData(null);
+    setLoading(true);
+
+    void (async () => {
+      try {
+        const aggregated = await fetchAggregatedPoints(ctrl.signal);
+        if (cancelled) return;
+        setPoints(aggregated);
+        const res = await simulateCascade(aggregated, ctrl.signal);
+        if (cancelled) return;
+        setData(res);
+        setError(null);
+      } catch (e: unknown) {
+        if (cancelled) return;
+        if (e instanceof DOMException && e.name === "AbortError") return;
+        setError(e instanceof Error ? e.message : String(e));
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+          setBootstrapping(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      ctrl.abort();
+    };
+  }, []);
+
+  // セル入力・リセット等: points 変更時に simulate（デバウンス）。bootstrap 中は初回効果に任せる。
   const abortRef = useRef<AbortController | null>(null);
   useEffect(() => {
+    if (bootstrapping) return;
+
     const handle = setTimeout(() => {
       abortRef.current?.abort();
       const ctrl = new AbortController();
@@ -131,7 +161,7 @@ function CascadeBoardInner() {
         .finally(() => setLoading(false));
     }, DEBOUNCE_MS);
     return () => clearTimeout(handle);
-  }, [points]);
+  }, [points, bootstrapping]);
 
   const cardByCalcId = useMemo(() => {
     const map = new Map<string, CardData>();
@@ -142,14 +172,14 @@ function CascadeBoardInner() {
   }, [data]);
 
   // モーダル用：全ノードの label / description / target / unit / reliability を 1 つの map に集約
-  // INDICATOR_META に target/unit が定義されている場合は backend より優先する。
+  // backend から取得した indicatorMeta に target/unit が定義されている場合は cards より優先する。
   const cardMeta = useMemo(() => {
     const m = new Map<string, CardMeta>();
     for (const k of CATEGORY_KEYS) m.set(k, { label: CATEGORY_LABEL[k] });
     for (const h of HUDO_LIST) m.set(h.id, { label: h.label, description: h.desc });
     data?.cards.forEach((c) => {
       if (!c.calc_id) return;
-      const override = INDICATOR_META[c.calc_id];
+      const override = indicatorMeta[c.calc_id];
       m.set(c.calc_id, {
         label: c.label,
         description: c.description,
@@ -159,14 +189,14 @@ function CascadeBoardInner() {
       });
     });
     return m;
-  }, [data]);
+  }, [data, indicatorMeta]);
 
   // カード表示用：value（現在値）/ target / unit / qualitative を meta + backend から決定。
   //   value: meta.baselineCurrent（静的）が優先。なければ backend の projected を使う（9セル入力で動的更新）。
   //   target/unit: meta が定義されていれば優先。なければ backend の値。
   const displayOf = useCallback(
     (id: string) => {
-      const meta = INDICATOR_META[id];
+      const meta = indicatorMeta[id];
       const c = cardByCalcId.get(id);
       const value =
         meta?.baselineCurrent !== undefined && meta.baselineCurrent !== null
@@ -185,7 +215,7 @@ function CascadeBoardInner() {
         qualitativeTarget: meta?.qualitativeTarget ?? null,
       };
     },
-    [cardByCalcId],
+    [cardByCalcId, indicatorMeta],
   );
 
   // connections から下流方向の隣接リストを構築
@@ -269,33 +299,13 @@ function CascadeBoardInner() {
       reliability: m.reliability ?? null,
     };
   }, [detailId, cardMeta]);
-  const detailIndicatorMeta = detailId ? (INDICATOR_META[detailId] ?? null) : null;
+  const detailIndicatorMeta = detailId ? (indicatorMeta[detailId] ?? null) : null;
 
   return (
     <div className="flex flex-col gap-1">
-      {/* ヘッダー + スコープトグル + サマリー */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 border-b border-ink-secondary/20 pb-1">
-        <h1 className="text-[16px] font-semibold tracking-tight text-ink-primary">
-          因果ストーリー
-        </h1>
-        <div className="flex gap-3 text-[12px]">
-          {SCOPE_OPTIONS.map((s) => (
-            <button
-              key={s.key}
-              type="button"
-              onClick={() => setScope(s.key)}
-              className={cn(
-                "-mb-1 border-b-2 pb-1 transition-colors",
-                scope === s.key
-                  ? "border-brand-primary font-semibold text-ink-primary"
-                  : "border-transparent text-ink-secondary hover:text-ink-primary",
-              )}
-            >
-              {s.key === "department" ? USER_DEPT_LABEL : s.label}
-            </button>
-          ))}
-        </div>
-        <div className="ml-auto flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] text-ink-secondary">
+      {/* サマリー（ページタイトルは PageHeader） */}
+      <div className="mb-2 flex flex-wrap items-center justify-end gap-x-3 gap-y-0.5 border-b border-ink-secondary/20 pb-2">
+        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] text-ink-secondary">
           <span className="font-semibold text-ink-primary">合計</span>
           <span className="tabular-nums text-ink-primary">
             {total.toLocaleString()} pt
@@ -320,8 +330,8 @@ function CascadeBoardInner() {
             リセット
           </button>
           <span className="text-[11px] text-ink-secondary">
-            {loading
-              ? "計算中…"
+            {bootstrapping || loading
+              ? "読み込み中…"
               : data
                 ? `更新: ${new Date(data.updated_at).toLocaleTimeString()}`
                 : ""}
@@ -332,8 +342,13 @@ function CascadeBoardInner() {
         ) : null}
       </div>
 
-      {/* 5列グリッド + 矢印オーバーレイ */}
-      <CascadeGrid
+      {/* 5列グリッド + 矢印オーバーレイ（初回・スコープ切替はデータ準備完了まで非表示） */}
+      {bootstrapping ? (
+        <div className="flex min-h-[min(70vh,720px)] items-center justify-center rounded-lg border border-dashed border-ink-secondary/25 bg-brand-bg-light/40 text-sm text-ink-secondary">
+          因果ストーリーを読み込んでいます…
+        </div>
+      ) : (
+        <CascadeGrid
         connections={data?.connections ?? []}
         activeId={activeId}
       >
@@ -478,6 +493,7 @@ function CascadeBoardInner() {
           })}
         </Column>
       </CascadeGrid>
+      )}
 
       <IndicatorDetailModal
         detailId={detailId}

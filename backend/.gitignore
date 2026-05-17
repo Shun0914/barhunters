@@ -3,6 +3,8 @@ __pycache__/
 *.py[cod]
 .env
 local.db
+local.db.bak
+*.db.bak
 *.egg-info/
 dist/
 build/

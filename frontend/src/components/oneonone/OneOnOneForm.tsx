@@ -74,9 +74,9 @@ export function OneOnOneForm() {
 
   if (!rolesLoading && partnerRoles.length === 0) {
     return (
-      <div className="flex h-full flex-col">
+      <div className="flex h-full min-h-0 flex-col">
         <PageHeader title="1on1 実施報告" />
-        <div className="flex-1 bg-white px-8 py-6">
+        <div className="min-h-0 flex-1 overflow-y-auto bg-brand-bg-page px-6 pb-4 pt-2">
           <div className="max-w-md rounded border border-slate-200 bg-[#ecf5fa] p-4 text-sm text-[#334155]">
             あなたの役職では 1on1 の記録はできません。
             <br />
@@ -88,9 +88,9 @@ export function OneOnOneForm() {
   }
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full min-h-0 flex-col">
       <PageHeader title="1on1 実施報告" />
-      <div className="flex-1 overflow-auto bg-white px-8 py-6">
+      <div className="min-h-0 flex-1 overflow-y-auto bg-brand-bg-page px-6 pb-4 pt-2">
         <form
           onSubmit={handleSubmit}
           className="max-w-md space-y-4 rounded-[5px] border border-slate-200 bg-[#ecf5fa] p-5 shadow-sm"
