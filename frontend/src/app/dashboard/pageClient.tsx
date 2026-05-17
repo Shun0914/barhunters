@@ -11,6 +11,7 @@ import { TotalPointsCard } from "@/components/dashboard/TotalPointsCard";
 import { PageHeader } from "@/components/PageHeader";
 import { apiFetch } from "@/lib/api";
 import type { UserBrief } from "@/lib/api/types";
+import { createFullFilter } from "@/lib/dashboard/filterDefaults";
 import { computeDashboardData } from "@/lib/dashboard/mockData";
 import type { DashboardFilter } from "@/lib/dashboard/types";
 
@@ -19,14 +20,12 @@ function isManagerLikeRole(role: string | null | undefined): boolean {
 }
 
 export function DashboardPageClient() {
-  const [filter, setFilter] = useState<DashboardFilter>({
-    company: "SAIBU",
-    hq: "SALES",
-    departments: ["福岡リビング営業部"],
-    roles: ["部長", "課長"],
-    fiscalYear: "FY2026",
-    month: 5,
-  });
+  // 起動時は「全社で見る」と同じ状態（全 4 カテゴリ全選択）= max データ表示。
+  // 任意カテゴリのチェックを外すと、その分の比率でデータが減る。
+  // 「フィルタをクリア」または任意カテゴリ全外しで 0 表示になる。
+  const [filter, setFilter] = useState<DashboardFilter>(() =>
+    createFullFilter("FY2026", 5),
+  );
 
   const [me, setMe] = useState<UserBrief | null>(null);
 
