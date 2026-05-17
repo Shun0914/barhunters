@@ -2,14 +2,18 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { fetchAggregatedPoints, simulateCascade } from "@/lib/cascade/client";
+import {
+  fetchAggregatedPoints,
+  fetchIndicatorMeta,
+  simulateCascade,
+} from "@/lib/cascade/client";
 import {
   CELL_LABEL,
   COMPANY_EFFECT_IDS,
   FINANCE_IDS,
   HUDO_LIST,
-  INDICATOR_META,
   MID_IDS,
+  type IndicatorMetaMap,
 } from "@/lib/cascade/meta";
 import {
   CELL_KEYS,
@@ -93,6 +97,19 @@ function CascadeBoardInner() {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [scope, setScope] = useState<ScopeKey>("company");
   const [detailId, setDetailId] = useState<string | null>(null);
+  // 指標メタは backend JSON から取得（Issue #28）。初回 fetch 中は空 map（UI は backend の値だけで動作）。
+  const [indicatorMeta, setIndicatorMeta] = useState<IndicatorMetaMap>({});
+
+  useEffect(() => {
+    const ctrl = new AbortController();
+    fetchIndicatorMeta(ctrl.signal)
+      .then(setIndicatorMeta)
+      .catch((e: unknown) => {
+        if (e instanceof DOMException && e.name === "AbortError") return;
+        console.error("fetchIndicatorMeta failed:", e);
+      });
+    return () => ctrl.abort();
+  }, []);
 
   // ホバー > クリック の優先度で「現在の焦点」を決める
   const activeId = hoveredId ?? selected;
@@ -166,14 +183,14 @@ function CascadeBoardInner() {
   }, [data]);
 
   // モーダル用：全ノードの label / description / target / unit / reliability を 1 つの map に集約
-  // INDICATOR_META に target/unit が定義されている場合は backend より優先する。
+  // backend から取得した indicatorMeta に target/unit が定義されている場合は cards より優先する。
   const cardMeta = useMemo(() => {
     const m = new Map<string, CardMeta>();
     for (const k of CELL_KEYS) m.set(k, { label: CELL_LABEL[k] });
     for (const h of HUDO_LIST) m.set(h.id, { label: h.label, description: h.desc });
     data?.cards.forEach((c) => {
       if (!c.calc_id) return;
-      const override = INDICATOR_META[c.calc_id];
+      const override = indicatorMeta[c.calc_id];
       m.set(c.calc_id, {
         label: c.label,
         description: c.description,
@@ -183,14 +200,14 @@ function CascadeBoardInner() {
       });
     });
     return m;
-  }, [data]);
+  }, [data, indicatorMeta]);
 
   // カード表示用：value（現在値）/ target / unit / qualitative を meta + backend から決定。
   //   value: meta.baselineCurrent（静的）が優先。なければ backend の projected を使う（9セル入力で動的更新）。
   //   target/unit: meta が定義されていれば優先。なければ backend の値。
   const displayOf = useCallback(
     (id: string) => {
-      const meta = INDICATOR_META[id];
+      const meta = indicatorMeta[id];
       const c = cardByCalcId.get(id);
       const value =
         meta?.baselineCurrent !== undefined && meta.baselineCurrent !== null
@@ -209,7 +226,7 @@ function CascadeBoardInner() {
         qualitativeTarget: meta?.qualitativeTarget ?? null,
       };
     },
-    [cardByCalcId],
+    [cardByCalcId, indicatorMeta],
   );
 
   // connections から下流方向の隣接リストを構築
@@ -293,7 +310,7 @@ function CascadeBoardInner() {
       reliability: m.reliability ?? null,
     };
   }, [detailId, cardMeta]);
-  const detailIndicatorMeta = detailId ? (INDICATOR_META[detailId] ?? null) : null;
+  const detailIndicatorMeta = detailId ? (indicatorMeta[detailId] ?? null) : null;
 
   return (
     <div className="flex flex-col gap-1">

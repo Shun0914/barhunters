@@ -19,7 +19,7 @@ type Props = {
   /** null なら閉じている。 */
   detailId: string | null;
   header: Header | null;
-  /** meta.ts の INDICATOR_META から取得した構造化説明。 */
+  /** GET /api/cascade/indicator-meta から取得した構造化説明。 */
   indicatorMeta: IndicatorMeta | null;
   /** 単位付きフォーマッタ（IndicatorCard と同じものを使う想定）。 */
   formatValue: (v: number | null | undefined, unit?: string | null) => string;
