@@ -12,6 +12,7 @@ on:
 env:
   NODE_VERSION: "20.x"
   NEXT_PUBLIC_API_URL: "https://tech0-gen-11-step3-2-py-66.azurewebsites.net"
+  NEXT_PUBLIC_ALLOW_DEV_USER_SWITCH: "true"
 
 jobs:
   build:
