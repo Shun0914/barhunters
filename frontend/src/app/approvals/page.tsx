@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { ApprovalsGate } from "./ApprovalsGate";
 
 export const metadata = {
-  title: "ポイント承認 | barhunters",
+  title: "ポイント承認",
 };
 
 export default function ApprovalsPage() {

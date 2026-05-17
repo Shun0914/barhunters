@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { DevUserSwitcher } from "@/components/DevUserSwitcher";
 import { ICONS } from "@/components/icons";
 import { NotificationBell } from "@/components/NotificationBell";
+import { APP_NAME } from "@/lib/appBranding";
 import { apiFetch, setDevUserId } from "@/lib/api";
 import { logout } from "@/lib/api/auth";
 import type { UserBrief } from "@/lib/api/types";
@@ -108,8 +109,7 @@ export function Sidebar() {
   return (
     /* Figma: サイドバー背景は #faf8f5、幅 250px */
     <aside className="relative z-20 flex h-screen w-[250px] shrink-0 flex-col border-r border-slate-200 bg-[#faf8f5]">
-      {/* ロゴ部 — Figma の image 14（西部ガスHD ロゴプレースホルダ）+「システム名」
-          高さは右側の PageHeader (h-20) と揃える */}
+      {/* ロゴ部 — 西部ガスロゴ + システム名（高さは PageHeader h-20 と揃える） */}
       <div className="flex h-20 shrink-0 items-center gap-2 px-3">
         <div className="relative h-10 w-12 shrink-0">
           <Image
@@ -121,7 +121,7 @@ export function Sidebar() {
             priority
           />
         </div>
-        <span className="text-[10px] text-[#334155]">システム名</span>
+        <span className="text-[10px] font-medium text-[#334155]">{APP_NAME}</span>
       </div>
 
       {/* ナビ本体 */}
