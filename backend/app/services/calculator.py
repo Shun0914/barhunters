@@ -520,11 +520,13 @@ def _build_yearly(roic_delta: float, roe_delta: float) -> list[YearlyResult]:
 def _layer3_kpi_to_mid_sorted() -> dict[str, list[tuple[str, float, str, str]]]:
     """各 3 層 KPI ごとに、紐づく中間層を係数降順でソートして返す内部ヘルパー。
 
-    LAYER3_TO_MID（サーベイ由来）と LAYER3_TO_MID_COUNT（実カウント、点線関連）を統合。
+    対象は LAYER3_TO_MID（サーベイ由来 10 個）のみ。LAYER3_TO_MID_COUNT は
+    画面の中間層カラムに表示されないため、線・ハイライトのランキングから除外する
+    （cascade 計算では従来通り両方使う）。
     戻り値: {kpi_id: [(mid_id, coef, reliability, citation), ...] 降順}
     """
     kpi_to_mid: dict[str, dict[str, tuple[float, str, str]]] = {}
-    for from_id, to_id, coef, rel, citation in LAYER3_TO_MID + LAYER3_TO_MID_COUNT:
+    for from_id, to_id, coef, rel, citation in LAYER3_TO_MID:
         kpi_to_mid.setdefault(from_id, {})[to_id] = (coef, rel, citation)
 
     out: dict[str, list[tuple[str, float, str, str]]] = {}
