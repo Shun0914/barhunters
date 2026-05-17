@@ -10,7 +10,6 @@ const ARROW_COLOR = "#334155"; // ink-primary
 const STRONG_MARKER_ID = "cascade-arrow-strong";
 const WEAK_MARKER_ID = "cascade-arrow-weak";
 
-const STRONG_THRESHOLD = 0.3;
 const MIN_THRESHOLD = 0.1;
 
 type Props = {
@@ -58,14 +57,16 @@ export function ArrowOverlay({ edges, activeId }: Props) {
       const c2x = x2 - dx * 0.5;
       const d = `M ${x1.toFixed(2)} ${y1.toFixed(2)} C ${c1x.toFixed(2)} ${y1.toFixed(2)}, ${c2x.toFixed(2)} ${y2.toFixed(2)}, ${x2.toFixed(2)} ${y2.toFixed(2)}`;
 
-      const isStrong = mag >= STRONG_THRESHOLD;
+      // 線種は backend が style="solid"/"dashed" で指定。
+      // 旧仕様（係数閾値で判定）は撤廃。
+      const isDashed = e.style === "dashed";
       out.push({
         key: `${e.from_id}->${e.to_id}`,
         d,
-        strokeWidth: isStrong ? 1.5 : 1.2,
-        strokeOpacity: isStrong ? 0.8 : 0.6,
-        dasharray: isStrong ? undefined : "5 3",
-        markerId: isStrong ? STRONG_MARKER_ID : WEAK_MARKER_ID,
+        strokeWidth: isDashed ? 1.2 : 1.5,
+        strokeOpacity: isDashed ? 0.6 : 0.8,
+        dasharray: isDashed ? "5 3" : undefined,
+        markerId: isDashed ? WEAK_MARKER_ID : STRONG_MARKER_ID,
       });
     }
     return out;

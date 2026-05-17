@@ -64,6 +64,7 @@ class Edge(BaseModel):
     coefficient: float
     reliability: Reliability
     citation: str = ""
+    style: Literal["solid", "dashed"] = "solid"
 
 
 class YearlyResult(BaseModel):
@@ -94,3 +95,6 @@ class CascadeResponse(BaseModel):
     summary: FinancialSummary
     yearly: list[YearlyResult]
     updated_at: str
+    # 第3層 KPI ホバー時にハイライト対象とする中間層 ID（係数降順 上位 5）。
+    # connections（top 3 のみ線あり）と分離し、4-5 位は線なしでハイライトのみ。
+    highlights: dict[str, list[str]] = Field(default_factory=dict)

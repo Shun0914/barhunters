@@ -239,6 +239,7 @@ def _build_response(result: CascadeResult) -> CascadeResponse:
         summary=summary,
         yearly=result.yearly,
         updated_at=datetime.now().isoformat(),
+        highlights=result.highlights,
     )
 
 
