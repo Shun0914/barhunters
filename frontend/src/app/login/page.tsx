@@ -2,7 +2,7 @@ import { Suspense } from "react";
 
 import { LoginPageClient } from "./pageClient";
 
-export const metadata = { title: "ログイン | barhunters" };
+export const metadata = { title: "ログイン" };
 
 export default function LoginPage() {
   return (

@@ -1,6 +1,6 @@
 import { CascadeBoard } from "@/components/cascade/CascadeBoard";
 
-export const metadata = { title: "因果ストーリー | barhunters" };
+export const metadata = { title: "因果ストーリー" };
 
 export default function CascadePage() {
   return (
