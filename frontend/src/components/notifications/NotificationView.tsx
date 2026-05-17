@@ -135,7 +135,7 @@ export function NotificationView() {
         />
       </PageHeader>
 
-      <div className="flex flex-1 flex-col overflow-hidden bg-white px-8 pb-8 pt-5">
+      <div className="flex flex-1 flex-col overflow-hidden bg-brand-bg-page px-8 pb-8 pt-5">
         {error && (
           <div className="mb-3 shrink-0 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
             {error}
