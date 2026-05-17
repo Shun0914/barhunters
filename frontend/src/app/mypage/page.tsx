@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { MyPageClient } from "./pageClient";
 
 export const metadata = {
-  title: "マイページ | barhunters",
+  title: "マイページ",
 };
 
 export default function MyPage() {

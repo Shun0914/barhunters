@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { ApplicationStatusView } from "@/components/applications/ApplicationStatusView";
 
 export const metadata = {
-  title: "ポイント申請状況 | barhunters",
+  title: "ポイント申請状況",
 };
 
 export default function ApplicationsStatusPage() {
