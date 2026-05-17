@@ -198,11 +198,11 @@ META: dict = {
     },
     "sales_effect": {
         "description": {
-            "measures": "人的資本投資（6,000P）による年間売上増加効果",
-            "measurement": "各KPI改善が売上に与える影響を回帰モデルで試算",
-            "targetRationale": "6,000P × 10万円/P = 6.0億円（柳モデルからの逆算）。" + REFINE,
+            "measures": "人的資本投資（60,000P）による年間売上増加効果",
+            "measurement": "各KPI改善が売上に与える影響を NotebookLM 39 係数 × cascade × 期間内発現率 1/3 で算出",
+            "targetRationale": "60,000P × 1万円/P = 11.12億円（v2.6 道 2、Phase 1 達成時のフルポテンシャル）。" + REFINE,
         },
-        "target": 6.0,
+        "target": 11.12,
         "unit": "億円",
     },
     "revenue": {

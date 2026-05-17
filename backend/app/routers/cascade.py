@@ -114,7 +114,7 @@ def _financial_to_cards(
             improvement=result.sales_effect_oku,
             achievement=result.sales_effect_oku / SALES_TARGET_OKU if SALES_TARGET_OKU else 0,
             reliability="★★",
-            description=f"6,000P目標時に+{SALES_TARGET_OKU}億円",
+            description="",
             unit="億円",
         )
     )

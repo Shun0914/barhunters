@@ -286,9 +286,9 @@ function CascadeBoardInner() {
 
   const handleReset = () => setPoints(ZERO_POINTS);
   const handleSample = () => {
-    // 1カテゴリあたり 2,000P → 合計 6,000P で目標達成のキャリブ
+    // v2.6: 1P = 1 万円スケール。1カテゴリあたり 20,000P → 合計 60,000P で目標達成のキャリブ
     setPoints(
-      CATEGORY_KEYS.reduce((acc, k) => ({ ...acc, [k]: 2000 }), {} as PointsInput),
+      CATEGORY_KEYS.reduce((acc, k) => ({ ...acc, [k]: 20000 }), {} as PointsInput),
     );
   };
 
