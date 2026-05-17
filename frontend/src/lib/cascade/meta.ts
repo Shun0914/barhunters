@@ -1,31 +1,13 @@
 // 画面メタ。バックエンド calc_id と表示位置（5列のどこか）の対応表。
-// 列1=入力9セル / 列2=風土7 / 列3=会社への効果7 / 列4=中間9 / 列5=財務.
+// v7: 列1=3カテゴリ入力 / 列2=風土7 / 列3=会社への効果4 / 列4=中間10 / 列5=財務.
 
-import type { ActionKey, CategoryKey, CellKey } from "./types";
+import type { CategoryKey } from "./types";
 
 export const CATEGORIES: { key: CategoryKey; label: string; color: string; soft: string }[] = [
   { key: "social", label: "社会貢献", color: "bg-cat-social",  soft: "bg-cat-social-soft"  },
   { key: "safety", label: "安心安全", color: "bg-cat-safety",  soft: "bg-cat-safety-soft"  },
   { key: "future", label: "未来共創", color: "bg-cat-future",  soft: "bg-cat-future-soft"  },
 ];
-
-export const ACTIONS: { key: ActionKey; label: string; multiplier: number }[] = [
-  { key: "daily",    label: "日常×",  multiplier: 1 },
-  { key: "cross",    label: "越境×",  multiplier: 3 },
-  { key: "creative", label: "創造×",  multiplier: 5 },
-];
-
-export const CELL_LABEL: Record<CellKey, string> = {
-  daily_social:    "日常×社会貢献",
-  daily_safety:    "日常×安心安全",
-  daily_future:    "日常×未来共創",
-  cross_social:    "越境×社会貢献",
-  cross_safety:    "越境×安心安全",
-  cross_future:    "越境×未来共創",
-  creative_social: "創造×社会貢献",
-  creative_safety: "創造×安心安全",
-  creative_future: "創造×未来共創",
-};
 
 // 列2: 風土・組織文化（7項目）— 日常系 → 越境系 → 創造系
 export const HUDO_LIST: { id: string; label: string; desc: string }[] = [

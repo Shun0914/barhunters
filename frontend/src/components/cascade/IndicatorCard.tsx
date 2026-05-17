@@ -11,7 +11,13 @@ type Props = {
   id: string;
   label: string;
   description?: string | null;
-  /** 動的な現在値（backend の projected または meta.baselineCurrent から流入）。 */
+  /** 静的な現在値（meta.baselineCurrent or backend の current）。LEFT 側に表示。 */
+  current?: number | null;
+  /** P 入力後の到達値（backend の projected）。RIGHT 側に表示。 */
+  projected?: number | null;
+  /** P 入力による改善幅（current → projected の差分）。0 のとき current のみ表示。 */
+  improvement?: number | null;
+  /** 旧プロップ。current が無いカードのフォールバック用に残す。 */
   value?: number | null;
   target?: number | null;
   unit?: string | null;
@@ -19,6 +25,12 @@ type Props = {
   qualitativeCurrent?: string | null;
   /** 数値で表せない指標の質的な目標値テキスト。 */
   qualitativeTarget?: string | null;
+  /**
+   * 事前整形済み文字列を「見出し」として描画するための上書き値。
+   * 売上効果カード（sales_effect）で「+11.12 億円」だけを大きく見せるために使う。
+   * 設定時は qualitative / numeric の各ブランチをスキップする。
+   */
+  valueDisplayOverride?: string | null;
   emphasis?: "main" | "default";
   selected?: boolean;
   highlighted?: boolean;
@@ -36,7 +48,11 @@ export function formatNum(
   unit?: string | null,
 ): string {
   if (v === null || v === undefined || Number.isNaN(v)) return "—";
-  if (unit === "%") return `${v.toFixed(1)}%`;
+  // % は ROIC/ROE のような小さい値（<10%）を 2 桁、それ以外（ENG 59.4% など）を 1 桁で表示。
+  if (unit === "%") {
+    const decimals = Math.abs(v) < 10 ? 2 : 1;
+    return `${v.toFixed(decimals)}%`;
+  }
   if (unit === "スコア") return v.toFixed(2);
   if (unit === "名") return `${Math.round(v).toLocaleString()}名`;
   if (unit === "件") return `${v.toFixed(1)}件`;
@@ -58,7 +74,11 @@ export function deltaText(delta: number, unit?: string | null): string {
   if (delta === 0) return "±0";
   const sign = delta > 0 ? "+" : "−";
   const abs = Math.abs(delta);
-  if (unit === "%") return `${sign}${abs.toFixed(1)}pt`;
+  if (unit === "%") {
+    // ROIC/ROE の +0.176pt のような微小値は 3 桁、それ以外（KPI の +5.6pt 等）は 1 桁。
+    const decimals = abs < 1 ? 3 : 1;
+    return `${sign}${abs.toFixed(decimals)}pt`;
+  }
   if (unit === "スコア") return `${sign}${abs.toFixed(2)}`;
   if (unit === "億円") return `${sign}${abs.toFixed(1)}億円`;
   if (unit === "億kWh") return `${sign}${abs.toFixed(1)}億kWh`;
@@ -74,31 +94,23 @@ export function deltaText(delta: number, unit?: string | null): string {
   return `${sign}${abs.toFixed(1)}`;
 }
 
-function ReliabilityStars({ reliability }: { reliability: Reliability }) {
-  const filled = reliability.length;
-  const empty = 3 - filled;
-  return (
-    <span className="text-[10px] leading-none text-brand-accent">
-      {"★".repeat(filled)}
-      {"☆".repeat(empty)}
-    </span>
-  );
-}
-
 export function IndicatorCard({
   id,
   label,
   description,
+  current,
+  projected,
+  improvement,
   value,
   target,
   unit,
   qualitativeCurrent,
   qualitativeTarget,
+  valueDisplayOverride,
   emphasis = "default",
   selected,
   highlighted,
   dimmed,
-  reliability,
   onClick,
   onHoverEnter,
   onHoverLeave,
@@ -106,7 +118,12 @@ export function IndicatorCard({
 }: Props) {
   const isMain = emphasis === "main";
   const setRef = useRegisterCard(id);
+  // v2.6: current + projected が来ているカードは「現状 → 達成時」を描画。
+  // 後方互換のため、来ていなければ旧 value → target の挙動にフォールバック。
+  const hasCurrentProjected =
+    current !== null && current !== undefined && projected !== null && projected !== undefined;
   const hasNumericProgress =
+    !hasCurrentProjected &&
     value !== null &&
     value !== undefined &&
     target !== null &&
@@ -115,6 +132,14 @@ export function IndicatorCard({
   const hasNumericTarget = target !== null && target !== undefined;
   const isFocused = !!selected;
   const inChain = isFocused || !!highlighted;
+  // 改善幅 0（または projected===current）→ 横棒のみで現状値を強調表示。
+  const effectiveImprovement = improvement ?? (
+    hasCurrentProjected ? (projected as number) - (current as number) : null
+  );
+  const hasImprovement =
+    effectiveImprovement !== null &&
+    effectiveImprovement !== undefined &&
+    Math.abs(effectiveImprovement) > 1e-9;
   const delta = hasNumericProgress ? (target as number) - (value as number) : null;
 
   return (
@@ -147,7 +172,6 @@ export function IndicatorCard({
           {label}
         </span>
         <div className="flex shrink-0 items-center gap-1">
-          {reliability ? <ReliabilityStars reliability={reliability} /> : null}
           <span
             role="button"
             tabIndex={0}
@@ -173,7 +197,16 @@ export function IndicatorCard({
       </div>
 
       <div className="mt-0.5">
-        {hasQualitative ? (
+        {valueDisplayOverride ? (
+          <div
+            className={cn(
+              "font-bold tabular-nums leading-tight",
+              isMain ? "text-xl text-brand-primary" : "text-[15px] text-ink-primary",
+            )}
+          >
+            {valueDisplayOverride}
+          </div>
+        ) : hasQualitative ? (
           <div
             className={cn(
               "leading-tight text-ink-primary",
@@ -188,6 +221,43 @@ export function IndicatorCard({
             ) : null}
             <span className="font-semibold">{qualitativeTarget}</span>
           </div>
+        ) : hasCurrentProjected ? (
+          <>
+            <div
+              className={cn(
+                "font-bold tabular-nums leading-tight",
+                isMain ? "text-xl text-brand-primary" : "text-[15px] text-ink-primary",
+              )}
+            >
+              <span className="transition-all duration-300 ease-out">
+                {formatNum(current, unit)}
+              </span>
+              {hasImprovement ? (
+                <>
+                  <span className="mx-1 text-xs font-normal text-ink-secondary">
+                    →
+                  </span>
+                  <span>{formatNum(projected, unit)}</span>
+                </>
+              ) : null}
+            </div>
+            {hasImprovement ? (
+              <div
+                className={cn(
+                  "mt-0 text-[10px] tabular-nums",
+                  (effectiveImprovement as number) > 0
+                    ? "text-status-ok-fg"
+                    : "text-status-ng-fg",
+                )}
+              >
+                {deltaText(effectiveImprovement as number, unit)}
+              </div>
+            ) : (
+              <div className="mt-0 text-[10px] tabular-nums text-ink-secondary">
+                −
+              </div>
+            )}
+          </>
         ) : hasNumericProgress ? (
           <>
             <div

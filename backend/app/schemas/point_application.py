@@ -1,4 +1,4 @@
-"""PointApplication のリクエスト／レスポンススキーマ。spec §4.2。"""
+"""PointApplication のリクエスト／レスポンススキーマ。spec §4.2 + v7 2値ポイント体系。"""
 
 from __future__ import annotations
 
@@ -9,14 +9,23 @@ from pydantic import BaseModel, ConfigDict, Field
 
 PointApplicationStatus = Literal["draft", "submitted", "approved", "returned"]
 
+LevelLiteral = Literal["daily", "creative"]
+CategoryLiteral = Literal["social", "safety", "future"]
+
 
 class PointApplicationDraftIn(BaseModel):
-    """下書き作成・更新用の入力。spec §2.6 — 下書き時は何もかも nullable。"""
+    """下書き作成・更新用の入力。spec §2.6 — 下書き時は何もかも nullable。
+
+    v7: level + category を受け取る。activity_genre_id はサーバ側で導出するので不要。
+    旧クライアントとの互換のため activity_genre_id も受理する（無視はしない）。
+    """
 
     title: str | None = Field(default=None, max_length=50)
+    # 新スキーマ（推奨）
+    level: LevelLiteral | None = None
+    category: CategoryLiteral | None = None
+    # 旧スキーマ（後方互換）
     activity_genre_id: int | None = None
-    # 明示的に指定された場合は default_points より優先する（申請者の手動調整を許容）。
-    points: int | None = Field(default=None, ge=0)
     description: str | None = Field(default=None, max_length=500)
     approver_1_user_id: str | None = None
     approver_2_user_id: str | None = None
@@ -33,6 +42,11 @@ class PointApplicationOut(BaseModel):
     applicant_user_id: str
     applicant_name: str | None = None
     title: str | None
+    # v7 2値ポイント体系
+    level: LevelLiteral | None = None
+    category: CategoryLiteral | None = None
+    final_point: float | None = None
+    # 旧スキーマ（dashboard / mypage のジャンル別内訳が pivot に使う）
     activity_genre_id: int | None
     activity_genre_name: str | None = None
     points: int | None

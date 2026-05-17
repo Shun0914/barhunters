@@ -1,21 +1,29 @@
-// backend/app/schemas/cascade.py の写し。
-// 9セル × 3カテゴリ（社会/安全/未来）×3アクション（日常/越境/創造）。
+// backend/app/schemas/cascade.py の写し（v7: 2値ポイント + 3カテゴリ集約）。
 
 export type Reliability = "★★★" | "★★" | "★";
 
-export type ActionKey = "daily" | "cross" | "creative";
+// 申請レベル（base_point 算出元）
+export type LevelKey = "daily" | "creative";
+// cascade 上流の 3 カテゴリ
 export type CategoryKey = "social" | "safety" | "future";
-export type CellKey = `${ActionKey}_${CategoryKey}`;
 
-export const CELL_KEYS: CellKey[] = [
-  "daily_social", "daily_safety", "daily_future",
-  "cross_social", "cross_safety", "cross_future",
-  "creative_social", "creative_safety", "creative_future",
-];
+export const CATEGORY_KEYS: CategoryKey[] = ["social", "safety", "future"];
 
-export type PointsInput = Record<CellKey, number>;
+export const CATEGORY_LABEL: Record<CategoryKey, string> = {
+  social: "社会貢献",
+  safety: "安心安全",
+  future: "未来共創",
+};
 
-export const ZERO_POINTS: PointsInput = CELL_KEYS.reduce(
+export const LEVEL_LABEL: Record<LevelKey, string> = {
+  daily: "日常",
+  creative: "創造",
+};
+
+// 1pt 単位の細かい変化を扱うため float（PointsInput は累積最終ポイント）。
+export type PointsInput = Record<CategoryKey, number>;
+
+export const ZERO_POINTS: PointsInput = CATEGORY_KEYS.reduce(
   (acc, k) => ({ ...acc, [k]: 0 }),
   {} as PointsInput,
 );

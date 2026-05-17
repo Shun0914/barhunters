@@ -3,6 +3,7 @@
 from app.models.activity_genre import ActivityGenre
 from app.models.application_number_counter import ApplicationNumberCounter
 from app.models.base import Base
+from app.models.department_category_points import DepartmentCategoryPoints
 from app.models.indicator import Indicator
 from app.models.notification import Notification
 from app.models.one_on_one import OneOnOne
@@ -16,6 +17,7 @@ __all__ = [
     "Organization",
     "ActivityGenre",
     "ApplicationNumberCounter",
+    "DepartmentCategoryPoints",
     "Indicator",
     "PointApplication",
     "Notification",

@@ -36,6 +36,11 @@ from app.models import (
     PointApplication,
     User,
 )
+from app.services.point_calc import (
+    compute_final_point,
+    derived_genre_name,
+    parse_legacy_genre_name,
+)
 from app.settings import get_settings
 from scripts.seed_activity_genres import seed as seed_activity_genres
 
@@ -160,7 +165,8 @@ APPLICATIONS = [
         id="44444444-4444-4444-4444-444444444442",
         title="安全手順の見直しと勉強会開催",
         applicant_user_id=DEV_DEFAULT_USER_ID,
-        genre_name="越境×安心安全",
+        # v7: 「越境×安心安全」を廃止したため「創造×安心安全」に変更
+        genre_name="創造×安心安全",
         status="submitted",
         approval_total_steps=3,
         current_approval_step=2,
@@ -264,6 +270,15 @@ def _ensure_application(
     application = session.get(PointApplication, seed_application.id)
     created = application is None
     genre = _genre_by_name(session, seed_application.genre_name)
+    # v7: ジャンル名から level/category を逆引きし、final_point を申請者の役職で算出
+    level, category = parse_legacy_genre_name(genre.name)
+    # 万一不一致なら一度回り回って derived_genre_name で正規化（タイポ防止）
+    if level and category:
+        canonical = derived_genre_name(level, category)
+        assert canonical == genre.name, (canonical, genre.name)
+    applicant = session.get(User, seed_application.applicant_user_id)
+    role = applicant.role if applicant else None
+    final_point = compute_final_point(level, role) if level else None
 
     if application is None:
         application = PointApplication(
@@ -271,8 +286,11 @@ def _ensure_application(
             application_number=_allocate_application_number(counter),
             applicant_user_id=seed_application.applicant_user_id,
             title=seed_application.title,
+            level=level,
+            category=category,
+            final_point=final_point,
+            points=final_point,
             activity_genre_id=genre.id,
-            points=genre.default_points,
             description=seed_application.description,
             approver_1_user_id=seed_application.approver_1_user_id,
             approver_2_user_id=seed_application.approver_2_user_id,
@@ -287,8 +305,11 @@ def _ensure_application(
             application.application_number = _allocate_application_number(counter)
         application.applicant_user_id = seed_application.applicant_user_id
         application.title = seed_application.title
+        application.level = level
+        application.category = category
+        application.final_point = final_point
+        application.points = final_point
         application.activity_genre_id = genre.id
-        application.points = genre.default_points
         application.description = seed_application.description
         application.approver_1_user_id = seed_application.approver_1_user_id
         application.approver_2_user_id = seed_application.approver_2_user_id

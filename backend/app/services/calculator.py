@@ -1,15 +1,15 @@
-"""計算エンジン v5：9セル → 7風土 → 4 KPI → 中間層 → 売上効果
+"""計算エンジン v7：3カテゴリ → 7風土 → 4 KPI → 中間層 → 売上効果
 
-v4 → v5 変更点：
-- 入力を 5フィールド → 9セル（3アクション × 3カテゴリ）
-- 9セル × 7風土 接続行列（M9_7）
-- 7風土 × 4 KPI 接続行列（M7_4）
-- 各KPIごとに均等配分（6,000P）でキャリブ済の scale を保持
-- 売上キャリブは日常重視配分で6,000P=売上+6億円になるよう調整
+v5 → v7 変更点：
+- 入力を 9セル → 3カテゴリに集約（social/safety/future）
+- 9セル × 7風土 接続行列 M9_7 を 3カテゴリ × 7風土 M3_7 に平均化（option A）
+- KPI_SCALE は維持（6,000P 投入時に 2026目標達成の感度）
+- 6,000P を「3カテゴリに 2,000P ずつ」入れた場合、旧 9セルに 666P ずつ入れたときと
+  数学的に等価（M3_7 が平均で、3 倍された P に 1/3 の係数を掛けるため打ち消し合う）
 
 カスケード:
-  9セル → 7風土 → 4個3層KPI → 中間層13個 → 売上ドライバー → 売上効果（メイン）
-                                                            → ROIC/ROE（参考）
+  3カテゴリ → 7風土 → 4個3層KPI → 中間層13個 → 売上ドライバー → 売上効果（メイン）
+                                                                → ROIC/ROE（参考）
 """
 
 from datetime import datetime
@@ -45,9 +45,14 @@ ROE_TARGET_2027 = 0.080   # 8.0%
 # 営業利益率（売上→NOPAT 換算用）
 OP_MARGIN = OP_INCOME_M / REVENUE_M     # ≒ 4.16%
 
-# 売上効果メイン目標
-SALES_TARGET_M = 600
-SALES_TARGET_OKU = 6.0
+# 売上効果メイン目標（v2.6: 道 2 + 60,000P スケール + 挑戦リンク追加後の新基準値）
+SALES_TARGET_M = 1_330
+SALES_TARGET_OKU = 13.30
+# 参考: Phase 別目標 (phase_roadmap.PHASE_TARGETS と整合)
+#   Phase 1 (60,000P)       : 売上 +13.30 億 / ROIC +0.205pt / ROE +0.674pt
+#   Phase 2 (100,000P)      : 売上 +22.16 億 / ROIC +0.34pt  / ROE +1.12pt
+#   Phase 3 下 (200,000P)   : 売上 +44.32 億 / ROIC +0.68pt  / ROE +2.25pt
+#   Phase 3 上 (250,000P)   : 売上 +55.40 億 / ROIC +0.85pt  / ROE +2.81pt
 
 # ════════════════════════════════════════════════════════════
 # シート9：9セル → 7風土 接続行列（v5 合意済）
@@ -64,7 +69,7 @@ HUDO_NAMES = {
     "kenkou": "健康で安心な職場環境",
 }
 
-# M9_7[cell][hudo] = 係数
+# M9_7[cell][hudo] = 係数（旧 v5 接続行列、M3_7 の派生元として保持）
 M9_7: dict[str, dict[str, float]] = {
     "daily_social": {"shinri": 0.3, "chosen": 0.2, "shokumu": 0.5},
     "daily_safety": {"shinri": 0.3, "shokumu": 0.3, "kenkou": 0.4},
@@ -77,6 +82,28 @@ M9_7: dict[str, dict[str, float]] = {
     "creative_future": {"chosen": 0.5, "jiritsu": 0.2, "gakushu": 0.3},
 }
 
+CATEGORIES: tuple[str, ...] = ("social", "safety", "future")
+
+
+def _derive_m3_7() -> dict[str, dict[str, float]]:
+    """M9_7 を 3 カテゴリに平均集約。
+    M3_7[cat][hudo] = mean_level(M9_7[f"{level}_{cat}"][hudo])。
+    cat 毎に 3 セル（daily/cross/creative）の係数を単純平均する（option A）。
+    """
+    out: dict[str, dict[str, float]] = {}
+    for cat in CATEGORIES:
+        agg: dict[str, float] = {h: 0.0 for h in HUDOS}
+        for level in ("daily", "cross", "creative"):
+            cell = f"{level}_{cat}"
+            for hudo, w in M9_7[cell].items():
+                agg[hudo] += w
+        out[cat] = {h: round(w / 3.0, 6) for h, w in agg.items() if w > 0}
+    return out
+
+
+# M3_7[category][hudo] = 係数（v7 — M9_7 の平均集約）
+M3_7: dict[str, dict[str, float]] = _derive_m3_7()
+
 # M7_4[hudo][kpi] = 係数
 M7_4: dict[str, dict[str, float]] = {
     "shinri": {"eng": 0.5, "challenge": 0.2, "transform": 0.0, "retention": 0.3},
@@ -88,12 +115,13 @@ M7_4: dict[str, dict[str, float]] = {
     "kenkou": {"eng": 0.4, "challenge": 0.0, "transform": 0.0, "retention": 0.6},
 }
 
-# 各KPIごとのキャリブscale（均等配分 666.67P/セル × 9セル = 6,000P で 2026目標達成）
+# 各KPIごとのキャリブscale（v2.6: 1P = 1 万円 に単位変更、KPI_SCALE は旧値の 1/10）
+# 60,000P 投入で KPI 100% 達成（旧 6,000P 投入時と同じ効果）。
 KPI_SCALE: dict[str, float] = {
-    "eng": 0.18131,
-    "challenge": 0.01519,
-    "transform": 0.23596,
-    "retention": 0.11707,
+    "eng": 0.018131,
+    "challenge": 0.001519,
+    "transform": 0.023596,
+    "retention": 0.011707,
 }
 
 LAYER3_META: dict[str, tuple[Any, ...]] = {
@@ -183,28 +211,40 @@ LAYER3_TO_MID_COUNT: list[tuple[str, str, float, str, str]] = [
     ("transform", "reskill", 0.5, "★", "変革人財との関連（仮）"),
     ("eng", "reskill", 0.3, "★", "学習文化からの関連（仮）"),
     ("transform", "renewable_mid", 0.4, "★", "脱炭素人財との関連（仮）"),
+    # v2.6: 挑戦指数 → 実カウント中間層（挑戦文化が DX / リスキル / 新事業を押し上げる）
+    ("challenge", "dx_core", 0.20, "★", "挑戦文化 → DX 推進"),
+    ("challenge", "reskill", 0.10, "★", "挑戦 → 学び直し"),
+    ("challenge", "renewable_mid", 0.08, "★", "挑戦 → 新事業領域"),
+]
+
+# v2.6: 挑戦指数 → サーベイ由来中間層（追加分）。
+# spec の poc (0.15) と 地域共創 (0.12) は v6 で region に統合済のため合算 (0.27) で渡す。
+LAYER3_TO_MID += [
+    ("challenge", "region", 0.27, "★", "PoC + 新規地域取り組み"),
+    ("challenge", "ltv", 0.06, "★", "挑戦 → 顧客接点での新価値創造"),
 ]
 
 # ════════════════════════════════════════════════════════════
 # 中間層 → 財務 行列  (revenue, cost, capital)
+# v2.6 道 2: NotebookLM 39 係数（% 単位、文献値ベース）に置き換え。
+# 各値は「100% 達成時のフル発現効果（売上比 / 投下資本比、5-7 年後）」。
+# 旧 v7 の無次元重みは EXCEL_*_FACTOR で逆算スケールしていたが、
+# 道 2 では FACTOR を撤廃し PERIOD_RATIO（=1/3）で時間軸を統一する。
 # ════════════════════════════════════════════════════════════
 MID_TO_FIN: dict[str, tuple[float, float, float]] = {
-    "safety_zero": (0.015, 0.012, 0.074),
-    "renewable_mid": (0.035, 0.015, 0.075),
-    "co2": (0.009, 0.004, 0.058),
-    "jcsi": (0.035, 0.025, 0.025),
-    "ltv": (0.030, 0.010, 0.040),
-    # v6: PoC を統合した分、地域共創力の重みを微増
-    "region": (0.080, 0.020, 0.060),
-    "esg": (0.230, 0.100, 0.130),
-    "recruit": (0.060, 0.120, 0.140),
-    "safety_brand": (0.020, 0.030, 0.120),
-    # v6: プレゼンティーイズム — 3,500人 × 75万損失/年 = 26億/年 → 5%改善で 1.3億/年（売上換算 0.5%）
-    "presenteeism": (0.030, 0.080, 0.000),
-    # v6: アブセンティーイズム — 欠勤・代替要員費の直接削減
-    "absenteeism": (0.005, 0.040, 0.000),
-    "dx_core": (0.020, 0.040, 0.030),
-    "reskill": (0.040, 0.070, 0.050),
+    "safety_zero":  (0.0005, 0.0010, 0.0005),  # 保安事故ゼロ
+    "renewable_mid":(0.0050, 0.0010, 0.0020),  # 再エネ取扱量
+    "co2":          (0.0030, 0.0015, 0.0020),  # CO2削減
+    "jcsi":         (0.0080, 0.0020, 0.0010),  # JCSI
+    "ltv":          (0.0120, 0.0030, 0.0015),  # 顧客LTV
+    "region":       (0.0025, 0.0005, 0.0030),  # 地域共創
+    "esg":          (0.0010, 0.0010, 0.0040),  # ESG評価
+    "recruit":      (0.0020, 0.0035, 0.0020),  # 採用・定着力
+    "safety_brand": (0.0040, 0.0010, 0.0010),  # 保安ブランド
+    "presenteeism": (0.0070, 0.0030, 0.0025),  # プレゼンティーイズム
+    "absenteeism":  (0.0005, 0.0015, 0.0005),  # アブセンティーイズム
+    "dx_core":      (0.0080, 0.0060, 0.0040),  # DXコア人材数
+    "reskill":      (0.0045, 0.0025, 0.0030),  # リスキル実践者数
 }
 
 FIN_RELIABILITY: dict[str, str] = {
@@ -224,13 +264,12 @@ FIN_RELIABILITY: dict[str, str] = {
 }
 
 # ════════════════════════════════════════════════════════════
-# キャリブレーション係数
+# v2.6 道 2: 期間内発現率（NotebookLM 文献値の時間軸補正）
 # ════════════════════════════════════════════════════════════
-# v5：日常重視配分で 6,000P → 売上+6億円
-SALES_CALIBRATION = 0.01815
-
-# v6: ROIC/ROE は売上効果から OP_MARGIN × (1-TAX_RATE) で NOPAT に換算し、
-#      投下資本/自己資本で除して理論的に求める。proxy 係数は撤廃。
+# NotebookLM 39 係数は 5-7 年後のフル発現効果を表す（柳モデル文献の時間軸）。
+# ACT2027 3 年計画期間 + 保守係数で線形按分し、全ドライバー共通の発現率として
+# 1/3 を適用する（旧 v7 の EXCEL_*_FACTOR 逆算は完全撤廃）。
+PERIOD_RATIO = 1.0 / 3.0
 
 
 # ════════════════════════════════════════════════════════════
@@ -281,7 +320,7 @@ class KpiResult:
 
 
 class CascadeResult:
-    """v5: メインは売上効果。"""
+    """v7: 売上効果 / コスト削減 / 資本効率化 を Excel 整合の 億円 で持つ。"""
 
     def __init__(
         self,
@@ -291,6 +330,10 @@ class CascadeResult:
         drivers,
         sales_effect_m,
         sales_effect_oku,
+        cost_savings_m,
+        cost_savings_oku,
+        capital_savings_m,
+        capital_savings_oku,
         roic_delta,
         roe_delta,
         yearly,
@@ -302,6 +345,10 @@ class CascadeResult:
         self.drivers = drivers
         self.sales_effect_m = sales_effect_m
         self.sales_effect_oku = sales_effect_oku
+        self.cost_savings_m = cost_savings_m
+        self.cost_savings_oku = cost_savings_oku
+        self.capital_savings_m = capital_savings_m
+        self.capital_savings_oku = capital_savings_oku
         self.roic_delta = roic_delta
         self.roe_delta = roe_delta
         self.yearly = yearly
@@ -315,17 +362,20 @@ class CascadeResult:
 
 
 def _calc_layer3(points: PointsInput) -> dict[str, KpiResult]:
-    """9セル × M9_7 × M7_4 × scale → 4個3層KPI改善量"""
-    out = {}
+    """3カテゴリ × M3_7 × M7_4 × scale → 4個3層KPI改善量。
+
+    旧 9 セル時代との互換: 同じ 6,000P 投入なら M3_7 が M9_7 の平均なので結果は等価。
+    """
+    out: dict[str, KpiResult] = {}
     p_dict = points.as_dict()
 
     for kpi_id in ["eng", "challenge", "transform", "retention"]:
         improvement = 0.0
-        for cell, hudo_w in M9_7.items():
-            p = p_dict.get(cell, 0)
+        for cat, hudo_w in M3_7.items():
+            p = float(p_dict.get(cat, 0))
             if p == 0:
                 continue
-            # raw_coef_for_kpi = sum_h(M9_7[cell, h] * M7_4[h, kpi])
+            # raw_coef_for_kpi = sum_h(M3_7[cat, h] * M7_4[h, kpi])
             raw_coef = sum(hw * M7_4[h][kpi_id] for h, hw in hudo_w.items())
             improvement += (p / 100) * raw_coef * KPI_SCALE[kpi_id]
 
@@ -393,8 +443,19 @@ def _calc_mid(layer3: dict[str, KpiResult]) -> dict[str, KpiResult]:
 
 def _calc_financial(
     mid: dict[str, KpiResult],
-) -> tuple[dict[str, float], float, float, float, float]:
-    """中間層 → 売上効果 → NOPAT → ΔROIC/ΔROE（v6: 理論チェーン）"""
+) -> tuple[dict[str, float], float, float, float, float, float, float, float, float]:
+    """中間層 → 売上効果 / コスト削減 / 資本効率化 → ΔROIC / ΔROE（v2.6 道 2: NotebookLM 直接適用）
+
+    - revenue_pct / cost_pct / capital_pct は NotebookLM 39 係数（% 単位、文献値）
+      × 中間層 achievement の累積（→ ベース比のフラクションになる）
+    - 売上効果       = revenue_pct × PERIOD_RATIO × REVENUE_M
+    - コスト削減     = cost_pct    × PERIOD_RATIO × REVENUE_M
+    - 資本効率化     = capital_pct × PERIOD_RATIO × INVESTED_CAP
+    - ROIC_new       = (NOPAT + 売上NOPAT寄与 + コストNOPAT寄与) / (INVESTED_CAP - 資本効率改善)
+        ・売上NOPAT寄与 = sales_effect_m × OP_MARGIN × (1 - TAX_RATE)
+        ・コストNOPAT寄与 = cost_savings_m × (1 - TAX_RATE)
+    - ROE_new        = ROIC_new × LEVERAGE
+    """
     revenue = cost = capital = 0.0
     for mid_id, node in mid.items():
         if mid_id not in MID_TO_FIN:
@@ -406,17 +467,38 @@ def _calc_financial(
 
     drivers = {"revenue": revenue, "cost": cost, "capital": capital}
 
-    # メイン：売上効果（既存ロジック維持）
-    sales_effect_m = revenue * REVENUE_M * SALES_CALIBRATION
+    # v2.6 道 2: NotebookLM 文献値 × cascade × 期間内発現率
+    sales_effect_m = revenue * PERIOD_RATIO * REVENUE_M
     sales_effect_oku = sales_effect_m / 100
+    cost_savings_m = cost * PERIOD_RATIO * REVENUE_M
+    cost_savings_oku = cost_savings_m / 100
+    capital_savings_m = capital * PERIOD_RATIO * INVESTED_CAP
+    capital_savings_oku = capital_savings_m / 100
 
-    # v6: ROIC/ROE は売上効果から理論的に導出
-    # 売上 → 営業利益 → NOPAT → ΔROIC/ΔROE
-    nopat_increase_m = sales_effect_m * OP_MARGIN * (1 - TAX_RATE)
-    roic_delta = nopat_increase_m / INVESTED_CAP
-    roe_delta = nopat_increase_m / EQUITY_M
+    # ROIC: 売上 → NOPAT, コスト → NOPAT, 資本効率 → 投下資本減
+    nopat_from_sales = sales_effect_m * OP_MARGIN * (1 - TAX_RATE)
+    nopat_from_cost = cost_savings_m * (1 - TAX_RATE)
+    new_nopat = NOPAT_M + nopat_from_sales + nopat_from_cost
+    new_invested_cap = INVESTED_CAP - capital_savings_m
+    new_roic = new_nopat / new_invested_cap if new_invested_cap > 0 else ROIC_CURRENT
+    roic_delta = new_roic - ROIC_CURRENT
 
-    return drivers, sales_effect_m, sales_effect_oku, roic_delta, roe_delta
+    # ROE: ROIC × レバレッジ（Excel 整合）
+    new_roe = new_roic * LEVERAGE
+    roe_current_proxy = ROIC_CURRENT * LEVERAGE
+    roe_delta = new_roe - roe_current_proxy
+
+    return (
+        drivers,
+        sales_effect_m,
+        sales_effect_oku,
+        cost_savings_m,
+        cost_savings_oku,
+        capital_savings_m,
+        capital_savings_oku,
+        roic_delta,
+        roe_delta,
+    )
 
 
 def _build_yearly(roic_delta: float, roe_delta: float) -> list[YearlyResult]:
@@ -433,18 +515,129 @@ def _build_yearly(roic_delta: float, roe_delta: float) -> list[YearlyResult]:
     ]
 
 
+def _build_layer3_to_mid_edges() -> list[Edge]:
+    """3 層 KPI → 中間層の接続線を「各 KPI から上位 4 本 + 全中間層への最低 1 本保証」で構築。
+
+    LAYER3_TO_MID（サーベイ由来）と LAYER3_TO_MID_COUNT（実カウント、点線関連）を統合し、
+    KPI ごとに係数降順で上位 4 本を採用。さらに、どの KPI からも採用されなかった中間層に
+    対しては、最大係数の KPI から 1 本だけ追加する（全中間層が必ず 1 本以上の入力を持つ）。
+    """
+    # {kpi_id: {mid_id: (coef, reliability, citation)}}
+    kpi_to_mid: dict[str, dict[str, tuple[float, str, str]]] = {}
+    for from_id, to_id, coef, rel, citation in LAYER3_TO_MID + LAYER3_TO_MID_COUNT:
+        kpi_to_mid.setdefault(from_id, {})[to_id] = (coef, rel, citation)
+
+    all_mids: set[str] = set()
+    for d in kpi_to_mid.values():
+        all_mids.update(d.keys())
+
+    edges: list[Edge] = []
+    connected_mids: set[str] = set()
+
+    # Step 1: 各 KPI から上位 4 本
+    for kpi_id, mid_w in kpi_to_mid.items():
+        sorted_pairs = sorted(
+            ((mid, info) for mid, info in mid_w.items() if info[0] > 0),
+            key=lambda x: x[1][0],
+            reverse=True,
+        )
+        for mid_id, (w, rel, citation) in sorted_pairs[:4]:
+            edges.append(
+                Edge(
+                    from_id=kpi_id,
+                    to_id=mid_id,
+                    coefficient=w,
+                    reliability=rel,
+                    citation=citation,
+                )
+            )
+            connected_mids.add(mid_id)
+
+    # Step 2: 未接続中間層に最大重みの KPI から 1 本追加
+    for mid_id in sorted(all_mids - connected_mids):
+        best_kpi: str | None = None
+        best: tuple[float, str, str] = (0.0, "★", "")
+        for kpi_id, mid_w in kpi_to_mid.items():
+            info = mid_w.get(mid_id)
+            if info and info[0] > best[0]:
+                best_kpi = kpi_id
+                best = info
+        if best_kpi is not None and best[0] > 0:
+            edges.append(
+                Edge(
+                    from_id=best_kpi,
+                    to_id=mid_id,
+                    coefficient=best[0],
+                    reliability=best[1],
+                    citation=best[2],
+                )
+            )
+
+    return edges
+
+
+def _build_mid_to_fin_edges() -> list[Edge]:
+    """中間層 → 財務ドライバー（revenue/cost/capital）。
+
+    上位 4 本 + 最低 1 本保証ルール。
+    各ドライバーに対して MID_TO_FIN の対応係数で降順ソートし上位 4 本を採用。
+    どのドライバーにも採用されなかった中間層は最大寄与ドライバーへ 1 本追加。
+    """
+    drivers = ("revenue", "cost", "capital")
+    edges: list[Edge] = []
+    connected_mids: set[str] = set()
+
+    # Step 1: 各ドライバーへの上位 4 本
+    for idx, driver in enumerate(drivers):
+        mid_to_w = [
+            (mid_id, weights[idx])
+            for mid_id, weights in MID_TO_FIN.items()
+            if weights[idx] > 0
+        ]
+        mid_to_w.sort(key=lambda x: x[1], reverse=True)
+        for mid_id, w in mid_to_w[:4]:
+            edges.append(
+                Edge(
+                    from_id=mid_id,
+                    to_id=driver,
+                    coefficient=w,
+                    reliability=FIN_RELIABILITY.get(mid_id, "★"),
+                    citation="",
+                )
+            )
+            connected_mids.add(mid_id)
+
+    # Step 2: 未接続中間層を最大寄与ドライバーへ
+    for mid_id in sorted(set(MID_TO_FIN.keys()) - connected_mids):
+        weights = MID_TO_FIN[mid_id]
+        max_w = max(weights)
+        if max_w > 0:
+            max_idx = weights.index(max_w)
+            edges.append(
+                Edge(
+                    from_id=mid_id,
+                    to_id=drivers[max_idx],
+                    coefficient=max_w,
+                    reliability=FIN_RELIABILITY.get(mid_id, "★"),
+                    citation="",
+                )
+            )
+
+    return edges
+
+
 def _build_connections() -> list[Edge]:
     edges = []
-    # 9セル → 7風土
-    for cell, hudo_w in M9_7.items():
+    # 3カテゴリ → 7風土（M9_7 を平均集約した M3_7）
+    for cat, hudo_w in M3_7.items():
         for h, w in hudo_w.items():
             edges.append(
                 Edge(
-                    from_id=cell,
+                    from_id=cat,
                     to_id=h,
                     coefficient=w,
                     reliability="★",
-                    citation="接続行列9×7（仮）",
+                    citation="接続行列3×7（M9_7 平均、仮）",
                 )
             )
     # 7風土 → 4 KPI
@@ -460,63 +653,99 @@ def _build_connections() -> list[Edge]:
                         citation="接続行列7×4（仮）",
                     )
                 )
-    # 3層 → 中間層
-    for from_id, to_id, coef, rel, citation in LAYER3_TO_MID:
-        edges.append(
-            Edge(from_id=from_id, to_id=to_id, coefficient=coef, reliability=rel, citation=citation)
-        )
-    # 3層 → 実カウント中間層（点線関連）
-    for from_id, to_id, coef, rel, citation in LAYER3_TO_MID_COUNT:
-        edges.append(
-            Edge(from_id=from_id, to_id=to_id, coefficient=coef, reliability=rel, citation=citation)
-        )
-    # 中間層 → 財務ドライバー
-    for mid_id, (rc, cc, kc) in MID_TO_FIN.items():
-        rel = FIN_RELIABILITY[mid_id]
-        if rc > 0.01:
-            edges.append(Edge(from_id=mid_id, to_id="revenue", coefficient=rc, reliability=rel))
-        if cc > 0.01:
-            edges.append(Edge(from_id=mid_id, to_id="cost", coefficient=cc, reliability=rel))
-        if kc > 0.01:
-            edges.append(Edge(from_id=mid_id, to_id="capital", coefficient=kc, reliability=rel))
-    # 売上ドライバー → 売上効果（メイン）
+    # 3層 → 中間層: 「各 KPI から上位 4 本 + 全中間層への最低 1 本保証」
+    # （LAYER3_TO_MID と LAYER3_TO_MID_COUNT を統合してから top-N 抽出）
+    edges.extend(_build_layer3_to_mid_edges())
+    # 中間層 → 財務ドライバー: 「各ドライバーへ上位 4 本 + 全中間層からの最低 1 本保証」
+    edges.extend(_build_mid_to_fin_edges())
+    # v2.6 道 2: 売上ドライバー → 売上効果 / コスト → コスト削減 / 資本 → 資本効率化
+    # 係数 = PERIOD_RATIO × 該当ベース / 100（億円換算）。
+    # NotebookLM 文献値はすでに MID_TO_FIN に含まれているため、ここでは時間軸補正のみ。
     edges.append(
         Edge(
             from_id="revenue",
             to_id="sales_effect",
-            coefficient=SALES_CALIBRATION,
-            reliability="★",
-            citation="売上キャリブ（仮置き）",
+            coefficient=PERIOD_RATIO * REVENUE_M / 100,
+            reliability="★★",
+            citation="NotebookLM 39係数 × cascade × 期間内発現率1/3",
         )
     )
-    # v6: 売上効果 → ROIC（NOPAT/投下資本で理論的に算出）
+    edges.append(
+        Edge(
+            from_id="cost",
+            to_id="cost_savings",
+            coefficient=PERIOD_RATIO * REVENUE_M / 100,
+            reliability="★★",
+            citation="NotebookLM 39係数 × cascade × 期間内発現率1/3",
+        )
+    )
+    edges.append(
+        Edge(
+            from_id="capital",
+            to_id="capital_savings",
+            coefficient=PERIOD_RATIO * INVESTED_CAP / 100,
+            reliability="★★",
+            citation="NotebookLM 39係数 × cascade × 期間内発現率1/3",
+        )
+    )
+    # v7: 売上効果 → ROIC（NOPAT 寄与）
     edges.append(
         Edge(
             from_id="sales_effect",
             to_id="roic",
             coefficient=OP_MARGIN * (1 - TAX_RATE) / INVESTED_CAP * REVENUE_M,
             reliability="★★★",
-            citation="ΔROIC = ΔSales × OP_MARGIN × (1-TaxRate) / 投下資本",
+            citation="ΔROIC ⊃ ΔSales × OP_MARGIN × (1-TaxRate) / 投下資本",
         )
     )
-    # v6: ROIC → ROE は概念的に残すが、式の上では使ってない（NOPAT/Equity で直接計算）
+    # v7: コスト削減 → ROIC（NOPAT 寄与）
+    edges.append(
+        Edge(
+            from_id="cost_savings",
+            to_id="roic",
+            coefficient=(1 - TAX_RATE) / INVESTED_CAP * REVENUE_M,
+            reliability="★★★",
+            citation="ΔROIC ⊃ ΔCost × (1-TaxRate) / 投下資本",
+        )
+    )
+    # v7: 資本効率化 → ROIC（投下資本減）
+    edges.append(
+        Edge(
+            from_id="capital_savings",
+            to_id="roic",
+            coefficient=1.0,
+            reliability="★★★",
+            citation="ΔROIC ⊃ NOPAT × ΔCapital / (投下資本 × 投下資本_new)",
+        )
+    )
+    # v7: ROIC → ROE = ROIC × レバレッジ
     edges.append(
         Edge(
             from_id="roic",
             to_id="roe",
             coefficient=LEVERAGE,
             reliability="★★★",
-            citation="参考：ROE = ROIC × レバレッジの関係（v6 では NOPAT/Equity で直接計算）",
+            citation="ROE = ROIC × レバレッジ (3.29)",
         )
     )
     return edges
 
 
 def calculate(points: PointsInput) -> CascadeResult:
-    """v5: 9セル → 売上効果（メイン）+ ROIC/ROE（参考）"""
+    """v7: 3カテゴリ → 売上効果 / コスト削減 / 資本効率化 → ROIC/ROE（Excel 整合）"""
     layer3 = _calc_layer3(points)
     mid = _calc_mid(layer3)
-    drivers, sales_m, sales_oku, roic_delta, roe_delta = _calc_financial(mid)
+    (
+        drivers,
+        sales_m,
+        sales_oku,
+        cost_m,
+        cost_oku,
+        capital_m,
+        capital_oku,
+        roic_delta,
+        roe_delta,
+    ) = _calc_financial(mid)
     yearly = _build_yearly(roic_delta, roe_delta)
     connections = _build_connections()
     return CascadeResult(
@@ -526,8 +755,63 @@ def calculate(points: PointsInput) -> CascadeResult:
         drivers=drivers,
         sales_effect_m=sales_m,
         sales_effect_oku=sales_oku,
+        cost_savings_m=cost_m,
+        cost_savings_oku=cost_oku,
+        capital_savings_m=capital_m,
+        capital_savings_oku=capital_oku,
         roic_delta=roic_delta,
         roe_delta=roe_delta,
         yearly=yearly,
         connections=connections,
     )
+
+
+# ════════════════════════════════════════════════════════════
+# v2.5 仕様準拠・5/17 議論結果反映：年次推移計算
+# ════════════════════════════════════════════════════════════
+
+
+def calculate_yearly_progression(
+    points: int = 60000,
+    start_year: int = 2025,
+    full_effect_years: int = 5,
+    end_year: int = 2030,
+) -> dict[int, dict[str, float]]:
+    """線形補完で各年次の効果（売上 / コスト / 資本 / ROIC / ROE）を返す。
+
+    フル効果は与えた points を 3 カテゴリに均等配分（points/3 ずつ）して
+    既存 calculate() で求める。各年次の効果は
+    progression_ratio = (year - start_year + 1) / full_effect_years
+    に full_effect を掛けた線形補完。
+
+    v2.6: 1P = 1 万円スケール（KPI_SCALE 1/10）に合わせ、デフォルト 60,000P。
+
+    Args:
+        points: 投入ポイント総数（3 カテゴリ均等配分）
+        start_year: 効果立ち上げ初年度
+        full_effect_years: フル効果到達までの年数（progression_ratio = 1.0 になる年）
+        end_year: 出力範囲の最終年度（フル効果年を超えても線形外挿する）
+
+    Returns:
+        {year: {roic_pt, roe_pt, sales_oku, cost_oku, capital_oku, manifestation_rate}}
+        - *_pt は %ポイント単位（例: 0.196 = +0.196pt）
+        - *_oku は億円単位
+        - manifestation_rate は 0.20 = 20% 発現
+    """
+    per_cat = points / 3
+    full = calculate(PointsInput(social=per_cat, safety=per_cat, future=per_cat))
+    full_roic_pt = full.roic_delta * 100
+    full_roe_pt = full.roe_delta * 100
+
+    out: dict[int, dict[str, float]] = {}
+    for year in range(start_year, end_year + 1):
+        ratio = (year - start_year + 1) / full_effect_years
+        out[year] = {
+            "roic_pt": full_roic_pt * ratio,
+            "roe_pt": full_roe_pt * ratio,
+            "sales_oku": full.sales_effect_oku * ratio,
+            "cost_oku": full.cost_savings_oku * ratio,
+            "capital_oku": full.capital_savings_oku * ratio,
+            "manifestation_rate": ratio,
+        }
+    return out

@@ -8,7 +8,6 @@ import {
   simulateCascade,
 } from "@/lib/cascade/client";
 import {
-  CELL_LABEL,
   COMPANY_EFFECT_IDS,
   FINANCE_IDS,
   HUDO_LIST,
@@ -16,11 +15,12 @@ import {
   type IndicatorMetaMap,
 } from "@/lib/cascade/meta";
 import {
-  CELL_KEYS,
+  CATEGORY_KEYS,
+  CATEGORY_LABEL,
   ZERO_POINTS,
   type CardData,
   type CascadeResponse,
-  type CellKey,
+  type CategoryKey,
   type Edge,
   type PointsInput,
   type Reliability,
@@ -57,10 +57,10 @@ const COMPANY_EFFECT_SET = new Set<string>(COMPANY_EFFECT_IDS);
 const MID_SET = new Set<string>(MID_IDS);
 const FINANCE_SET = new Set<string>(FINANCE_IDS);
 const HUDO_SET = new Set<string>(HUDO_LIST.map((h) => h.id));
-const CELL_SET = new Set<string>(CELL_KEYS);
+const CATEGORY_SET = new Set<string>(CATEGORY_KEYS);
 
 function categoryLabelOf(id: string): string | null {
-  if (CELL_SET.has(id)) return "みんなの活動";
+  if (CATEGORY_SET.has(id)) return "みんなの活動";
   if (HUDO_SET.has(id)) return "風土・組織文化";
   if (COMPANY_EFFECT_SET.has(id)) return "会社への効果 (KPI)";
   if (MID_SET.has(id)) return "事業実績・外部評価";
@@ -175,7 +175,7 @@ function CascadeBoardInner() {
   // backend から取得した indicatorMeta に target/unit が定義されている場合は cards より優先する。
   const cardMeta = useMemo(() => {
     const m = new Map<string, CardMeta>();
-    for (const k of CELL_KEYS) m.set(k, { label: CELL_LABEL[k] });
+    for (const k of CATEGORY_KEYS) m.set(k, { label: CATEGORY_LABEL[k] });
     for (const h of HUDO_LIST) m.set(h.id, { label: h.label, description: h.desc });
     data?.cards.forEach((c) => {
       if (!c.calc_id) return;
@@ -191,23 +191,33 @@ function CascadeBoardInner() {
     return m;
   }, [data, indicatorMeta]);
 
-  // カード表示用：value（現在値）/ target / unit / qualitative を meta + backend から決定。
-  //   value: meta.baselineCurrent（静的）が優先。なければ backend の projected を使う（9セル入力で動的更新）。
+  // カード表示用：current/projected/improvement/target/unit/qualitative を meta + backend から決定。
+  //   current: meta.baselineCurrent（静的）が優先。なければ backend の current。
+  //   projected: backend の projected（P 入力で動的に変わる「達成時」値）。
+  //   improvement: backend の improvement（projected - current 相当）。
   //   target/unit: meta が定義されていれば優先。なければ backend の値。
+  //   value (旧): current が無いカード向けの後方互換フォールバック。
   const displayOf = useCallback(
     (id: string) => {
       const meta = indicatorMeta[id];
       const c = cardByCalcId.get(id);
-      const value =
+      const current =
         meta?.baselineCurrent !== undefined && meta.baselineCurrent !== null
           ? meta.baselineCurrent
-          : (c?.projected ?? null);
+          : (c?.current ?? null);
+      const projected = c?.projected ?? null;
+      const improvement = c?.improvement ?? null;
       const target =
         meta?.target !== undefined && meta.target !== null
           ? meta.target
           : (c?.target ?? null);
       const unit = meta?.unit ?? c?.unit ?? null;
+      // 旧仕様（value → target）にフォールバックする場合は value も用意。
+      const value = current ?? projected ?? null;
       return {
+        current,
+        projected,
+        improvement,
         value,
         target,
         unit,
@@ -246,7 +256,7 @@ function CascadeBoardInner() {
     return out;
   }, [activeId, adjacency]);
 
-  const handleInput = useCallback((key: CellKey, value: number) => {
+  const handleInput = useCallback((key: CategoryKey, value: number) => {
     setPoints((prev) => {
       if (prev[key] === value) return prev;
       return { ...prev, [key]: value };
@@ -276,9 +286,9 @@ function CascadeBoardInner() {
 
   const handleReset = () => setPoints(ZERO_POINTS);
   const handleSample = () => {
-    // 1セルあたり 666P → 合計 6,000P で目標達成のキャリブ
+    // v2.6: 1P = 1 万円スケール。1カテゴリあたり 20,000P → 合計 60,000P で目標達成のキャリブ
     setPoints(
-      CELL_KEYS.reduce((acc, k) => ({ ...acc, [k]: 666 }), {} as PointsInput),
+      CATEGORY_KEYS.reduce((acc, k) => ({ ...acc, [k]: 20000 }), {} as PointsInput),
     );
   };
 
@@ -398,6 +408,9 @@ function CascadeBoardInner() {
                 key={id}
                 id={id}
                 label={c.label}
+                current={d.current}
+                projected={d.projected}
+                improvement={d.improvement}
                 value={d.value}
                 target={d.target}
                 unit={d.unit}
@@ -431,6 +444,9 @@ function CascadeBoardInner() {
                 key={id}
                 id={id}
                 label={c.label}
+                current={d.current}
+                projected={d.projected}
+                improvement={d.improvement}
                 value={d.value}
                 target={d.target}
                 unit={d.unit}
@@ -460,16 +476,24 @@ function CascadeBoardInner() {
             const c = cardOf(id);
             const d = displayOf(id);
             const isMain = id === "sales_effect";
+            // 売上効果カードは current → projected の自動描画ではなく、backend で整形済みの
+            // 「+11.12 億円」一行だけを大きく表示する。
+            const valueDisplayOverride =
+              id === "sales_effect" ? c?.value_display || null : null;
             return c ? (
               <IndicatorCard
                 key={id}
                 id={id}
                 label={c.label}
+                current={d.current}
+                projected={d.projected}
+                improvement={d.improvement}
                 value={d.value}
                 target={d.target}
                 unit={d.unit}
                 qualitativeCurrent={d.qualitativeCurrent}
                 qualitativeTarget={d.qualitativeTarget}
+                valueDisplayOverride={valueDisplayOverride}
                 description={c.description}
                 reliability={c.reliability}
                 emphasis={isMain ? "main" : "default"}
